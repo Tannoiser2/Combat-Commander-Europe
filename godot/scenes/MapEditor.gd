@@ -36,6 +36,7 @@ var _painting: bool = false
 var _show_labels: bool = false
 var _undo_stack: Array = []
 var _map_label: Label = null
+var _tool_group: ButtonGroup = null
 
 ## Terreni: (etichetta, chiave)
 const TERRAIN_TOOLS := [
@@ -434,6 +435,7 @@ func _download_web(filename: String, content: String) -> void:
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new(); add_child(layer)
+	_tool_group = ButtonGroup.new()  # selezione esclusiva degli strumenti
 	var v := VBoxContainer.new(); v.position = Vector2(8, 26)
 	v.add_theme_constant_override("separation", 0)
 	v.theme = _compact_theme()
@@ -510,8 +512,11 @@ func _row_label(parent: Node, txt: String) -> void:
 
 func _tool_btn(parent: Node, lbl: String, t: String) -> void:
 	var b := Button.new(); b.text = lbl; b.toggle_mode = true
+	b.button_group = _tool_group  # solo uno attivo alla volta
 	b.add_theme_font_size_override("font_size", 10)
 	b.add_theme_constant_override("h_separation", 2)
+	if t == tool:
+		b.button_pressed = true
 	parent.add_child(b)
 	b.pressed.connect(func(): tool = t; queue_redraw())
 

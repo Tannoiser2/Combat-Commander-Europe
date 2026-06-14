@@ -8,6 +8,7 @@
 	"default": "open",
 	"elevationGroups": [],
 	"featureGroups": {
+		"railway": [],
 		"road": [
 			"A5",
 			"G8",
@@ -40,6 +41,11 @@
 			"O3",
 			"O2",
 			"O1"
+		],
+		"trail": [
+			"K5",
+			"J5",
+			"I5"
 		]
 	},
 	"id": "map1",
@@ -55,6 +61,14 @@
 		{
 			"hex": "H8",
 			"vp": 3
+		},
+		{
+			"hex": "F6",
+			"vp": 4
+		},
+		{
+			"hex": "N5",
+			"vp": 5
 		}
 	],
 	"rows": 10,
@@ -163,6 +177,76 @@
 			"feature": "fence",
 			"from": "E8",
 			"to": "E9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H3",
+			"to": "I4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "L6",
+			"to": "L7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "L7",
+			"to": "M7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "E1",
+			"to": "E2"
+		},
+		{
+			"feature": "los_clear",
+			"from": "F2",
+			"to": "G2"
+		},
+		{
+			"feature": "los_clear",
+			"from": "F3",
+			"to": "G4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "C2",
+			"to": "D2"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H8",
+			"to": "I9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I10",
+			"to": "J9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "J6",
+			"to": "K6"
+		},
+		{
+			"feature": "los_clear",
+			"from": "N6",
+			"to": "N7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "K5",
+			"to": "L5"
+		},
+		{
+			"feature": "los_clear",
+			"from": "L8",
+			"to": "M8"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I7",
+			"to": "J7"
 		}
 	],
 	"terrainGroups": {
@@ -172,8 +256,6 @@
 			"E8"
 		],
 		"field": [
-			"A9",
-			"B10",
 			"C6",
 			"D6",
 			"A5",
@@ -188,11 +270,13 @@
 			"M4",
 			"N4"
 		],
-		"stream": [
+		"water_barrier": [
 			"G7",
 			"G6"
 		],
 		"woods": [
+			"A9",
+			"B10",
 			"E2",
 			"F2",
 			"I3",
