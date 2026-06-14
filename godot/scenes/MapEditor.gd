@@ -65,7 +65,10 @@ func _json_path() -> String:
 
 func _load_existing() -> void:
 	terrain.clear(); roads.clear(); sides.clear(); elevation.clear(); objectives.clear()
-	var f := FileAccess.open(_json_path(), FileAccess.READ)
+	# Preferisci la versione salvata nel browser/utente, poi quella del progetto
+	var f := FileAccess.open("user://map%d.json" % map_num, FileAccess.READ)
+	if f == null:
+		f = FileAccess.open(_json_path(), FileAccess.READ)
 	if f == null:
 		return
 	var data: Variant = JSON.parse_string(f.get_as_text())
@@ -335,14 +338,42 @@ func _save() -> void:
 		"terrainGroups": tgroups, "featureGroups": { "road": roads.keys() },
 		"elevationGroups": elev_arr, "sideFeatures": sf, "objectives": objectives,
 	}
-	var f := FileAccess.open(_json_path(), FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(data, "\t")); f.close()
-		_status = "SALVATO map%d.json (%d terreni, %d alt., %d lati)" % [
-			map_num, terrain.size(), elevation.size(), sides.size()]
+	var json_str := JSON.stringify(data, "\t")
+	var counts := "(%d terreni, %d alt., %d lati)" % [terrain.size(), elevation.size(), sides.size()]
+
+	# 1) Persistenza nel browser/utente (IndexedDB sul web) — sopravvive ai ricaricamenti
+	var uf := FileAccess.open("user://map%d.json" % map_num, FileAccess.WRITE)
+	if uf:
+		uf.store_string(json_str); uf.close()
+
+	if OS.has_feature("web"):
+		# 2a) Sul web: scarica il file da committare
+		_download_web("map%d.json" % map_num, json_str)
+		_status = "SCARICATO map%d.json %s — mettilo in assets/maps/ e fai push" % [map_num, counts]
 	else:
-		_status = "ERRORE: il web non può salvare; usa Godot locale"
+		# 2b) Su desktop: scrive direttamente il file del progetto
+		var f := FileAccess.open(_json_path(), FileAccess.WRITE)
+		if f:
+			f.store_string(json_str); f.close()
+			_status = "SALVATO map%d.json %s" % [map_num, counts]
+		else:
+			_status = "Salvato in user:// (impossibile scrivere nel progetto)"
 	queue_redraw()
+
+
+## Avvia il download del file nel browser (solo export web).
+func _download_web(filename: String, content: String) -> void:
+	var js := """
+	(function(name, text){
+		var blob = new Blob([text], {type: 'application/json'});
+		var url = URL.createObjectURL(blob);
+		var a = document.createElement('a');
+		a.href = url; a.download = name;
+		document.body.appendChild(a); a.click();
+		setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+	})(%s, %s);
+	""" % [JSON.stringify(filename), JSON.stringify(content)]
+	JavaScriptBridge.eval(js, true)
 
 
 # ─── UI ───────────────────────────────────────────────────────────────────────
