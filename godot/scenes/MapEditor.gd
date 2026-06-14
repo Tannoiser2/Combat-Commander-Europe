@@ -34,6 +34,16 @@ var _show_labels: bool = false
 var _undo_stack: Array = []
 
 const TERRAIN_TOOLS := ["open", "woods", "field", "orchard", "building", "stream", "brush"]
+## Lati: (etichetta, chiave feature)
+const SIDE_TOOLS := [
+	["siepe", "hedge"], ["bocage", "bocage"], ["muro", "wall"],
+	["steccato", "fence"], ["dirupo", "cliff"], ["corso d'acqua", "stream_side"],
+]
+const SIDE_COLORS := {
+	"hedge": Color(0.1, 0.55, 0.1), "bocage": Color(0.05, 0.35, 0.05),
+	"wall": Color(0.5, 0.47, 0.42), "fence": Color(0.65, 0.5, 0.3),
+	"cliff": Color(0.35, 0.3, 0.28), "stream_side": Color(0.2, 0.5, 0.85),
+}
 const TINT := {
 	"open": Color(0,0,0,0), "woods": Color(0.15,0.5,0.15), "field": Color(0.9,0.8,0.2),
 	"orchard": Color(0.45,0.65,0.25), "building": Color(0.6,0.3,0.5), "stream": Color(0.2,0.5,0.85),
@@ -171,8 +181,9 @@ func _draw() -> void:
 		var ca := _center(pa.x, pa.y); var cb := _center(pb.x, pb.y)
 		var mid := (ca + cb) * 0.5
 		var perp := Vector2(-(cb - ca).normalized().y, (cb - ca).normalized().x)
-		var col := Color(0.1, 0.55, 0.1) if sides[key] == "hedge" else Color(0.5, 0.47, 0.42)
-		draw_line(mid + perp * _hsize() * 0.52, mid - perp * _hsize() * 0.52, col, 5.0)
+		var col: Color = SIDE_COLORS.get(sides[key], Color(0.6, 0.2, 0.2))
+		var wd := 6.0 if sides[key] == "bocage" else 5.0
+		draw_line(mid + perp * _hsize() * 0.52, mid - perp * _hsize() * 0.52, col, wd)
 
 	# Obiettivi
 	for obj in objectives:
@@ -275,8 +286,10 @@ func _paint(pos: Vector2, is_click: bool) -> void:
 	var h := _hex_under(pos)
 	if h.x < 0: return
 	var lbl := _label(h.x, h.y)
+	if tool in ["hedge", "bocage", "wall", "fence", "cliff", "stream_side"]:
+		_set_side(h, pos, tool, is_click)
+		queue_redraw(); return
 	match tool:
-		"hedge", "wall": _set_side(h, pos, tool, is_click)
 		"road":
 			if is_click and roads.has(lbl): roads.erase(lbl)
 			else: roads[lbl] = true
@@ -382,16 +395,24 @@ func _build_ui() -> void:
 	var layer := CanvasLayer.new(); add_child(layer)
 	var v := VBoxContainer.new(); v.position = Vector2(8, 30); layer.add_child(v)
 
+	# Riga TERRENO
 	var row1 := HBoxContainer.new(); row1.add_theme_constant_override("separation", 3); v.add_child(row1)
+	_row_label(row1, "TERRENO:")
 	for t in TERRAIN_TOOLS:
 		_tool_btn(row1, t, t)
-	_tool_btn(row1, "strada", "road")
-	_tool_btn(row1, "siepe", "hedge")
-	_tool_btn(row1, "muro", "wall")
 
+	# Riga LATI (siepi, muri, bocage…)
+	var rowS := HBoxContainer.new(); rowS.add_theme_constant_override("separation", 3); v.add_child(rowS)
+	_row_label(rowS, "LATI:")
+	for pair in SIDE_TOOLS:
+		_tool_btn(rowS, pair[0], pair[1])
+
+	# Riga ALTRO (altezze, strada, obiettivo, cancella)
 	var row2 := HBoxContainer.new(); row2.add_theme_constant_override("separation", 3); v.add_child(row2)
+	_row_label(row2, "ALTRO:")
 	_tool_btn(row2, "alt.1", "elev1"); _tool_btn(row2, "alt.2", "elev2")
 	_tool_btn(row2, "alt.3", "elev3"); _tool_btn(row2, "alt.0", "elev0")
+	_tool_btn(row2, "strada", "road")
 	_tool_btn(row2, "obiettivo", "objective")
 	_tool_btn(row2, "cancella", "erase")
 
@@ -407,6 +428,12 @@ func _build_ui() -> void:
 	var sb := Button.new(); sb.text = "💾 SALVA"; sb.pressed.connect(_save); row3.add_child(sb)
 	var bk := Button.new(); bk.text = "☰ Menù"
 	bk.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/Menu.tscn")); row3.add_child(bk)
+
+
+func _row_label(parent: Node, txt: String) -> void:
+	var l := Label.new(); l.text = txt
+	l.custom_minimum_size = Vector2(64, 0); l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	parent.add_child(l)
 
 
 func _tool_btn(parent: Node, lbl: String, t: String) -> void:

@@ -47,7 +47,7 @@ const UNIT_CLASS_LABEL := {
 enum TerrainType { OPEN, ROAD, BRUSH, WOODS, BUILDING, STREAM, HILL1, HILL2, RUBBLE, FIELD, ORCHARD }
 
 ## Lati di esagono (siepi, muri, ecc.)
-enum HexsideFeature { NONE, HEDGE, WALL, STREAM_SIDE }
+enum HexsideFeature { NONE, HEDGE, WALL, STREAM_SIDE, BOCAGE, FENCE, CLIFF }
 
 ## Stringa del JSON mappe → TerrainType
 const TERRAIN_FROM_STRING := {
@@ -59,7 +59,9 @@ const TERRAIN_FROM_STRING := {
 
 ## Stringa del JSON → HexsideFeature
 const HEXSIDE_FROM_STRING := {
-	"hedge": HexsideFeature.HEDGE, "wall": HexsideFeature.WALL, "stream": HexsideFeature.STREAM_SIDE,
+	"hedge": HexsideFeature.HEDGE, "wall": HexsideFeature.WALL,
+	"stream": HexsideFeature.STREAM_SIDE, "stream_side": HexsideFeature.STREAM_SIDE,
+	"bocage": HexsideFeature.BOCAGE, "fence": HexsideFeature.FENCE, "cliff": HexsideFeature.CLIFF,
 }
 
 ## Costo in Punti Movimento per entrare nell'esagono.
