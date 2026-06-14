@@ -87,7 +87,7 @@ func _on_menu() -> void:
 
 
 func _on_game_over(winner: int) -> void:
-	var fname := Domain.FACTION_NAMES.get(winner, "PAREGGIO")
+	var fname: String = Domain.FACTION_NAMES.get(winner, "PAREGGIO")
 	var dlg := AcceptDialog.new()
 	dlg.title = "Fine Partita"
 	dlg.dialog_text = "Vincitore: %s" % fname

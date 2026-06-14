@@ -74,7 +74,7 @@ func _draw() -> void:
 		var hd: GameState.HexData = s.hexes[key]
 		var tint: Color = TERRAIN_TINT.get(hd.terrain, Color.TRANSPARENT)
 		if tint.a > 0:
-			var parts := key.split(",")
+			var parts := String(key).split(",")
 			_draw_hex_fill(int(parts[0]), int(parts[1]), tint)
 
 	# Obiettivi
@@ -83,7 +83,7 @@ func _draw() -> void:
 
 	# Esagoni evidenziati (movimento)
 	for key in s.highlighted_hexes:
-		var parts := key.split(",")
+		var parts := String(key).split(",")
 		_draw_hex_fill(int(parts[0]), int(parts[1]), COL_HIGHLIGHT)
 
 	# Esagono selezionato
@@ -142,7 +142,7 @@ func _draw_all_units(s: GameState) -> void:
 		var stack: Array = by_hex[key]
 		# Armi prima (sotto), uomini sopra
 		stack.sort_custom(func(a, b): return a.is_weapon() and not b.is_weapon())
-		var parts := key.split(",")
+		var parts := String(key).split(",")
 		var hq := int(parts[0])
 		var hr := int(parts[1])
 		var center := _hex_center(hq, hr)
@@ -198,7 +198,7 @@ func _draw_leader_counter(u: Unit, rect: Rect2, center: Vector2, h: float) -> vo
 	# Striscia col nome
 	var stripe := Rect2(rect.position.x, rect.position.y, rect.size.x, h * 0.28)
 	draw_rect(stripe, COL_STRIPE)
-	var short_name := u.unit_name.split(" ")[0] if " " in u.unit_name else u.unit_name
+	var short_name: String = u.unit_name.split(" ")[0] if " " in u.unit_name else u.unit_name
 	_draw_text(short_name, Vector2(center.x, stripe.position.y + stripe.size.y * 0.5), 7.0, COL_TEXT, true)
 
 	# Morale in alto a destra

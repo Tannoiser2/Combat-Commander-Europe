@@ -325,8 +325,8 @@ func _count_objectives() -> int:
 
 func _end_game(winner: int) -> void:
 	_change_phase(Domain.Phase.GAME_OVER)
-	var name := Domain.FACTION_NAMES.get(winner, "PAREGGIO")
-	_log("═══ FINE PARTITA — Vincitore: %s ═══" % name)
+	var fname: String = Domain.FACTION_NAMES.get(winner, "PAREGGIO")
+	_log("═══ FINE PARTITA — Vincitore: %s ═══" % fname)
 	emit_signal("game_over", winner)
 
 

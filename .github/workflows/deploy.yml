@@ -25,9 +25,9 @@ jobs:
         uses: firebelley/godot-export@v5.2.1
         with:
           godot_executable_download_url: >-
-            https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+            https://github.com/godotengine/godot/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip
           godot_export_templates_download_url: >-
-            https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+            https://github.com/godotengine/godot/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz
           relative_project_path: ./godot
           archive_output: false
           cache: false
