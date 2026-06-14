@@ -8,8 +8,13 @@ extends Control
 @onready var log_list: ItemList = $LogPanel/LogList
 @onready var phase_label: Label = $TopBar/HBox/PhaseLabel
 @onready var turn_label: Label = $TopBar/HBox/TurnLabel
+@onready var init_label: Label = $TopBar/HBox/InitLabel
+@onready var time_label: Label = $TopBar/HBox/TimeLabel
 @onready var vp_label: Label = $TopBar/HBox/VPLabel
+@onready var deck_label: Label = $TopBar/HBox/DeckLabel
 @onready var menu_btn: Button = $TopBar/HBox/MenuBtn
+@onready var unit_info: Panel = $UnitInfo
+@onready var info_label: RichTextLabel = $UnitInfo/Margin/InfoLabel
 @onready var hand_container: HBoxContainer = $BottomBar/HBox/Cards
 @onready var end_turn_btn: Button = $BottomBar/HBox/EndTurnBtn
 
@@ -42,9 +47,48 @@ func _refresh_ui() -> void:
 	var s := Game.state
 	phase_label.text = Domain.PHASE_LABELS.get(s.phase, "—")
 	turn_label.text = "Turno %d" % s.turn_number
-	vp_label.text = "VP: %+d" % s.vp_tracker
+	init_label.text = "Iniz: %s" % Domain.FACTION_SHORT.get(s.initiative_holder, "—")
+	# Traccia del Tempo verso la Morte Subitanea (blocchi pieni/vuoti)
+	var sd: int = s.sudden_death_space
+	var filled: int = clampi(s.time_marker, 0, sd)
+	time_label.text = "Tempo %s %d/%d" % [
+		"▰".repeat(filled) + "▱".repeat(max(0, sd - filled)), s.time_marker, sd
+	]
+	# Bilancia VP (positivo = Germania avanti)
+	var leader := "GER" if s.vp_tracker > 0 else ("RUS" if s.vp_tracker < 0 else "—")
+	vp_label.text = "VP %+d (%s)" % [s.vp_tracker, leader]
+	deck_label.text = "Mazzi  GER:%d  RUS:%d" % [
+		s.german_deck.size(), s.russian_deck.size()
+	]
 	end_turn_btn.disabled = s.phase != Domain.Phase.PLAYER_TURN
 	_refresh_hand()
+	_refresh_unit_info()
+
+
+func _refresh_unit_info() -> void:
+	var s := Game.state
+	var u := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
+	if u == null:
+		unit_info.visible = false
+		return
+	unit_info.visible = true
+	var fac: String = Domain.FACTION_SHORT.get(u.faction, "?")
+	var cls: String = Domain.UNIT_CLASS_LABEL.get(u.unit_class, "")
+	var lines := "[b]%s[/b]  (%s)\n" % [u.unit_name, fac]
+	lines += "%s\n" % cls
+	lines += "PdF %d   Gittata %d   Movimento %d\n" % [u.fp, u.range, u.move]
+	lines += "Morale %d" % u.morale
+	if u.is_leader():
+		lines += "   Comando %d" % u.command
+	if u.is_weapon():
+		lines += "   (malus mov. %d)" % u.move_penalty
+	var stato: Array[String] = []
+	if not u.efficient: stato.append("inefficiente")
+	if u.suppressed: stato.append("soppressa")
+	if u.activated: stato.append("attivata")
+	if stato.size() > 0:
+		lines += "\n[i]%s[/i]" % ", ".join(stato)
+	info_label.text = lines
 
 
 func _refresh_hand() -> void:

@@ -17,28 +17,46 @@ script = ExtResource("2_hexmap")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 40.0
+offset_bottom = 42.0
 
 [node name="HBox" type="HBoxContainer" parent="TopBar"]
 layout_mode = 2
-theme_override_constants/separation = 24
+theme_override_constants/separation = 18
 
 [node name="TurnLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "Turno 1"
-custom_minimum_size = Vector2(90, 0)
+custom_minimum_size = Vector2(78, 0)
 vertical_alignment = 1
 
 [node name="PhaseLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "—"
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(190, 0)
+vertical_alignment = 1
+
+[node name="InitLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+text = "Iniz: —"
+custom_minimum_size = Vector2(110, 0)
+vertical_alignment = 1
+
+[node name="TimeLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+text = "Tempo —"
+custom_minimum_size = Vector2(150, 0)
 vertical_alignment = 1
 
 [node name="VPLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "VP: 0"
-custom_minimum_size = Vector2(80, 0)
+custom_minimum_size = Vector2(120, 0)
+vertical_alignment = 1
+
+[node name="DeckLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+text = "Mazzi —"
+custom_minimum_size = Vector2(150, 0)
 vertical_alignment = 1
 
 [node name="Spacer" type="Control" parent="TopBar/HBox"]
@@ -48,6 +66,33 @@ size_flags_horizontal = 3
 [node name="MenuBtn" type="Button" parent="TopBar/HBox"]
 layout_mode = 2
 text = "☰ Menù"
+
+[node name="UnitInfo" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -420.0
+offset_right = 300.0
+offset_bottom = -268.0
+self_modulate = Color(1, 1, 1, 0.92)
+
+[node name="Margin" type="MarginContainer" parent="UnitInfo"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="InfoLabel" type="RichTextLabel" parent="UnitInfo/Margin"]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = ""
 
 [node name="LogPanel" type="PanelContainer" parent="."]
 layout_mode = 1

@@ -123,9 +123,13 @@ func _draw() -> void:
 			var parts := String(key).split(",")
 			_draw_hex_fill(int(parts[0]), int(parts[1]), tint)
 
-	# Obiettivi
+	# Obiettivi (gettone con valore VP e controllore)
 	for obj in s.objectives:
 		_draw_hex_fill(obj.q, obj.r, COL_OBJECTIVE)
+		var oc := _hex_center(obj.q, obj.r)
+		draw_circle(oc, 11.0, Color(0.1, 0.1, 0.1, 0.85))
+		draw_arc(oc, 11.0, 0, TAU, 20, Color.WHITE, 1.5)
+		_draw_text("%d" % obj.vp, oc, 12.0, Color(1, 0.95, 0.3), true)
 
 	# Esagoni evidenziati (movimento)
 	for key in s.highlighted_hexes:
