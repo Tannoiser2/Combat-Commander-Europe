@@ -2,12 +2,19 @@
 ## Usa _draw() per SVG-like rendering direttamente su canvas.
 extends Node2D
 
-# ─── Costanti grafiche ────────────────────────────────────────────────────────
+# ─── Calibrazione (regolabile a runtime, salvata per mappa) ───────────────────
 
-const HEX_SIZE   := 48.0   ## Raggio (centro→vertice) in pixel
-const OFFSET_X   := 80.0
-const OFFSET_Y   := 70.0
-const IMG_SCALE  := 0.57
+## Valori predefiniti per mappa: "map_id" → {hex, off_x, off_y, scale}
+const CALIBRATION_DEFAULTS := {
+	"mappa1": { "hex": 47.9, "off_x": 103.7, "off_y": 26.2, "scale": 0.57 },
+}
+
+var cal_hex: float = 48.0    ## Raggio esagono (centro→vertice) in pixel
+var cal_off_x: float = 80.0  ## Centro dell'esagono (0,0)
+var cal_off_y: float = 70.0
+var cal_scale: float = 0.57  ## Scala dell'immagine mappa
+var _map_id: String = "mappa1"
+var _calib_mode: bool = false  ## true = strumento di calibrazione attivo (tasto C)
 
 ## Pedine
 const CW := 62.0   ## Larghezza pedina uomo
@@ -44,9 +51,47 @@ var _counter_cache: Dictionary = {}  ## path → Texture2D (o null se mancante)
 func _ready() -> void:
 	_map_texture = load("res://assets/mappa1.png") as Texture2D
 	_font = ThemeDB.fallback_font
+	_load_calibration()
 	Game.state_changed.connect(queue_redraw)
 	Game.unit_moved.connect(func(_id, _q, _r): queue_redraw())
 	Game.unit_eliminated.connect(func(_id): queue_redraw())
+
+
+# ─── Calibrazione ─────────────────────────────────────────────────────────────
+
+func _load_calibration() -> void:
+	# 1) Predefiniti baked per la mappa corrente
+	var d: Dictionary = CALIBRATION_DEFAULTS.get(_map_id, {})
+	if not d.is_empty():
+		cal_hex = d["hex"]; cal_off_x = d["off_x"]; cal_off_y = d["off_y"]; cal_scale = d["scale"]
+	# 2) Sovrascrittura locale dell'utente (user://), se presente
+	var f := FileAccess.open("user://calibration.json", FileAccess.READ)
+	if f:
+		var data: Variant = JSON.parse_string(f.get_as_text())
+		f.close()
+		if data is Dictionary and data.has(_map_id):
+			var u: Dictionary = data[_map_id]
+			cal_hex = u.get("hex", cal_hex)
+			cal_off_x = u.get("off_x", cal_off_x)
+			cal_off_y = u.get("off_y", cal_off_y)
+			cal_scale = u.get("scale", cal_scale)
+
+
+func _save_calibration() -> void:
+	var data: Dictionary = {}
+	var f := FileAccess.open("user://calibration.json", FileAccess.READ)
+	if f:
+		var parsed: Variant = JSON.parse_string(f.get_as_text())
+		f.close()
+		if parsed is Dictionary:
+			data = parsed
+	data[_map_id] = { "hex": cal_hex, "off_x": cal_off_x, "off_y": cal_off_y, "scale": cal_scale }
+	var w := FileAccess.open("user://calibration.json", FileAccess.WRITE)
+	if w:
+		w.store_string(JSON.stringify(data, "\t"))
+		w.close()
+	print("[CALIB] %s → hex=%.1f off_x=%.1f off_y=%.1f scale=%.3f" % [
+		_map_id, cal_hex, cal_off_x, cal_off_y, cal_scale])
 
 
 # ─── Disegno principale ───────────────────────────────────────────────────────
@@ -62,8 +107,8 @@ func _draw() -> void:
 
 	# Mappa sottostante
 	if _map_texture:
-		var tw := _map_texture.get_width()  * IMG_SCALE
-		var th := _map_texture.get_height() * IMG_SCALE
+		var tw := _map_texture.get_width()  * cal_scale
+		var th := _map_texture.get_height() * cal_scale
 		draw_texture_rect(_map_texture, Rect2(0, 0, tw, th), false)
 	elif _font:
 		draw_string(_font, Vector2(100, 120),
@@ -93,13 +138,35 @@ func _draw() -> void:
 		if u:
 			_draw_hex_fill(u.q, u.r, COL_SELECT)
 
-	# Griglia esagonale
+	# Griglia esagonale (più marcata in calibrazione)
+	var grid_col := Color(1.0, 0.1, 0.1, 0.9) if _calib_mode else Color(0.0, 0.0, 0.0, 0.25)
+	var grid_w := 2.0 if _calib_mode else 1.0
 	for q in s.map_cols:
 		for r in s.map_rows:
-			_draw_hex_outline(q, r, Color(0.0, 0.0, 0.0, 0.25), 1.0)
+			_draw_hex_outline(q, r, grid_col, grid_w)
 
-	# Pedine
-	_draw_all_units(s)
+	# Pedine (nascoste in calibrazione per non coprire la griglia)
+	if not _calib_mode:
+		_draw_all_units(s)
+	else:
+		_draw_calib_hud()
+
+
+func _draw_calib_hud() -> void:
+	# Marca i centri degli esagoni d'angolo per riferimento
+	for cell in [[0, 0], [Game.state.map_cols - 1, 0], [0, Game.state.map_rows - 1]]:
+		draw_circle(_hex_center(cell[0], cell[1]), 3.0, Color.YELLOW)
+	var lines := [
+		"CALIBRAZIONE (C per uscire)",
+		"Frecce = sposta griglia | -/+ = dimensione esagono",
+		"[ ] = scala mappa | Maiusc = passo fine | S = salva",
+		"hex=%.1f  off_x=%.1f  off_y=%.1f  scala=%.3f" % [cal_hex, cal_off_x, cal_off_y, cal_scale],
+	]
+	var y := 80.0
+	for ln in lines:
+		draw_rect(Rect2(8, y - 12, 460, 18), Color(0, 0, 0, 0.7))
+		_draw_text(ln, Vector2(14, y), 13.0, Color.WHITE, false)
+		y += 20.0
 
 
 func _draw_hex_fill(q: int, r: int, color: Color) -> void:
@@ -114,8 +181,8 @@ func _draw_hex_outline(q: int, r: int, color: Color, width: float) -> void:
 
 
 func _hex_center(q: int, r: int) -> Vector2:
-	var x := OFFSET_X + HEX_SIZE * 1.5 * q
-	var y := OFFSET_Y + HEX_SIZE * sqrt(3.0) * (r + 0.5 * (q & 1))
+	var x := cal_off_x + cal_hex * 1.5 * q
+	var y := cal_off_y + cal_hex * sqrt(3.0) * (r + 0.5 * (q & 1))
 	return Vector2(x, y)
 
 
@@ -124,7 +191,7 @@ func _hex_corners(q: int, r: int) -> Array[Vector2]:
 	var corners: Array[Vector2] = []
 	for i in range(6):
 		var angle := deg_to_rad(60.0 * i)
-		corners.append(Vector2(c.x + HEX_SIZE * cos(angle), c.y + HEX_SIZE * sin(angle)))
+		corners.append(Vector2(c.x + cal_hex * cos(angle), c.y + cal_hex * sin(angle)))
 	return corners
 
 
@@ -154,7 +221,7 @@ func _draw_all_units(s: GameState) -> void:
 			depth += 1
 		# Badge ×N se più di 1 pedina
 		if stack.size() > 1:
-			var badge_pos := center + Vector2(-HEX_SIZE * 0.6, -HEX_SIZE * 0.6)
+			var badge_pos := center + Vector2(-cal_hex * 0.6, -cal_hex * 0.6)
 			draw_circle(badge_pos, 10.0, COL_DARK)
 			_draw_text("×%d" % stack.size(), badge_pos, 9.0, COL_TEXT, true)
 
@@ -209,11 +276,38 @@ func _draw_text(txt: String, pos: Vector2, size: float, color: Color, centered: 
 # ─── Input ───────────────────────────────────────────────────────────────────
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		_handle_key(event as InputEventKey)
+		return
 	if not (event is InputEventMouseButton):
 		return
 	var mb := event as InputEventMouseButton
 	if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 		_on_click(mb.position)
+
+
+func _handle_key(k: InputEventKey) -> void:
+	# C = attiva/disattiva strumento di calibrazione
+	if k.keycode == KEY_C:
+		_calib_mode = not _calib_mode
+		queue_redraw()
+		return
+	if not _calib_mode:
+		return
+	var step := 0.5 if k.shift_pressed else 2.0
+	var hstep := 0.1 if k.shift_pressed else 0.5
+	match k.keycode:
+		KEY_LEFT:  cal_off_x -= step
+		KEY_RIGHT: cal_off_x += step
+		KEY_UP:    cal_off_y -= step
+		KEY_DOWN:  cal_off_y += step
+		KEY_MINUS, KEY_KP_SUBTRACT: cal_hex -= hstep
+		KEY_EQUAL, KEY_KP_ADD:      cal_hex += hstep
+		KEY_BRACKETLEFT:  cal_scale -= 0.005
+		KEY_BRACKETRIGHT: cal_scale += 0.005
+		KEY_S: _save_calibration()
+		_: return
+	queue_redraw()
 
 
 func _on_click(mouse_pos: Vector2) -> void:
@@ -223,7 +317,7 @@ func _on_click(mouse_pos: Vector2) -> void:
 	# Trova l'esagono cliccato
 	var clicked_q := -1
 	var clicked_r := -1
-	var best_dist := HEX_SIZE * 0.9
+	var best_dist := cal_hex * 0.9
 	for q in s.map_cols:
 		for r in s.map_rows:
 			var c := _hex_center(q, r)
