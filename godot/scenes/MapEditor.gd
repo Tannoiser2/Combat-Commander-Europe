@@ -14,9 +14,9 @@ var elevation: Dictionary = {}  ## "A1" → int (0 = base)
 var objectives: Array = []      ## [{ hex, vp }]
 
 # ─── Griglia (in pixel dell'immagine 1500px, ~uguale per tutte le mappe) ─────
-var grid_hex: float = 57.0
-var grid_ox: float = 123.5
-var grid_oy: float = 31.2
+var grid_hex: float = 55.0
+var grid_ox: float = 138.0
+var grid_oy: float = 46.0
 
 # ─── Vista (pan/zoom) ─────────────────────────────────────────────────────────
 var view_scale: float = 0.66
@@ -180,9 +180,9 @@ func _draw() -> void:
 		_text("%d" % obj["vp"], oc, 11, Color(1, 0.95, 0.3))
 
 	# HUD
-	var hud := "Mappa %d | %s | trascina=dipingi  pan=frecce  zoom=+/−  L=etichette  Ctrl+Z  S=salva | %s" % [
+	var hud := "Mappa %d | %s | trascina=dipingi  frecce=pan  Maiusc+frecce=sposta griglia  [ ]=dimensione  +/−=zoom  Ctrl+Z  S=salva | %s" % [
 		map_num, tool.to_upper(), _status]
-	draw_rect(Rect2(8, 8, 980, 18), Color(0, 0, 0, 0.7))
+	draw_rect(Rect2(8, 8, 1180, 18), Color(0, 0, 0, 0.7))
 	_text(hud, Vector2(14, 21), 12, Color.WHITE, false)
 
 
@@ -201,6 +201,15 @@ func _input(event: InputEvent) -> void:
 		var k := event as InputEventKey
 		if (k.keycode == KEY_Z) and (k.ctrl_pressed or k.meta_pressed):
 			_undo(); return
+		# Maiusc+frecce = sposta la GRIGLIA rispetto alla mappa (calibrazione)
+		if k.shift_pressed and k.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN]:
+			var gs := 1.0
+			match k.keycode:
+				KEY_LEFT: grid_ox -= gs
+				KEY_RIGHT: grid_ox += gs
+				KEY_UP: grid_oy -= gs
+				KEY_DOWN: grid_oy += gs
+			queue_redraw(); return
 		var pan := 24.0
 		match k.keycode:
 			KEY_LEFT: view_origin.x += pan; queue_redraw()
