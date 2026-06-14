@@ -19,8 +19,8 @@ var grid_ox: float = 138.0
 var grid_oy: float = 46.0
 
 # ─── Vista (pan/zoom) ─────────────────────────────────────────────────────────
-var view_scale: float = 0.6
-var view_origin: Vector2 = Vector2(16, 98)
+var view_scale: float = 0.59
+var view_origin: Vector2 = Vector2(16, 106)
 var overlay_alpha: float = 0.5   ## opacità dell'overlay dipinto (slider)
 
 # ─── Strumento ────────────────────────────────────────────────────────────────
@@ -32,6 +32,7 @@ var _status: String = ""
 var _painting: bool = false
 var _show_labels: bool = false
 var _undo_stack: Array = []
+var _map_label: Label = null
 
 const TERRAIN_TOOLS := ["open", "woods", "field", "orchard", "building", "stream", "brush"]
 ## Lati: (etichetta, chiave feature)
@@ -201,7 +202,7 @@ func _draw() -> void:
 		_text("%d" % obj["vp"], oc, 11, Color(1, 0.95, 0.3))
 
 	# HUD
-	var hud := "Mappa %d | %s | trascina=dipingi  frecce=pan  Maiusc+frecce=sposta griglia  [ ]=dimensione  +/−=zoom  Ctrl+Z  S=salva | %s" % [
+	var hud := "Mappa %d/24 | %s | trascina=dipingi  frecce=pan  Maiusc+frecce=griglia  [ ]=dimensione  +/-=zoom  Ctrl+Z  S=salva | %s" % [
 		map_num, tool.to_upper(), _status]
 	draw_rect(Rect2(8, 8, 1180, 18), Color(0, 0, 0, 0.7))
 	_text(hud, Vector2(14, 21), 12, Color.WHITE, false)
@@ -406,7 +407,9 @@ func _download_web(filename: String, content: String) -> void:
 func _build_ui() -> void:
 	var layer := CanvasLayer.new(); add_child(layer)
 	var v := VBoxContainer.new(); v.position = Vector2(8, 26)
-	v.add_theme_constant_override("separation", 0); layer.add_child(v)
+	v.add_theme_constant_override("separation", 0)
+	v.theme = _compact_theme()
+	layer.add_child(v)
 
 	# Riga TERRENO
 	var row1 := HBoxContainer.new(); row1.add_theme_constant_override("separation", 3); v.add_child(row1)
@@ -433,17 +436,35 @@ func _build_ui() -> void:
 	var opl := Label.new(); opl.text = "Opacità:"; opl.add_theme_font_size_override("font_size", 10)
 	opl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; row3.add_child(opl)
 	var sld := HSlider.new(); sld.min_value = 0.0; sld.max_value = 1.0; sld.step = 0.05
-	sld.value = overlay_alpha; sld.custom_minimum_size = Vector2(120, 0)
+	sld.value = overlay_alpha; sld.custom_minimum_size = Vector2(110, 0)
 	sld.value_changed.connect(func(val): overlay_alpha = val; queue_redraw())
 	row3.add_child(sld)
-	for d in [-1, 1]:
-		var nav := Button.new(); nav.text = "◀" if d < 0 else "▶"
-		nav.add_theme_font_size_override("font_size", 10)
-		nav.pressed.connect(func(): _change_map(d)); row3.add_child(nav)
-	var sb := Button.new(); sb.text = "💾 SALVA"; sb.add_theme_font_size_override("font_size", 10)
+	# Navigazione mappe con testo chiaro
+	var prev := Button.new(); prev.text = "< MAPPA PREC"; prev.add_theme_font_size_override("font_size", 10)
+	prev.pressed.connect(func(): _change_map(-1)); row3.add_child(prev)
+	_map_label = Label.new(); _map_label.add_theme_font_size_override("font_size", 11)
+	_map_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; row3.add_child(_map_label)
+	var nextb := Button.new(); nextb.text = "MAPPA SUCC >"; nextb.add_theme_font_size_override("font_size", 10)
+	nextb.pressed.connect(func(): _change_map(1)); row3.add_child(nextb)
+	var sb := Button.new(); sb.text = "SALVA"; sb.add_theme_font_size_override("font_size", 10)
 	sb.pressed.connect(_save); row3.add_child(sb)
-	var bk := Button.new(); bk.text = "☰ Menù"; bk.add_theme_font_size_override("font_size", 10)
+	var bk := Button.new(); bk.text = "MENU"; bk.add_theme_font_size_override("font_size", 10)
 	bk.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/Menu.tscn")); row3.add_child(bk)
+	_update_map_label()
+
+
+## Tema con pulsanti bassi (poco margine verticale) per condensare le righe.
+func _compact_theme() -> Theme:
+	var th := Theme.new()
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.22, 0.23, 0.26) if state != "pressed" else Color(0.35, 0.5, 0.7)
+		sb.content_margin_top = 1; sb.content_margin_bottom = 1
+		sb.content_margin_left = 5; sb.content_margin_right = 5
+		sb.corner_radius_top_left = 3; sb.corner_radius_top_right = 3
+		sb.corner_radius_bottom_left = 3; sb.corner_radius_bottom_right = 3
+		th.set_stylebox(state, "Button", sb)
+	return th
 
 
 func _row_label(parent: Node, txt: String) -> void:
@@ -465,4 +486,10 @@ func _change_map(delta: int) -> void:
 	map_num = clampi(map_num + delta, 1, 24)
 	# Reimposta la griglia ai default; _load_existing la sovrascrive se la mappa ha _calib
 	grid_hex = 55.0; grid_ox = 138.0; grid_oy = 46.0
-	_load_image(); _load_existing(); _undo_stack.clear(); queue_redraw()
+	_load_image(); _load_existing(); _undo_stack.clear()
+	_update_map_label(); queue_redraw()
+
+
+func _update_map_label() -> void:
+	if _map_label:
+		_map_label.text = "  Mappa %d / 24  " % map_num
