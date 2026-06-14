@@ -89,7 +89,7 @@ func play_card(hand_index: int) -> void:
 	if hand_index < 0 or hand_index >= hand.size():
 		return
 	var card: Card = hand[hand_index]
-	_log("Carta giocata: %s (%s)" % [card.card_name, Domain.ORDER_LABELS.get(card.order, "?")])
+	_log("Carta #%d giocata: %s" % [card.number, Domain.ORDER_LABELS.get(card.order, card.order_label)])
 
 	match card.order:
 		Domain.OrderType.MOVE:

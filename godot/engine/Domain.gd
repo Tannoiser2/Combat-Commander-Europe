@@ -122,14 +122,28 @@ const PHASE_LABELS := {
 
 # ─── Ordini e Azioni ─────────────────────────────────────────────────────────
 
-enum OrderType { MOVE, FIRE, ADVANCE, RECOVER, ROUT, PASS }
+enum OrderType { MOVE, FIRE, ADVANCE, RECOVER, ROUT, PASS, ARTY, ARTY_DENIED }
 enum ActionType { ASSAULT_FIRE, OPPORTUNITY_FIRE, GRENADE, HERO, ENTRENCH }
 
 const ORDER_LABELS := {
-	OrderType.MOVE:    "Mossa",
-	OrderType.FIRE:    "Fuoco",
-	OrderType.ADVANCE: "Avanzata",
-	OrderType.RECOVER: "Recupero",
-	OrderType.ROUT:    "Ritirata",
-	OrderType.PASS:    "Passa",
+	OrderType.MOVE:        "Mossa",
+	OrderType.FIRE:        "Fuoco",
+	OrderType.ADVANCE:     "Avanzata",
+	OrderType.RECOVER:     "Recupero",
+	OrderType.ROUT:        "Ritirata",
+	OrderType.PASS:        "Passa",
+	OrderType.ARTY:        "Artiglieria",
+	OrderType.ARTY_DENIED: "Artiglieria negata",
+}
+
+## Mappa la stringa orderType del JSON dei mazzi all'enum OrderType.
+const ORDER_TYPE_FROM_STRING := {
+	"move":        OrderType.MOVE,
+	"fire":        OrderType.FIRE,
+	"advance":     OrderType.ADVANCE,
+	"recover":     OrderType.RECOVER,
+	"rout":        OrderType.ROUT,
+	"pass":        OrderType.PASS,
+	"arty":        OrderType.ARTY,
+	"arty_denied": OrderType.ARTY_DENIED,
 }

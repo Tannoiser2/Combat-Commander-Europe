@@ -55,11 +55,16 @@ func _refresh_hand() -> void:
 	var hand := Game.state.hand_of(Game.state.human_faction)
 	for i in hand.size():
 		var card: Card = hand[i]
-		var btn := Button.new()
-		btn.text = "%s\n[%s]" % [card.card_name, Domain.ORDER_LABELS.get(card.order, "?")]
-		btn.custom_minimum_size = Vector2(96, 76)
-		btn.pressed.connect(_on_card_pressed.bind(i))
-		hand_container.add_child(btn)
+		var tb := TextureButton.new()
+		tb.texture_normal = load(card.face_path())
+		tb.ignore_texture_size = true
+		tb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		tb.custom_minimum_size = Vector2(78, 108)
+		tb.tooltip_text = "%s — %s" % [
+			Domain.ORDER_LABELS.get(card.order, card.order_label), card.action_name
+		]
+		tb.pressed.connect(_on_card_pressed.bind(i))
+		hand_container.add_child(tb)
 
 
 func _on_log_added(line: String) -> void:
