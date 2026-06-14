@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/map8.jpg-bb552ca2fc8738ccc2b050c33569fe0c.cte
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.6
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

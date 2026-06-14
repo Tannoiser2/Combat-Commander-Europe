@@ -97,6 +97,12 @@ func _load_existing() -> void:
 		sides[_side_key(String(sf.get("from","")), String(sf.get("to","")))] = sf.get("feature","hedge")
 	for obj in data.get("objectives", []):
 		objectives.append({ "hex": String(obj.get("hex","")), "vp": int(obj.get("vp",1)) })
+	# Taratura griglia salvata per questa mappa (se presente)
+	if data.has("_calib"):
+		var cal: Dictionary = data["_calib"]
+		grid_hex = cal.get("hex", grid_hex)
+		grid_ox = cal.get("ox", grid_ox)
+		grid_oy = cal.get("oy", grid_oy)
 
 
 # ─── Geometria ────────────────────────────────────────────────────────────────
@@ -319,10 +325,14 @@ func _set_side(h: Vector2i, pos: Vector2, feat: String, is_click: bool) -> void:
 
 
 func _toggle_objective(lbl: String) -> void:
+	# Click ripetuti: 1 → 2 → 3 → rimuovi
 	for i in objectives.size():
 		if objectives[i]["hex"] == lbl:
-			objectives.remove_at(i); return
-	objectives.append({ "hex": lbl, "vp": 2 })
+			objectives[i]["vp"] += 1
+			if objectives[i]["vp"] > 3:
+				objectives.remove_at(i)
+			return
+	objectives.append({ "hex": lbl, "vp": 1 })
 
 
 # ─── Salvataggio ──────────────────────────────────────────────────────────────
@@ -350,6 +360,7 @@ func _save() -> void:
 		"id": "map%d" % map_num, "cols": COLS, "rows": ROWS, "default": "open",
 		"terrainGroups": tgroups, "featureGroups": { "road": roads.keys() },
 		"elevationGroups": elev_arr, "sideFeatures": sf, "objectives": objectives,
+		"_calib": { "hex": grid_hex, "ox": grid_ox, "oy": grid_oy },  # taratura griglia per mappa
 	}
 	var json_str := JSON.stringify(data, "\t")
 	var counts := "(%d terreni, %d alt., %d lati)" % [terrain.size(), elevation.size(), sides.size()]
@@ -444,4 +455,6 @@ func _tool_btn(parent: Node, lbl: String, t: String) -> void:
 
 func _change_map(delta: int) -> void:
 	map_num = clampi(map_num + delta, 1, 24)
+	# Reimposta la griglia ai default; _load_existing la sovrascrive se la mappa ha _calib
+	grid_hex = 55.0; grid_ox = 138.0; grid_oy = 46.0
 	_load_image(); _load_existing(); _undo_stack.clear(); queue_redraw()
