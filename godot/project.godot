@@ -1,0 +1,20 @@
+; Configurazione motore — Combat Commander: Europe
+; Godot 4.3
+
+config_version=5
+
+[application]
+
+config/name="Combat Commander: Europe"
+config/description="Reimplementazione digitale del gioco tattico CC:E (GMT Games) — uso personale"
+config/features=PackedStringArray("4.3")
+run/main_scene="res://scenes/Main.tscn"
+
+[autoload]
+
+Domain="*res://engine/Domain.gd"
+Game="*res://engine/Game.gd"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

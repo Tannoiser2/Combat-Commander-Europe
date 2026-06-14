@@ -1,0 +1,57 @@
+[gd_scene load_steps=3 format=3 uid="uid://main"]
+
+[ext_resource type="Script" path="res://scenes/Main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scenes/HexMap.gd" id="2_hexmap"]
+
+[node name="Main" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_main")
+
+[node name="HexMap" type="Node2D" parent="."]
+script = ExtResource("2_hexmap")
+
+[node name="UI" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBox" type="VBoxContainer" parent="UI"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+
+[node name="TopBar" type="HBoxContainer" parent="UI/VBox"]
+custom_minimum_size = Vector2(0, 32)
+
+[node name="TurnLabel" type="Label" parent="UI/VBox/TopBar"]
+text = "Turno 1"
+custom_minimum_size = Vector2(90, 0)
+
+[node name="PhaseLabel" type="Label" parent="UI/VBox/TopBar"]
+text = "—"
+custom_minimum_size = Vector2(180, 0)
+
+[node name="VPLabel" type="Label" parent="UI/VBox/TopBar"]
+text = "VP: 0"
+custom_minimum_size = Vector2(80, 0)
+
+[node name="LogPanel" type="PanelContainer" parent="UI/VBox"]
+custom_minimum_size = Vector2(0, 110)
+size_flags_vertical = 3
+
+[node name="LogList" type="ItemList" parent="UI/VBox/LogPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+auto_height = false
+custom_minimum_size = Vector2(0, 100)
+
+[node name="Hand" type="HBoxContainer" parent="UI/VBox"]
+custom_minimum_size = Vector2(0, 76)
+
+[node name="Cards" type="HBoxContainer" parent="UI/VBox/Hand"]
+size_flags_horizontal = 3
+
+[node name="EndTurnBtn" type="Button" parent="UI/VBox/Hand"]
+text = "Fine Turno"
+custom_minimum_size = Vector2(100, 0)

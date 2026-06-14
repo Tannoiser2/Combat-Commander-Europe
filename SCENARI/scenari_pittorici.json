@@ -1,0 +1,194 @@
+[
+  {
+    "numero": 1,
+    "titolo": "LIPKI SOTTO PRESSIONE",
+    "luogo": "Lipki, Russia",
+    "data": "3 luglio 1941",
+    "artwork": "scenario_01_artwork.png",
+    "poster": "scenario_01_pittorico.png"
+  },
+  {
+    "numero": 2,
+    "titolo": "SIEPI E BOMBE A MANO",
+    "luogo": "Bocage, Normandia, Francia",
+    "data": "luglio 1944",
+    "artwork": "scenario_02_artwork.png",
+    "poster": "scenario_02_pittorico.png"
+  },
+  {
+    "numero": 3,
+    "titolo": "IL ROGO DELL’NKVD",
+    "luogo": "Fuori Brest-Litovsk",
+    "data": "24 giugno 1941",
+    "artwork": "scenario_03_artwork.png",
+    "poster": "scenario_03_pittorico.png"
+  },
+  {
+    "numero": 4,
+    "titolo": "CHIUSO PER RISTRUTTURAZIONE",
+    "luogo": "Humaine, Belgio",
+    "data": "27 dicembre 1944",
+    "artwork": "scenario_04_artwork.png",
+    "poster": "scenario_04_pittorico.png"
+  },
+  {
+    "numero": 5,
+    "titolo": "FRONTE FREDDO",
+    "luogo": "Staritsa, Russia",
+    "data": "30 dicembre 1941",
+    "artwork": "scenario_05_artwork.png",
+    "poster": "scenario_05_pittorico.png"
+  },
+  {
+    "numero": 6,
+    "titolo": "PARALIZZATI DA OVEST",
+    "luogo": "Sainte-Mere-Eglise, Francia",
+    "data": "7 giugno 1944",
+    "artwork": "scenario_06_artwork.png",
+    "poster": "scenario_06_pittorico.png"
+  },
+  {
+    "numero": 7,
+    "titolo": "NOTTI IN BESSARABIA",
+    "luogo": "Bessarabia",
+    "data": "aprile 1944",
+    "artwork": "scenario_07_artwork.png",
+    "poster": "scenario_07_pittorico.png"
+  },
+  {
+    "numero": 8,
+    "titolo": "DANZA DELLA SORTITA",
+    "luogo": "Velikiye-Luki, Russia",
+    "data": "gennaio 1943",
+    "artwork": "scenario_08_artwork.png",
+    "poster": "scenario_08_pittorico.png"
+  },
+  {
+    "numero": 9,
+    "titolo": "CORSA AL CONTATTO",
+    "luogo": "Periferia di Hitdorf, Germania",
+    "data": "6 aprile 1945",
+    "artwork": "scenario_09_artwork.png",
+    "poster": "scenario_09_pittorico.png"
+  },
+  {
+    "numero": 10,
+    "titolo": "SCUOLA COMMANDO",
+    "luogo": "Novorossijsk, Russia",
+    "data": "4 febbraio 1943",
+    "artwork": "scenario_10_artwork.png",
+    "poster": "scenario_10_pittorico.png"
+  },
+  {
+    "numero": 11,
+    "titolo": "TENERE LA LINEA",
+    "luogo": "Saint-Jean-de-Daye, Francia",
+    "data": "8 luglio 1944",
+    "artwork": "scenario_11_artwork.png",
+    "poster": "scenario_11_pittorico.png"
+  },
+  {
+    "numero": 12,
+    "titolo": "MONTAGNA NEBBIOSA",
+    "luogo": "Monte Castello, Italia",
+    "data": "12 dicembre 1944",
+    "artwork": "scenario_12_artwork.png",
+    "poster": "scenario_12_pittorico.png"
+  },
+  {
+    "numero": 13,
+    "titolo": "SCONTRO A MALEME",
+    "luogo": "Presso l’aeroporto di Maleme, Creta",
+    "data": "21 maggio 1941",
+    "artwork": "scenario_13_artwork.png",
+    "poster": "scenario_13_pittorico.png"
+  },
+  {
+    "numero": 14,
+    "titolo": "AL CROCEVIA",
+    "luogo": "Sochaczew, Polonia",
+    "data": "15 settembre 1939",
+    "artwork": "scenario_14_artwork.png",
+    "poster": "scenario_14_pittorico.png"
+  },
+  {
+    "numero": 15,
+    "titolo": "ARMATA ROMANA",
+    "luogo": "Bessarabia",
+    "data": "7 luglio 1941",
+    "artwork": "scenario_15_artwork.png",
+    "poster": "scenario_15_pittorico.png"
+  },
+  {
+    "numero": 16,
+    "titolo": "LA BLITZKRIEG FERMATA",
+    "luogo": "Gembloux, Francia",
+    "data": "15 maggio 1940",
+    "artwork": "scenario_16_artwork.png",
+    "poster": "scenario_16_pittorico.png"
+  },
+  {
+    "numero": 17,
+    "titolo": "PICCOLA STALINGRADO",
+    "luogo": "Ortona, Italia",
+    "data": "24 dicembre 1943",
+    "artwork": "scenario_17_artwork.png",
+    "poster": "scenario_17_pittorico.png"
+  },
+  {
+    "numero": 18,
+    "titolo": "CACCIA AL PONTE",
+    "luogo": "Fiume Nisava, Jugoslavia",
+    "data": "7 aprile 1941",
+    "artwork": "scenario_18_artwork.png",
+    "poster": "scenario_18_pittorico.png"
+  },
+  {
+    "numero": 19,
+    "titolo": "LA STAGIONE DI METAXAS",
+    "luogo": "Kilkis, Grecia",
+    "data": "7 aprile 1941",
+    "artwork": "scenario_19_artwork.png",
+    "poster": "scenario_19_pittorico.png"
+  },
+  {
+    "numero": 20,
+    "titolo": "MARCIA DI DICEMBRE",
+    "luogo": "Tolvajärvi, Finlandia",
+    "data": "12 dicembre 1939",
+    "artwork": "scenario_20_artwork.png",
+    "poster": "scenario_20_pittorico.png"
+  },
+  {
+    "numero": 21,
+    "titolo": "SANT’AGATA",
+    "luogo": "Sicilia settentrionale",
+    "data": "8 agosto 1943",
+    "artwork": "scenario_21_artwork.png",
+    "poster": "scenario_21_pittorico.png"
+  },
+  {
+    "numero": 22,
+    "titolo": "UN VERO BAGNO DI SANGUE",
+    "luogo": "A sud di Goch, Olanda",
+    "data": "17 febbraio 1945",
+    "artwork": "scenario_22_artwork.png",
+    "poster": "scenario_22_pittorico.png"
+  },
+  {
+    "numero": 23,
+    "titolo": "TERRA DI NESSUNO",
+    "luogo": "Deserto meridionale, Egitto",
+    "data": "11 agosto 1942",
+    "artwork": "scenario_23_artwork.png",
+    "poster": "scenario_23_pittorico.png"
+  },
+  {
+    "numero": 24,
+    "titolo": "SEI COLLINE",
+    "luogo": "Passo Tug Argan, Somaliland",
+    "data": "12 agosto 1940",
+    "artwork": "scenario_24_artwork.png",
+    "poster": "scenario_24_pittorico.png"
+  }
+]

@@ -1,0 +1,62 @@
+{
+  "german": {
+    "cards": 72,
+    "byOrder": {
+      "RECUPERO": 9,
+      "ROTTA": 10,
+      "MOVIMENTO": 12,
+      "ORDINI CONTRADDITTORI": 8,
+      "ARTIGLIERIA NEGATA": 2,
+      "RICHIESTA D'ARTIGLIERIA": 8,
+      "AVANZATA": 5,
+      "ORDINE/AZIONE FUOCO": 18
+    },
+    "byConsequence": {
+      "jam": 2,
+      "none": 51,
+      "sniper": 7,
+      "event": 10,
+      "time": 2
+    }
+  },
+  "russian": {
+    "cards": 72,
+    "byOrder": {
+      "RECUPERO": 9,
+      "MOVIMENTO": 13,
+      "ROTTA": 9,
+      "AVANZATA": 6,
+      "ORDINI CONTRADDITTORI": 8,
+      "RICHIESTA D'ARTIGLIERIA": 6,
+      "ARTIGLIERIA NEGATA": 3,
+      "ORDINE/AZIONE FUOCO": 18
+    },
+    "byConsequence": {
+      "jam": 4,
+      "none": 50,
+      "sniper": 8,
+      "event": 8,
+      "time": 2
+    }
+  },
+  "american": {
+    "cards": 72,
+    "byOrder": {
+      "ORDINE/AZIONE FUOCO": 20,
+      "RECUPERO": 8,
+      "ORDINI CONTRADDITTORI": 7,
+      "ROTTA": 9,
+      "MOVIMENTO": 12,
+      "ARTIGLIERIA NEGATA": 3,
+      "RICHIESTA D'ARTIGLIERIA": 9,
+      "AVANZATA": 4
+    },
+    "byConsequence": {
+      "jam": 2,
+      "none": 50,
+      "sniper": 6,
+      "event": 12,
+      "time": 2
+    }
+  }
+}

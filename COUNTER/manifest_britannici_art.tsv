@@ -1,0 +1,50 @@
+versione	tipo	nome	FP	range	move	command	morale
+Front	Leader	Hero	2	4	7	0	9
+Half	Leader	Hero	1	2	3	0	9
+Front	Leader	Private	2	1	6	2	6
+Half	Leader	Private	1	0	1	0	7
+Front	Leader	Corporal X	1	1	6	1	6
+Half	Leader	Corporal X	0	0	1	0	7
+Front	Leader	Corporal Y	1	1	6	1	7
+Half	Leader	Corporal Y	0	0	1	0	8
+Front	Leader	Sergeant X	1	1	6	1	8
+Half	Leader	Sergeant X	0	0	1	0	9
+Front	Leader	Sergeant Y	2	1	6	2	8
+Half	Leader	Sergeant Y	1	0	1	0	9
+Front	Leader	Lieutenant X	1	1	6	1	9
+Half	Leader	Lieutenant X	0	0	1	0	10
+Front	Leader	Lieutenant Y	2	1	6	2	9
+Half	Leader	Lieutenant Y	1	0	1	0	10
+Front	Leader	Captain	2	1	6	2	10
+Half	Leader	Captain	1	0	1	0	11
+Front	Squad	Engineer	7	3	5		8
+Half	Squad	Engineer	4	1	1		9
+Front	Squad	Airborne	6	4	5		8
+Half	Squad	Airborne	3	1	1		9
+Front	Squad	Guards	5	5	5		7
+Half	Squad	Guards	2	1	1		8
+Front	Squad	Line	5	5	4		7
+Half	Squad	Line	2	1	1		7
+Front	Squad	Territorial	5	4	3		7
+Half	Squad	Territorial	2	1	1		6
+Front	Team	Weapon	2	2	4		8
+Half	Team	Weapon	1	1	1		9
+Front	Team	Elite	3	3	5		7
+Half	Team	Elite	1	1	1		7
+Front	Team	Line	3	3	4		7
+Half	Team	Line	1	1	1		6
+Front	Team	Green	3	3	3		7
+Half	Team	Green	1	1	1		5
+Front	Weapon	Flamethrower	11	1			
+Front	Weapon	Satchel Charge	12	1			
+Front	Weapon	Light MG	3	7			
+Front	Weapon	Heavy MG	7	14	-2		
+Front	Weapon	Light Mortar	5	2-11	-1		
+Front	Weapon	Medium Mortar	7	3-16	-3		
+Front	Weapon	25-Pounder	10	16	-5		
+Front	Radio	Radio - 75-76mm	8				
+Front	Radio	Radio - 81-88mm	9				
+Front	Radio	Radio - 105-114mm	10				
+Front	Radio	Radio - 120-140mm	11				
+Front	Radio	Radio - 150-155mm	12				
+Front	Radio	Radio - 183-203mm	13				

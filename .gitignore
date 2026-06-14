@@ -1,0 +1,27 @@
+# ─── Cronologia precedente preservata localmente (mai pubblicare) ────────────
+.git.bak/
+
+# ─── File di lavoro pesanti (oltre il limite GitHub di 100 MB) ───────────────
+*.psd
+*.psb
+*.ai
+*.xcf
+
+# ─── Godot: cache import ed esportazioni ─────────────────────────────────────
+godot/.godot/
+godot/build/
+godot/export/
+*.tmp
+
+# ─── macOS / editor ──────────────────────────────────────────────────────────
+.DS_Store
+*.local
+.vscode/
+.idea/
+
+# ─── Log e dipendenze (resti dell'app React) ─────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.log
+*.tsbuildinfo
