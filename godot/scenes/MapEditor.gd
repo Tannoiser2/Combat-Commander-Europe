@@ -19,8 +19,8 @@ var grid_ox: float = 138.0
 var grid_oy: float = 46.0
 
 # ─── Vista (pan/zoom) ─────────────────────────────────────────────────────────
-var view_scale: float = 0.58
-var view_origin: Vector2 = Vector2(16, 124)
+var view_scale: float = 0.6
+var view_origin: Vector2 = Vector2(16, 98)
 var overlay_alpha: float = 0.5   ## opacità dell'overlay dipinto (slider)
 
 # ─── Strumento ────────────────────────────────────────────────────────────────
@@ -75,10 +75,11 @@ func _json_path() -> String:
 
 func _load_existing() -> void:
 	terrain.clear(); roads.clear(); sides.clear(); elevation.clear(); objectives.clear()
-	# Preferisci la versione salvata nel browser/utente, poi quella del progetto
-	var f := FileAccess.open("user://map%d.json" % map_num, FileAccess.READ)
+	# Preferisci il file del PROGETTO (committato); il browser solo come ripiego
+	# per le mappe non ancora committate (3-24).
+	var f := FileAccess.open(_json_path(), FileAccess.READ)
 	if f == null:
-		f = FileAccess.open(_json_path(), FileAccess.READ)
+		f = FileAccess.open("user://map%d.json" % map_num, FileAccess.READ)
 	if f == null:
 		return
 	var data: Variant = JSON.parse_string(f.get_as_text())
@@ -404,8 +405,8 @@ func _download_web(filename: String, content: String) -> void:
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new(); add_child(layer)
-	var v := VBoxContainer.new(); v.position = Vector2(8, 28)
-	v.add_theme_constant_override("separation", 2); layer.add_child(v)
+	var v := VBoxContainer.new(); v.position = Vector2(8, 26)
+	v.add_theme_constant_override("separation", 0); layer.add_child(v)
 
 	# Riga TERRENO
 	var row1 := HBoxContainer.new(); row1.add_theme_constant_override("separation", 3); v.add_child(row1)
@@ -429,7 +430,7 @@ func _build_ui() -> void:
 	_tool_btn(row2, "cancella", "erase")
 
 	var row3 := HBoxContainer.new(); row3.add_theme_constant_override("separation", 5); v.add_child(row3)
-	var opl := Label.new(); opl.text = "Opacità:"; opl.add_theme_font_size_override("font_size", 11)
+	var opl := Label.new(); opl.text = "Opacità:"; opl.add_theme_font_size_override("font_size", 10)
 	opl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; row3.add_child(opl)
 	var sld := HSlider.new(); sld.min_value = 0.0; sld.max_value = 1.0; sld.step = 0.05
 	sld.value = overlay_alpha; sld.custom_minimum_size = Vector2(120, 0)
@@ -437,24 +438,24 @@ func _build_ui() -> void:
 	row3.add_child(sld)
 	for d in [-1, 1]:
 		var nav := Button.new(); nav.text = "◀" if d < 0 else "▶"
-		nav.add_theme_font_size_override("font_size", 11)
+		nav.add_theme_font_size_override("font_size", 10)
 		nav.pressed.connect(func(): _change_map(d)); row3.add_child(nav)
-	var sb := Button.new(); sb.text = "💾 SALVA"; sb.add_theme_font_size_override("font_size", 11)
+	var sb := Button.new(); sb.text = "💾 SALVA"; sb.add_theme_font_size_override("font_size", 10)
 	sb.pressed.connect(_save); row3.add_child(sb)
-	var bk := Button.new(); bk.text = "☰ Menù"; bk.add_theme_font_size_override("font_size", 11)
+	var bk := Button.new(); bk.text = "☰ Menù"; bk.add_theme_font_size_override("font_size", 10)
 	bk.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/Menu.tscn")); row3.add_child(bk)
 
 
 func _row_label(parent: Node, txt: String) -> void:
 	var l := Label.new(); l.text = txt
-	l.add_theme_font_size_override("font_size", 11)
+	l.add_theme_font_size_override("font_size", 10)
 	l.custom_minimum_size = Vector2(54, 0); l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	parent.add_child(l)
 
 
 func _tool_btn(parent: Node, lbl: String, t: String) -> void:
 	var b := Button.new(); b.text = lbl; b.toggle_mode = true
-	b.add_theme_font_size_override("font_size", 11)
+	b.add_theme_font_size_override("font_size", 10)
 	b.add_theme_constant_override("h_separation", 2)
 	parent.add_child(b)
 	b.pressed.connect(func(): tool = t; queue_redraw())
