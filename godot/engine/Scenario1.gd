@@ -102,19 +102,19 @@ static func _german_units() -> Array[Unit]:
 
 	var list: Array[Unit] = []
 
-	list.append(_u("ger-0", G, LD, EL, "Lt. v. Karstens",
+	list.append(_u("ger-0", G, LD, EL, "Lt. v. Karstens", "Lieutenant Y",
 		2,false, 1,false, 6, 9, 2, 0,   13, 4))
-	list.append(_u("ger-1", G, LD, RI, "Cpl. Winkler",
+	list.append(_u("ger-1", G, LD, RI, "Cpl. Winkler", "Corporal X",
 		1,false, 1,false, 6, 6, 1, 0,   13, 6))
-	list.append(_u("ger-2", G, SQ, RI, "Rifle 1",
+	list.append(_u("ger-2", G, SQ, RI, "Rifle 1", "Rifle",
 		5,false, 5,true,  4, 7, 0, 0,   12, 3))
-	list.append(_u("ger-3", G, SQ, RI, "Rifle 2",
+	list.append(_u("ger-3", G, SQ, RI, "Rifle 2", "Rifle",
 		5,false, 5,true,  4, 7, 0, 0,   14, 3))
-	list.append(_u("ger-4", G, SQ, RI, "Rifle 3",
+	list.append(_u("ger-4", G, SQ, RI, "Rifle 3", "Rifle",
 		5,false, 5,true,  4, 7, 0, 0,   12, 5))
-	list.append(_u("ger-5", G, SQ, RI, "Rifle 4",
+	list.append(_u("ger-5", G, SQ, RI, "Rifle 4", "Rifle",
 		5,false, 5,true,  4, 7, 0, 0,   14, 5))
-	list.append(_u("ger-6", G, WP, MG, "Light MG",
+	list.append(_u("ger-6", G, WP, MG, "Light MG", "Light MG",
 		4,true,  8,false, -2, 7, 0, -2, 12, 4))
 
 	return list
@@ -135,43 +135,44 @@ static func _russian_units() -> Array[Unit]:
 
 	var list: Array[Unit] = []
 
-	list.append(_u("rus-0", R, LD, EL, "Sgt. Kovalev",
+	list.append(_u("rus-0", R, LD, EL, "Sgt. Kovalev", "Sergeant Y",
 		2,false, 1,false, 6, 8, 2, 0,   1, 4))
-	list.append(_u("rus-1", R, LD, RI, "Cpl. Koylov",
+	list.append(_u("rus-1", R, LD, RI, "Cpl. Koylov", "Corporal Y",
 		1,false, 1,false, 6, 7, 1, 0,   1, 6))
-	list.append(_u("rus-2", R, SQ, RI, "Rifle 1",
-		5,false, 3,false, 4, 7, 0, 0,   0, 2))
-	list.append(_u("rus-3", R, SQ, RI, "Rifle 2",
-		5,false, 3,false, 4, 7, 0, 0,   0, 3))
-	list.append(_u("rus-4", R, SQ, RI, "Rifle 3",
-		5,false, 3,false, 4, 7, 0, 0,   0, 5))
-	list.append(_u("rus-5", R, SQ, RI, "Rifle 4",
-		5,false, 3,false, 4, 7, 0, 0,   0, 6))
-	list.append(_u("rus-6", R, SQ, RI, "Rifle 5",
-		5,false, 3,false, 4, 7, 0, 0,   1, 2))
-	list.append(_u("rus-7", R, SQ, RI, "Rifle 6",
-		5,false, 3,false, 4, 7, 0, 0,   1, 3))
-	list.append(_u("rus-8", R, SQ, RI, "Rifle 7",
-		5,false, 3,false, 4, 7, 0, 0,   2, 3))
-	list.append(_u("rus-9", R, SQ, RI, "Rifle 8",
-		5,false, 3,false, 4, 7, 0, 0,   2, 5))
-	list.append(_u("rus-10", R, WP, MG, "Medium MG 1",
+	list.append(_u("rus-2", R, SQ, RI, "Rifle 1", "Rifle",
+		5,false, 3,false, 4, 8, 0, 0,   0, 2))
+	list.append(_u("rus-3", R, SQ, RI, "Rifle 2", "Rifle",
+		5,false, 3,false, 4, 8, 0, 0,   0, 3))
+	list.append(_u("rus-4", R, SQ, RI, "Rifle 3", "Rifle",
+		5,false, 3,false, 4, 8, 0, 0,   0, 5))
+	list.append(_u("rus-5", R, SQ, RI, "Rifle 4", "Rifle",
+		5,false, 3,false, 4, 8, 0, 0,   0, 6))
+	list.append(_u("rus-6", R, SQ, RI, "Rifle 5", "Rifle",
+		5,false, 3,false, 4, 8, 0, 0,   1, 2))
+	list.append(_u("rus-7", R, SQ, RI, "Rifle 6", "Rifle",
+		5,false, 3,false, 4, 8, 0, 0,   1, 3))
+	list.append(_u("rus-8", R, SQ, RI, "Rifle 7", "Rifle",
+		5,false, 3,false, 4, 8, 0, 0,   2, 3))
+	list.append(_u("rus-9", R, SQ, RI, "Rifle 8", "Rifle",
+		5,false, 3,false, 4, 8, 0, 0,   2, 5))
+	list.append(_u("rus-10", R, WP, MG, "Medium MG 1", "Medium MG",
 		6,true, 10,false, -2, 7, 0, -2, 1, 5))
-	list.append(_u("rus-11", R, WP, MG, "Medium MG 2",
+	list.append(_u("rus-11", R, WP, MG, "Medium MG 2", "Medium MG",
 		6,true, 10,false, -2, 7, 0, -2, 2, 4))
-	list.append(_u("rus-12", R, WP, MG, "Light MG",
+	list.append(_u("rus-12", R, WP, MG, "Light MG", "Light MG",
 		3,true,  6,false, -1, 7, 0, -1, 0, 4))
 
 	return list
 
 
 static func _u(
-	id: String, faction: int, type: int, cls: int, name: String,
+	id: String, faction: int, type: int, cls: int, name: String, art: String,
 	fp: int, fp_b: bool, rng: int, rng_b: bool,
 	mv: int, mor: int, cmd: int, mv_pen: int,
 	q: int, r: int
 ) -> Unit:
 	var u := Unit.new(id, faction, type, cls, name)
+	u.art_name = art
 	u.fp = fp;  u.fp_boxed = fp_b
 	u.range = rng; u.range_boxed = rng_b
 	u.move = mv; u.morale = mor

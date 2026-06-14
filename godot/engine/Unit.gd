@@ -9,6 +9,7 @@ var faction: int       # Domain.Faction
 var type: int          # Domain.UnitType
 var unit_class: int    # Domain.UnitClass
 var unit_name: String
+var art_name: String = ""  ## Nome del file segnalino (senza estensione), es. "Lieutenant Y"
 
 # ─── Statistiche (dalla pedina fisica) ───────────────────────────────────────
 var fp: int = 0
@@ -64,6 +65,7 @@ func hex_key() -> String:
 
 func clone() -> Unit:
 	var u := Unit.new(id, faction, type, unit_class, unit_name)
+	u.art_name = art_name
 	u.fp = fp; u.fp_boxed = fp_boxed
 	u.range = range; u.range_boxed = range_boxed
 	u.move = move; u.morale = morale

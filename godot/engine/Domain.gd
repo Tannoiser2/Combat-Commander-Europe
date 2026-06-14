@@ -15,6 +15,12 @@ const FACTION_NAMES := {
 	Faction.RUSSIAN: "Russia",
 }
 
+## Cartella dei segnalini (arte) per fazione, sotto res://assets/counters/
+const FACTION_ART_DIR := {
+	Faction.GERMAN:  "Tedeschi",
+	Faction.RUSSIAN: "Russi",
+}
+
 const FACTION_SHORT := {
 	Faction.GERMAN:  "GER",
 	Faction.RUSSIAN: "RUS",

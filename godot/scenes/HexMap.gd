@@ -38,6 +38,7 @@ const TERRAIN_TINT := {
 
 var _map_texture: Texture2D = null
 var _font: Font = null
+var _counter_cache: Dictionary = {}  ## path → Texture2D (o null se mancante)
 
 
 func _ready() -> void:
@@ -158,106 +159,41 @@ func _draw_all_units(s: GameState) -> void:
 			_draw_text("×%d" % stack.size(), badge_pos, 9.0, COL_TEXT, true)
 
 
+## Restituisce la texture del segnalino per l'unità (fronte o rovescio).
+func _counter_texture(u: Unit) -> Texture2D:
+	if u.art_name == "":
+		return null
+	var folder: String = Domain.FACTION_ART_DIR.get(u.faction, "")
+	# Le armi non hanno rovescio; uomini inefficienti usano la cartella _Half
+	if not u.efficient and not u.is_weapon():
+		folder += "_Half"
+	var path := "res://assets/counters/%s/%s.png" % [folder, u.art_name]
+	if not _counter_cache.has(path):
+		_counter_cache[path] = load(path)
+	return _counter_cache[path]
+
+
 func _draw_counter(u: Unit, center: Vector2) -> void:
-	var w := WCW if u.is_weapon() else CW
-	var h := WCW if u.is_weapon() else CH
-	var rect := Rect2(center.x - w * 0.5, center.y - h * 0.5, w, h)
-	var bg := COL_GER if u.faction == Domain.Faction.GERMAN else COL_RUS
+	var sz := WCW if u.is_weapon() else CW
+	var rect := Rect2(center.x - sz * 0.5, center.y - sz * 0.5, sz, sz)
+	var tex := _counter_texture(u)
 
-	# Sfondo
-	draw_rect(rect, bg)
-	draw_rect(rect, COL_DARK, false, 1.5)
-
-	if u.is_weapon():
-		_draw_weapon_counter(u, rect, center)
-	elif u.is_leader():
-		_draw_leader_counter(u, rect, center, h)
+	if tex:
+		# Ombra sottile per stacco dal fondo
+		draw_rect(Rect2(rect.position + Vector2(2, 2), rect.size), Color(0, 0, 0, 0.35))
+		draw_texture_rect(tex, rect, false)
 	else:
-		_draw_squad_counter(u, rect, center, h)
+		# Ripiego: rettangolo colorato col nome, se l'arte manca
+		var bg := COL_GER if u.faction == Domain.Faction.GERMAN else COL_RUS
+		draw_rect(rect, bg)
+		_draw_text(u.unit_name, center, 8.0, COL_TEXT, true)
+
+	# Bordo
+	draw_rect(rect, COL_DARK, false, 1.5)
 
 	# Overlay soppressione
 	if u.suppressed:
 		draw_rect(rect, Color(1.0, 0.0, 0.0, 0.35))
-
-
-func _draw_squad_counter(u: Unit, rect: Rect2, center: Vector2, h: float) -> void:
-	# Striscia superiore
-	var stripe := Rect2(rect.position.x, rect.position.y, rect.size.x, h * 0.28)
-	draw_rect(stripe, COL_STRIPE)
-	_draw_text("Rifle", Vector2(center.x, stripe.position.y + stripe.size.y * 0.5), 8.0, COL_TEXT, true)
-
-	# Morale (in alto a destra)
-	var mor_pos := Vector2(rect.position.x + rect.size.x - 9.0, rect.position.y + 9.0)
-	_draw_text(str(u.morale), mor_pos, 10.0, COL_MORALE, true)
-
-	# Statistiche in basso: FP | Range | Move
-	_draw_bottom_stats(u, rect, center, h)
-
-
-func _draw_leader_counter(u: Unit, rect: Rect2, center: Vector2, h: float) -> void:
-	# Striscia col nome
-	var stripe := Rect2(rect.position.x, rect.position.y, rect.size.x, h * 0.28)
-	draw_rect(stripe, COL_STRIPE)
-	var short_name: String = u.unit_name.split(" ")[0] if " " in u.unit_name else u.unit_name
-	_draw_text(short_name, Vector2(center.x, stripe.position.y + stripe.size.y * 0.5), 7.0, COL_TEXT, true)
-
-	# Morale in alto a destra
-	var mor_pos := Vector2(rect.position.x + rect.size.x - 9.0, rect.position.y + 9.0)
-	_draw_text(str(u.morale), mor_pos, 11.0, COL_MORALE, true)
-
-	# Comando in cerchio al centro-destra
-	var cmd_pos := Vector2(rect.position.x + rect.size.x - 10.0, center.y)
-	draw_circle(cmd_pos, 9.0, COL_CMD)
-	draw_arc(cmd_pos, 9.0, 0, TAU, 24, COL_DARK, 1.5)
-	_draw_text(str(u.command), cmd_pos, 9.0, COL_DARK, true)
-
-	# Stats in basso
-	_draw_bottom_stats(u, rect, center, h)
-
-
-func _draw_weapon_counter(u: Unit, rect: Rect2, center: Vector2) -> void:
-	# Nome arma in striscia piccola
-	var stripe := Rect2(rect.position.x, rect.position.y, rect.size.x, WCW * 0.30)
-	draw_rect(stripe, COL_STRIPE)
-	var label := u.unit_name.replace(" MG", "MG").replace("Light ", "Lt.").replace("Medium ", "Med.")
-	_draw_text(label, Vector2(center.x, stripe.position.y + stripe.size.y * 0.5), 7.0, COL_TEXT, true)
-
-	# Stats FP/Range/Move in basso
-	var bot_y := rect.position.y + rect.size.y - 9.0
-	var sections := 3
-	var sw := rect.size.x / sections
-	# FP
-	var fp_pos := Vector2(rect.position.x + sw * 0.5, bot_y)
-	_draw_stat(str(u.fp), fp_pos, 9.0, u.fp_boxed, rect)
-	# Range
-	var rng_pos := Vector2(rect.position.x + sw * 1.5, bot_y)
-	_draw_stat(str(u.range), rng_pos, 9.0, u.range_boxed, rect)
-	# Move penalty
-	var mv_pos := Vector2(rect.position.x + sw * 2.5, bot_y)
-	_draw_text(str(u.move_penalty), mv_pos, 9.0, COL_TEXT, true)
-
-
-func _draw_bottom_stats(u: Unit, rect: Rect2, center: Vector2, h: float) -> void:
-	var bot_y := rect.position.y + h - 9.0
-	var sections := 3
-	var sw := rect.size.x / sections
-	# FP
-	var fp_pos := Vector2(rect.position.x + sw * 0.5, bot_y)
-	_draw_stat(str(u.fp), fp_pos, 9.0, u.fp_boxed, rect)
-	# Range
-	var rng_pos := Vector2(rect.position.x + sw * 1.5, bot_y)
-	_draw_stat(str(u.range), rng_pos, 9.0, u.range_boxed, rect)
-	# Move
-	var mv_pos := Vector2(rect.position.x + sw * 2.5, bot_y)
-	_draw_text(str(u.move), mv_pos, 9.0, COL_TEXT, true)
-
-
-func _draw_stat(txt: String, pos: Vector2, size: float, boxed: bool, _rect: Rect2) -> void:
-	if boxed:
-		var tw := size * 0.65 * txt.length() + 4.0
-		var box := Rect2(pos.x - tw * 0.5, pos.y - size * 0.7, tw, size + 2.0)
-		draw_rect(box, COL_TEXT, false, 1.2)
-	_draw_text(txt, pos, size, COL_TEXT, true)
 
 
 func _draw_text(txt: String, pos: Vector2, size: float, color: Color, centered: bool) -> void:
