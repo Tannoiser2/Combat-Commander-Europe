@@ -15,6 +15,7 @@ var cal_off_y: float = 70.0
 var cal_scale: float = 0.57  ## Scala dell'immagine mappa
 var _map_id: String = "mappa1"
 var _calib_mode: bool = false  ## true = strumento di calibrazione attivo (tasto C)
+var _terrain_debug: bool = false  ## true = mostra le tinte del terreno (tasto T)
 
 ## Pedine
 const CW := 62.0   ## Larghezza pedina uomo
@@ -39,6 +40,8 @@ const TERRAIN_TINT := {
 	Domain.TerrainType.BUILDING: Color(0.55, 0.45, 0.35, 0.55),
 	Domain.TerrainType.ROAD:     Color(0.70, 0.60, 0.40, 0.35),
 	Domain.TerrainType.STREAM:   Color(0.20, 0.45, 0.70, 0.45),
+	Domain.TerrainType.FIELD:    Color(0.85, 0.75, 0.20, 0.40),
+	Domain.TerrainType.ORCHARD:  Color(0.40, 0.60, 0.25, 0.40),
 }
 
 # ─── Riferimenti ──────────────────────────────────────────────────────────────
@@ -115,13 +118,17 @@ func _draw() -> void:
 			"[mappa non caricata: res://assets/mappa1.png]",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.6, 0.6))
 
-	# Tinte terreno
-	for key in s.hexes:
-		var hd: GameState.HexData = s.hexes[key]
-		var tint: Color = TERRAIN_TINT.get(hd.terrain, Color.TRANSPARENT)
-		if tint.a > 0:
-			var parts := String(key).split(",")
-			_draw_hex_fill(int(parts[0]), int(parts[1]), tint)
+	# Tinte terreno — solo in debug (tasto T); di norma la mappa le mostra già
+	if _terrain_debug:
+		for key in s.hexes:
+			var hd: GameState.HexData = s.hexes[key]
+			var tint: Color = TERRAIN_TINT.get(hd.terrain, Color.TRANSPARENT)
+			if tint.a > 0:
+				var parts := String(key).split(",")
+				_draw_hex_fill(int(parts[0]), int(parts[1]), tint)
+			if hd.has_road:
+				var p2 := String(key).split(",")
+				_draw_hex_fill(int(p2[0]), int(p2[1]), Color(0.7, 0.6, 0.4, 0.4))
 
 	# Obiettivi (gettone con valore VP e controllore)
 	for obj in s.objectives:
@@ -149,11 +156,38 @@ func _draw() -> void:
 		for r in s.map_rows:
 			_draw_hex_outline(q, r, grid_col, grid_w)
 
+	# Lati di esagono (siepi/muri) come elementi di gioco
+	_draw_side_features(s)
+
 	# Pedine (nascoste in calibrazione per non coprire la griglia)
 	if not _calib_mode:
 		_draw_all_units(s)
 	else:
 		_draw_calib_hud()
+
+
+## Disegna i lati di esagono (siepi = verde, muri = grigio) sul bordo condiviso.
+func _draw_side_features(s: GameState) -> void:
+	for sf in s.side_features:
+		var a: Vector2i = sf["a"]
+		var b: Vector2i = sf["b"]
+		var ca := _hex_center(a.x, a.y)
+		var cb := _hex_center(b.x, b.y)
+		var mid := (ca + cb) * 0.5
+		# Direzione del bordo = perpendicolare alla congiungente dei centri
+		var dir := (cb - ca).normalized()
+		var perp := Vector2(-dir.y, dir.x)
+		var half := cal_hex * 0.52
+		var p1 := mid + perp * half
+		var p2 := mid - perp * half
+		var feat: int = sf["feature"]
+		var col := Color(0.15, 0.45, 0.12, 0.95)  # siepe verde
+		var w := 4.0
+		if feat == Domain.HexsideFeature.WALL:
+			col = Color(0.45, 0.42, 0.38, 0.95); w = 5.0
+		elif feat == Domain.HexsideFeature.STREAM_SIDE:
+			col = Color(0.2, 0.45, 0.75, 0.9)
+		draw_line(p1, p2, col, w)
 
 
 func _draw_calib_hud() -> void:
@@ -294,6 +328,10 @@ func _handle_key(k: InputEventKey) -> void:
 	# C = attiva/disattiva strumento di calibrazione
 	if k.keycode == KEY_C:
 		_calib_mode = not _calib_mode
+		queue_redraw()
+		return
+	if k.keycode == KEY_T:
+		_terrain_debug = not _terrain_debug
 		queue_redraw()
 		return
 	if not _calib_mode:

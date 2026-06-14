@@ -44,7 +44,23 @@ const UNIT_CLASS_LABEL := {
 
 # ─── Terreno ─────────────────────────────────────────────────────────────────
 
-enum TerrainType { OPEN, ROAD, BRUSH, WOODS, BUILDING, STREAM, HILL1, HILL2, RUBBLE }
+enum TerrainType { OPEN, ROAD, BRUSH, WOODS, BUILDING, STREAM, HILL1, HILL2, RUBBLE, FIELD, ORCHARD }
+
+## Lati di esagono (siepi, muri, ecc.)
+enum HexsideFeature { NONE, HEDGE, WALL, STREAM_SIDE }
+
+## Stringa del JSON mappe → TerrainType
+const TERRAIN_FROM_STRING := {
+	"open": TerrainType.OPEN, "road": TerrainType.ROAD, "brush": TerrainType.BRUSH,
+	"woods": TerrainType.WOODS, "building": TerrainType.BUILDING, "stream": TerrainType.STREAM,
+	"field": TerrainType.FIELD, "orchard": TerrainType.ORCHARD,
+	"hill1": TerrainType.HILL1, "hill2": TerrainType.HILL2, "rubble": TerrainType.RUBBLE,
+}
+
+## Stringa del JSON → HexsideFeature
+const HEXSIDE_FROM_STRING := {
+	"hedge": HexsideFeature.HEDGE, "wall": HexsideFeature.WALL, "stream": HexsideFeature.STREAM_SIDE,
+}
 
 ## Costo in Punti Movimento per entrare nell'esagono.
 const TERRAIN_MOVE_COST := {
@@ -57,6 +73,8 @@ const TERRAIN_MOVE_COST := {
 	TerrainType.HILL1:    2,
 	TerrainType.HILL2:    3,
 	TerrainType.RUBBLE:   2,
+	TerrainType.FIELD:    1,
+	TerrainType.ORCHARD:  1,
 }
 
 ## Copertura aggiunta al tiro di morale del difensore.
@@ -70,6 +88,8 @@ const TERRAIN_COVER := {
 	TerrainType.HILL1:    1,
 	TerrainType.HILL2:    2,
 	TerrainType.RUBBLE:   2,
+	TerrainType.FIELD:    1,
+	TerrainType.ORCHARD:  1,
 }
 
 ## Blocco della LOS: true = questo terreno interrompe la linea di vista.
@@ -83,7 +103,17 @@ const TERRAIN_BLOCKS_LOS := {
 	TerrainType.HILL1:    false,
 	TerrainType.HILL2:    true,
 	TerrainType.RUBBLE:   false,
+	TerrainType.FIELD:    false,
+	TerrainType.ORCHARD:  false,
 }
+
+## Etichetta esagono "A1" ↔ coordinate (q,r). Colonna = lettera, riga = numero-1.
+static func label_to_qr(lbl: String) -> Vector2i:
+	if lbl.length() < 2:
+		return Vector2i(-1, -1)
+	var q := lbl.unicode_at(0) - 65
+	var r := int(lbl.substr(1)) - 1
+	return Vector2i(q, r)
 
 
 # ─── Griglia hex flat-top, offset colonne ────────────────────────────────────

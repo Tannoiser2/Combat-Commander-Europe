@@ -11,6 +11,7 @@ class HexData:
 	var terrain: int        # Domain.TerrainType
 	var elevation: int = 0
 	var objective_id: int = -1  # -1 = nessun obiettivo
+	var has_road: bool = false  # sovrapposizione strada
 
 	func _init(p_terrain: int, p_elev: int = 0) -> void:
 		terrain = p_terrain
@@ -20,6 +21,9 @@ class HexData:
 var hexes: Dictionary = {}
 var map_cols: int = 15
 var map_rows: int = 10
+
+## Lati di esagono: ogni voce { "a": Vector2i, "b": Vector2i, "feature": int }
+var side_features: Array[Dictionary] = []
 
 
 # ─── Unità ───────────────────────────────────────────────────────────────────

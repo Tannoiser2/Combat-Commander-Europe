@@ -183,16 +183,18 @@ static func _u(
 
 ## Popola uno GameState con i dati dello scenario.
 static func setup(state: GameState) -> void:
-	state.map_cols = MAP_COLS
-	state.map_rows = MAP_ROWS
-	state.hexes = build_map()
+	# Mappa, terreno, lati e obiettivi dai dati recuperati (dipinti a mano)
+	if not MapLoader.load_into(state, "res://assets/maps/map1.json"):
+		# Ripiego: griglia minima
+		state.map_cols = MAP_COLS
+		state.map_rows = MAP_ROWS
+		state.hexes = build_map()
+		state.objectives = build_objectives()
+		for obj in state.objectives:
+			var hd: GameState.HexData = state.hex_at(obj.q, obj.r)
+			if hd:
+				hd.objective_id = obj.id
 	state.units = build_units()
-	state.objectives = build_objectives()
-	# Segna gli obiettivi nelle HexData
-	for obj in state.objectives:
-		var hd: GameState.HexData = state.hex_at(obj.q, obj.r)
-		if hd:
-			hd.objective_id = obj.id
 	state.time_marker       = SETUP["time_start"]
 	state.sudden_death_space = SETUP["sudden_death"]
 	state.initiative_holder = SETUP["initiative_holder"]
