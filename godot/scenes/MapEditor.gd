@@ -25,6 +25,9 @@ var tool: String = "woods"   ## terreno | "road" | "hedge" | "wall" | "objective
 var _map_texture: Texture2D = null
 var _font: Font = null
 var _status: String = ""
+var _painting: bool = false
+var _show_labels: bool = false
+var _undo_stack: Array = []
 
 const TERRAIN_TOOLS := ["open", "woods", "field", "orchard", "building", "stream"]
 const TINT := {
@@ -152,6 +155,8 @@ func _draw() -> void:
 			var pts := _corners(q, r)
 			pts.append(pts[0])
 			draw_polyline(PackedVector2Array(pts), Color(0, 0, 0, 0.3), 1.0)
+			if _show_labels:
+				_text(_label(q, r), _center(q, r) + Vector2(0, -2), 10, Color(1, 1, 0.2))
 
 	# Lati (siepi/muri)
 	for key in sides:
@@ -175,8 +180,9 @@ func _draw() -> void:
 		_text("%d" % obj["vp"], oc, 11, Color(1, 0.95, 0.3))
 
 	# HUD
-	var hud := "Mappa %d | Strumento: %s | %s" % [map_num, tool.to_upper(), _status]
-	draw_rect(Rect2(8, 8, 680, 20), Color(0, 0, 0, 0.7))
+	var hud := "Mappa %d | %s | trascina=dipingi  Ctrl+Z=annulla  L=etichette  S=salva | %s" % [
+		map_num, tool.to_upper(), _status]
+	draw_rect(Rect2(8, 8, 900, 20), Color(0, 0, 0, 0.7))
 	_text(hud, Vector2(14, 22), 13, Color.WHITE, false)
 
 
@@ -194,6 +200,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		var k := event as InputEventKey
 		var step := 0.5 if k.shift_pressed else 2.0
+		if k.keycode == KEY_Z and k.ctrl_pressed or k.keycode == KEY_Z and k.meta_pressed:
+			_undo(); return
 		match k.keycode:
 			KEY_LEFT: cal_off_x -= step; queue_redraw()
 			KEY_RIGHT: cal_off_x += step; queue_redraw()
@@ -201,10 +209,38 @@ func _input(event: InputEvent) -> void:
 			KEY_DOWN: cal_off_y += step; queue_redraw()
 			KEY_MINUS: cal_hex -= 0.5; queue_redraw()
 			KEY_EQUAL: cal_hex += 0.5; queue_redraw()
+			KEY_L: _show_labels = not _show_labels; queue_redraw()
 			KEY_S: _save()
 		return
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_paint((event as InputEventMouseButton).position)
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_snapshot()
+			_painting = true
+			_paint((event as InputEventMouseButton).position, true)
+		else:
+			_painting = false
+	elif event is InputEventMouseMotion and _painting:
+		_paint((event as InputEventMouseMotion).position, false)
+
+
+# ─── Annulla ──────────────────────────────────────────────────────────────────
+
+func _snapshot() -> void:
+	_undo_stack.append({
+		"terrain": terrain.duplicate(true), "roads": roads.duplicate(true),
+		"sides": sides.duplicate(true), "objectives": objectives.duplicate(true),
+	})
+	if _undo_stack.size() > 40:
+		_undo_stack.pop_front()
+
+
+func _undo() -> void:
+	if _undo_stack.is_empty():
+		return
+	var s: Dictionary = _undo_stack.pop_back()
+	terrain = s["terrain"]; roads = s["roads"]; sides = s["sides"]; objectives = s["objectives"]
+	_status = "Annullato"
+	queue_redraw()
 
 
 func _hex_under(pos: Vector2) -> Vector2i:
@@ -218,19 +254,22 @@ func _hex_under(pos: Vector2) -> Vector2i:
 	return best
 
 
-func _paint(pos: Vector2) -> void:
+func _paint(pos: Vector2, is_click: bool) -> void:
 	var h := _hex_under(pos)
 	if h.x < 0:
 		return
 	var lbl := _label(h.x, h.y)
 	match tool:
 		"hedge", "wall":
-			_toggle_side(h, pos, tool)
+			_set_side(h, pos, tool, is_click)
 		"road":
-			if roads.has(lbl): roads.erase(lbl)
-			else: roads[lbl] = true
+			if is_click:
+				if roads.has(lbl): roads.erase(lbl)
+				else: roads[lbl] = true
+			else:
+				roads[lbl] = true
 		"objective":
-			_toggle_objective(lbl)
+			if is_click: _toggle_objective(lbl)
 		"erase":
 			terrain.erase(lbl); roads.erase(lbl)
 		_:
@@ -238,7 +277,8 @@ func _paint(pos: Vector2) -> void:
 	queue_redraw()
 
 
-func _toggle_side(h: Vector2i, pos: Vector2, feat: String) -> void:
+## Click singolo = alterna; trascinamento = aggiunge.
+func _set_side(h: Vector2i, pos: Vector2, feat: String, is_click: bool) -> void:
 	# Trova il vicino il cui bordo condiviso è più vicino al click
 	var best_nb := Vector2i(-1, -1)
 	var bd := 1e9
@@ -252,8 +292,10 @@ func _toggle_side(h: Vector2i, pos: Vector2, feat: String) -> void:
 	if best_nb.x < 0:
 		return
 	var key := _side_key(_label(h.x, h.y), _label(best_nb.x, best_nb.y))
-	if sides.has(key): sides.erase(key)
-	else: sides[key] = feat
+	if is_click and sides.has(key):
+		sides.erase(key)
+	else:
+		sides[key] = feat
 
 
 func _toggle_objective(lbl: String) -> void:
