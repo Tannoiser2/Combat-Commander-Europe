@@ -22,6 +22,13 @@ func _ready() -> void:
 	play_ger.pressed.connect(_start.bind(Domain.Faction.GERMAN))
 	play_rus.pressed.connect(_start.bind(Domain.Faction.RUSSIAN))
 	back_btn.pressed.connect(_close_faction)
+	# Pulsante editor mappe (in alto a destra)
+	var ed := Button.new()
+	ed.text = "✎ Editor mappe"
+	ed.position = Vector2(-160, 12)
+	ed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	ed.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/MapEditor.tscn"))
+	add_child(ed)
 
 
 func _load_scenarios() -> Array:
