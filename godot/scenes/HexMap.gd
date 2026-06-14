@@ -51,6 +51,10 @@ func _ready() -> void:
 # ─── Disegno principale ───────────────────────────────────────────────────────
 
 func _draw() -> void:
+	# Sfondo pieno: evita la "schermata grigia" se manca la texture o fuori mappa.
+	var vp := get_viewport_rect().size
+	draw_rect(Rect2(Vector2.ZERO, vp), Color(0.12, 0.13, 0.15, 1.0))
+
 	if Game.state == null:
 		return
 	var s := Game.state
@@ -60,6 +64,10 @@ func _draw() -> void:
 		var tw := _map_texture.get_width()  * IMG_SCALE
 		var th := _map_texture.get_height() * IMG_SCALE
 		draw_texture_rect(_map_texture, Rect2(0, 0, tw, th), false)
+	elif _font:
+		draw_string(_font, Vector2(100, 120),
+			"[mappa non caricata: res://assets/mappa1.png]",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 0.6, 0.6))
 
 	# Tinte terreno
 	for key in s.hexes:

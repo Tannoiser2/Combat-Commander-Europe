@@ -1,0 +1,70 @@
+[gd_scene load_steps=2 format=3 uid="uid://menu_cce"]
+
+[ext_resource type="Script" path="res://scenes/Menu.gd" id="1_menu"]
+
+[node name="Menu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_menu")
+
+[node name="BG" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.12, 0.14, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBox" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "COMBAT COMMANDER: EUROPE"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 34
+
+[node name="Subtitle" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "Edizione digitale — Godot 4.3"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+
+[node name="Spacer" type="Control" parent="Center/VBox"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="ScenarioLabel" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "Scenario 1"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="Hint" type="Label" parent="Center/VBox"]
+layout_mode = 2
+text = "Scegli la fazione con cui giocare:"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+
+[node name="Factions" type="HBoxContainer" parent="Center/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="PlayGerman" type="Button" parent="Center/VBox/Factions"]
+custom_minimum_size = Vector2(180, 64)
+layout_mode = 2
+text = "⚔ Germania"
+
+[node name="PlayRussian" type="Button" parent="Center/VBox/Factions"]
+custom_minimum_size = Vector2(180, 64)
+layout_mode = 2
+text = "★ Unione Sovietica"

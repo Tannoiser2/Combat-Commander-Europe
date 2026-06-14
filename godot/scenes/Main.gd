@@ -1,22 +1,28 @@
-## Scena radice: layout UI, pannello log, mano di carte, HUD fase.
+## Scena di gioco: HUD in sovrimpressione sulla mappa.
 extends Control
 
 
-# ─── Nodi (collegati in _ready via $path) ────────────────────────────────────
+# ─── Nodi ─────────────────────────────────────────────────────────────────────
 
 @onready var hex_map: Node2D = $HexMap
-@onready var log_list: ItemList = $UI/VBox/LogPanel/LogList
-@onready var phase_label: Label = $UI/VBox/TopBar/PhaseLabel
-@onready var turn_label: Label = $UI/VBox/TopBar/TurnLabel
-@onready var hand_container: HBoxContainer = $UI/VBox/Hand/Cards
-@onready var end_turn_btn: Button = $UI/VBox/Hand/EndTurnBtn
-@onready var vp_label: Label = $UI/VBox/TopBar/VPLabel
+@onready var log_list: ItemList = $LogPanel/LogList
+@onready var phase_label: Label = $TopBar/HBox/PhaseLabel
+@onready var turn_label: Label = $TopBar/HBox/TurnLabel
+@onready var vp_label: Label = $TopBar/HBox/VPLabel
+@onready var menu_btn: Button = $TopBar/HBox/MenuBtn
+@onready var hand_container: HBoxContainer = $BottomBar/HBox/Cards
+@onready var end_turn_btn: Button = $BottomBar/HBox/EndTurnBtn
 
 
 func _ready() -> void:
-	Game.start_new_game(Domain.Faction.GERMAN)
+	# Se si arriva qui senza passare dal menù, avvia una partita predefinita.
+	if Game.state == null:
+		Game.start_new_game(Domain.Faction.GERMAN)
 	_connect_signals()
 	_refresh_ui()
+	# Riempi il registro con le righe già accumulate
+	for line in Game.state.log:
+		log_list.add_item(line)
 
 
 func _connect_signals() -> void:
@@ -25,6 +31,7 @@ func _connect_signals() -> void:
 	Game.phase_changed.connect(_on_phase_changed)
 	Game.game_over.connect(_on_game_over)
 	end_turn_btn.pressed.connect(_on_end_turn)
+	menu_btn.pressed.connect(_on_menu)
 
 
 # ─── Aggiornamento UI ─────────────────────────────────────────────────────────
@@ -36,6 +43,7 @@ func _refresh_ui() -> void:
 	phase_label.text = Domain.PHASE_LABELS.get(s.phase, "—")
 	turn_label.text = "Turno %d" % s.turn_number
 	vp_label.text = "VP: %+d" % s.vp_tracker
+	end_turn_btn.disabled = s.phase != Domain.Phase.PLAYER_TURN
 	_refresh_hand()
 
 
@@ -49,7 +57,7 @@ func _refresh_hand() -> void:
 		var card: Card = hand[i]
 		var btn := Button.new()
 		btn.text = "%s\n[%s]" % [card.card_name, Domain.ORDER_LABELS.get(card.order, "?")]
-		btn.custom_minimum_size = Vector2(90, 64)
+		btn.custom_minimum_size = Vector2(96, 76)
 		btn.pressed.connect(_on_card_pressed.bind(i))
 		hand_container.add_child(btn)
 
@@ -57,7 +65,6 @@ func _refresh_hand() -> void:
 func _on_log_added(line: String) -> void:
 	log_list.add_item(line)
 	log_list.ensure_current_is_visible()
-	# Mantieni al massimo 60 righe
 	while log_list.item_count > 60:
 		log_list.remove_item(0)
 
@@ -75,10 +82,14 @@ func _on_card_pressed(index: int) -> void:
 	Game.play_card(index)
 
 
+func _on_menu() -> void:
+	get_tree().change_scene_to_file("res://scenes/Menu.tscn")
+
+
 func _on_game_over(winner: int) -> void:
-	var name := Domain.FACTION_NAMES.get(winner, "PAREGGIO")
+	var fname := Domain.FACTION_NAMES.get(winner, "PAREGGIO")
 	var dlg := AcceptDialog.new()
 	dlg.title = "Fine Partita"
-	dlg.dialog_text = "Vincitore: %s" % name
+	dlg.dialog_text = "Vincitore: %s" % fname
 	add_child(dlg)
 	dlg.popup_centered()

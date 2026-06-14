@@ -8,13 +8,21 @@ config_version=5
 config/name="Combat Commander: Europe"
 config/description="Reimplementazione digitale del gioco tattico CC:E (GMT Games) — uso personale"
 config/features=PackedStringArray("4.3")
-run/main_scene="res://scenes/Main.tscn"
+run/main_scene="res://scenes/Menu.tscn"
 
 [autoload]
 
 Domain="*res://engine/Domain.gd"
 Game="*res://engine/Game.gd"
 
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.12, 0.13, 0.15, 1)

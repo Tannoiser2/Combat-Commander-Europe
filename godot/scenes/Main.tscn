@@ -1,9 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://main"]
+[gd_scene load_steps=3 format=3 uid="uid://main_cce"]
 
 [ext_resource type="Script" path="res://scenes/Main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scenes/HexMap.gd" id="2_hexmap"]
 
 [node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1_main")
@@ -11,47 +13,74 @@ script = ExtResource("1_main")
 [node name="HexMap" type="Node2D" parent="."]
 script = ExtResource("2_hexmap")
 
-[node name="UI" type="VBoxContainer" parent="."]
+[node name="TopBar" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
+offset_bottom = 40.0
 
-[node name="VBox" type="VBoxContainer" parent="UI"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 0.0
-offset_top = 0.0
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 24
 
-[node name="TopBar" type="HBoxContainer" parent="UI/VBox"]
-custom_minimum_size = Vector2(0, 32)
-
-[node name="TurnLabel" type="Label" parent="UI/VBox/TopBar"]
+[node name="TurnLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
 text = "Turno 1"
 custom_minimum_size = Vector2(90, 0)
+vertical_alignment = 1
 
-[node name="PhaseLabel" type="Label" parent="UI/VBox/TopBar"]
+[node name="PhaseLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
 text = "—"
-custom_minimum_size = Vector2(180, 0)
+custom_minimum_size = Vector2(220, 0)
+vertical_alignment = 1
 
-[node name="VPLabel" type="Label" parent="UI/VBox/TopBar"]
+[node name="VPLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
 text = "VP: 0"
 custom_minimum_size = Vector2(80, 0)
+vertical_alignment = 1
 
-[node name="LogPanel" type="PanelContainer" parent="UI/VBox"]
-custom_minimum_size = Vector2(0, 110)
-size_flags_vertical = 3
-
-[node name="LogList" type="ItemList" parent="UI/VBox/LogPanel"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-auto_height = false
-custom_minimum_size = Vector2(0, 100)
-
-[node name="Hand" type="HBoxContainer" parent="UI/VBox"]
-custom_minimum_size = Vector2(0, 76)
-
-[node name="Cards" type="HBoxContainer" parent="UI/VBox/Hand"]
+[node name="Spacer" type="Control" parent="TopBar/HBox"]
+layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="EndTurnBtn" type="Button" parent="UI/VBox/Hand"]
+[node name="MenuBtn" type="Button" parent="TopBar/HBox"]
+layout_mode = 2
+text = "☰ Menù"
+
+[node name="LogPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -260.0
+offset_right = 380.0
+offset_bottom = -104.0
+self_modulate = Color(1, 1, 1, 0.88)
+
+[node name="LogList" type="ItemList" parent="LogPanel"]
+layout_mode = 2
+
+[node name="BottomBar" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -96.0
+
+[node name="HBox" type="HBoxContainer" parent="BottomBar"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Cards" type="HBoxContainer" parent="BottomBar/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="EndTurnBtn" type="Button" parent="BottomBar/HBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 0)
 text = "Fine Turno"
-custom_minimum_size = Vector2(100, 0)
