@@ -44,24 +44,35 @@ const UNIT_CLASS_LABEL := {
 
 # ─── Terreno ─────────────────────────────────────────────────────────────────
 
-enum TerrainType { OPEN, ROAD, BRUSH, WOODS, BUILDING, STREAM, HILL1, HILL2, RUBBLE, FIELD, ORCHARD }
+## Terreni dell'esagono (CC Terrain Chart)
+enum TerrainType {
+	OPEN, BRUSH, WOODS, BUILDING, ORCHARD, FIELD,
+	STREAM, MARSH, WATER_BARRIER, GULLY, BRIDGE,
+	HILL1, HILL2, ROAD, RUBBLE,
+}
 
-## Lati di esagono (siepi, muri, ecc.)
-enum HexsideFeature { NONE, HEDGE, WALL, STREAM_SIDE, BOCAGE, FENCE, CLIFF }
+## Lati di esagono (CC Terrain Chart)
+enum HexsideFeature { NONE, HEDGE, WALL, FENCE, BOCAGE, CLIFF, LOS_CLEAR, STREAM_SIDE }
+
+## Feature lineari sovrapposte all'esagono
+enum LinearFeature { NONE, ROAD, RAILWAY, TRAIL }
 
 ## Stringa del JSON mappe → TerrainType
 const TERRAIN_FROM_STRING := {
-	"open": TerrainType.OPEN, "road": TerrainType.ROAD, "brush": TerrainType.BRUSH,
-	"woods": TerrainType.WOODS, "building": TerrainType.BUILDING, "stream": TerrainType.STREAM,
-	"field": TerrainType.FIELD, "orchard": TerrainType.ORCHARD,
-	"hill1": TerrainType.HILL1, "hill2": TerrainType.HILL2, "rubble": TerrainType.RUBBLE,
+	"open": TerrainType.OPEN, "brush": TerrainType.BRUSH, "woods": TerrainType.WOODS,
+	"building": TerrainType.BUILDING, "orchard": TerrainType.ORCHARD, "field": TerrainType.FIELD,
+	"stream": TerrainType.STREAM, "marsh": TerrainType.MARSH,
+	"water_barrier": TerrainType.WATER_BARRIER, "gully": TerrainType.GULLY,
+	"bridge": TerrainType.BRIDGE, "hill1": TerrainType.HILL1, "hill2": TerrainType.HILL2,
+	"road": TerrainType.ROAD, "rubble": TerrainType.RUBBLE,
 }
 
 ## Stringa del JSON → HexsideFeature
 const HEXSIDE_FROM_STRING := {
-	"hedge": HexsideFeature.HEDGE, "wall": HexsideFeature.WALL,
+	"hedge": HexsideFeature.HEDGE, "wall": HexsideFeature.WALL, "fence": HexsideFeature.FENCE,
+	"bocage": HexsideFeature.BOCAGE, "cliff": HexsideFeature.CLIFF,
+	"los_clear": HexsideFeature.LOS_CLEAR,
 	"stream": HexsideFeature.STREAM_SIDE, "stream_side": HexsideFeature.STREAM_SIDE,
-	"bocage": HexsideFeature.BOCAGE, "fence": HexsideFeature.FENCE, "cliff": HexsideFeature.CLIFF,
 }
 
 ## Costo in Punti Movimento per entrare nell'esagono.
@@ -77,6 +88,10 @@ const TERRAIN_MOVE_COST := {
 	TerrainType.RUBBLE:   2,
 	TerrainType.FIELD:    1,
 	TerrainType.ORCHARD:  1,
+	TerrainType.MARSH:    3,
+	TerrainType.WATER_BARRIER: 99,  # impraticabile
+	TerrainType.GULLY:    2,
+	TerrainType.BRIDGE:   1,
 }
 
 ## Copertura aggiunta al tiro di morale del difensore.
@@ -92,6 +107,10 @@ const TERRAIN_COVER := {
 	TerrainType.RUBBLE:   2,
 	TerrainType.FIELD:    1,
 	TerrainType.ORCHARD:  1,
+	TerrainType.MARSH:    0,
+	TerrainType.WATER_BARRIER: 0,
+	TerrainType.GULLY:    1,
+	TerrainType.BRIDGE:   2,
 }
 
 ## Blocco della LOS: true = questo terreno interrompe la linea di vista.
@@ -107,6 +126,10 @@ const TERRAIN_BLOCKS_LOS := {
 	TerrainType.RUBBLE:   false,
 	TerrainType.FIELD:    false,
 	TerrainType.ORCHARD:  false,
+	TerrainType.MARSH:    false,
+	TerrainType.WATER_BARRIER: false,
+	TerrainType.GULLY:    false,
+	TerrainType.BRIDGE:   false,
 }
 
 ## Etichetta esagono "A1" ↔ coordinate (q,r). Colonna = lettera, riga = numero-1.

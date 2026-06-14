@@ -8,19 +8,22 @@ const ROWS := 10
 # ─── Dati mappa ───────────────────────────────────────────────────────────────
 var map_num: int = 1
 var terrain: Dictionary = {}    ## "A1" → tipo terreno
-var roads: Dictionary = {}      ## "A1" → true
-var sides: Dictionary = {}      ## "A2|A3" → feature
-var elevation: Dictionary = {}  ## "A1" → int (0 = base)
+var features: Dictionary = {}   ## "A1" → "road"/"railway"/"trail"
+var sides: Dictionary = {}      ## "A2|A3" → feature lato
+var elevation: Dictionary = {}  ## "A1" → int (0 = base, 1-4)
 var objectives: Array = []      ## [{ hex, vp }]
 
 # ─── Griglia (in pixel dell'immagine 1500px, ~uguale per tutte le mappe) ─────
-var grid_hex: float = 55.0
-var grid_ox: float = 138.0
-var grid_oy: float = 46.0
+const DEF_HEX := 59.2
+const DEF_OX := 129.0
+const DEF_OY := 69.0
+var grid_hex: float = DEF_HEX
+var grid_ox: float = DEF_OX
+var grid_oy: float = DEF_OY
 
 # ─── Vista (pan/zoom) ─────────────────────────────────────────────────────────
-var view_scale: float = 0.59
-var view_origin: Vector2 = Vector2(16, 106)
+var view_scale: float = 0.585
+var view_origin: Vector2 = Vector2(16, 120)
 var overlay_alpha: float = 0.5   ## opacità dell'overlay dipinto (slider)
 
 # ─── Strumento ────────────────────────────────────────────────────────────────
@@ -34,23 +37,35 @@ var _show_labels: bool = false
 var _undo_stack: Array = []
 var _map_label: Label = null
 
-const TERRAIN_TOOLS := ["open", "woods", "field", "orchard", "building", "stream", "brush"]
+## Terreni: (etichetta, chiave)
+const TERRAIN_TOOLS := [
+	["aperto","open"], ["bosco","woods"], ["boscaglia","brush"], ["frutteto","orchard"],
+	["campo","field"], ["edificio","building"], ["ruscello","stream"], ["palude","marsh"],
+	["barriera acqua","water_barrier"], ["fossato","gully"], ["ponte","bridge"],
+]
+## Feature lineari: (etichetta, chiave)
+const FEATURE_TOOLS := [ ["strada","road"], ["ferrovia","railway"], ["sentiero","trail"] ]
 ## Lati: (etichetta, chiave feature)
 const SIDE_TOOLS := [
-	["siepe", "hedge"], ["bocage", "bocage"], ["muro", "wall"],
-	["steccato", "fence"], ["dirupo", "cliff"], ["corso d'acqua", "stream_side"],
+	["siepe", "hedge"], ["bocage", "bocage"], ["muro", "wall"], ["steccato", "fence"],
+	["dirupo", "cliff"], ["LOS libera", "los_clear"], ["corso d'acqua", "stream_side"],
 ]
 const SIDE_COLORS := {
 	"hedge": Color(0.1, 0.55, 0.1), "bocage": Color(0.05, 0.35, 0.05),
 	"wall": Color(0.5, 0.47, 0.42), "fence": Color(0.65, 0.5, 0.3),
-	"cliff": Color(0.35, 0.3, 0.28), "stream_side": Color(0.2, 0.5, 0.85),
+	"cliff": Color(0.35, 0.3, 0.28), "los_clear": Color(1.0, 0.85, 0.1),
+	"stream_side": Color(0.2, 0.5, 0.85),
 }
 const TINT := {
-	"open": Color(0,0,0,0), "woods": Color(0.15,0.5,0.15), "field": Color(0.9,0.8,0.2),
-	"orchard": Color(0.45,0.65,0.25), "building": Color(0.6,0.3,0.5), "stream": Color(0.2,0.5,0.85),
-	"brush": Color(0.5,0.6,0.2),
+	"open": Color(0,0,0,0), "woods": Color(0.13,0.45,0.13), "brush": Color(0.5,0.6,0.2),
+	"orchard": Color(0.45,0.65,0.25), "field": Color(0.9,0.8,0.2), "building": Color(0.6,0.3,0.5),
+	"stream": Color(0.25,0.55,0.9), "marsh": Color(0.3,0.55,0.55),
+	"water_barrier": Color(0.1,0.35,0.8), "gully": Color(0.55,0.45,0.3), "bridge": Color(0.7,0.6,0.45),
 }
-const ELEV_TINT := [Color(0,0,0,0), Color(0.75,0.55,0.3), Color(0.6,0.4,0.2), Color(0.45,0.3,0.15)]
+const FEATURE_COLORS := {
+	"road": Color(0.85,0.72,0.4), "railway": Color(0.3,0.3,0.3), "trail": Color(0.7,0.6,0.45),
+}
+const ELEV_TINT := [Color(0,0,0,0), Color(0.8,0.65,0.4), Color(0.7,0.5,0.28), Color(0.55,0.38,0.18), Color(0.4,0.27,0.12)]
 
 
 func _ready() -> void:
@@ -75,7 +90,7 @@ func _json_path() -> String:
 
 
 func _load_existing() -> void:
-	terrain.clear(); roads.clear(); sides.clear(); elevation.clear(); objectives.clear()
+	terrain.clear(); features.clear(); sides.clear(); elevation.clear(); objectives.clear()
 	# Preferisci il file del PROGETTO (committato); il browser solo come ripiego
 	# per le mappe non ancora committate (3-24).
 	var f := FileAccess.open(_json_path(), FileAccess.READ)
@@ -90,8 +105,10 @@ func _load_existing() -> void:
 	for tname in data.get("terrainGroups", {}):
 		for lbl in data["terrainGroups"][tname]:
 			terrain[String(lbl)] = tname
-	for lbl in data.get("featureGroups", {}).get("road", []):
-		roads[String(lbl)] = true
+	var fg: Dictionary = data.get("featureGroups", {})
+	for ftype in ["road", "railway", "trail"]:
+		for lbl in fg.get(ftype, []):
+			features[String(lbl)] = ftype
 	for grp in data.get("elevationGroups", []):
 		for lbl in grp.get("hexes", []):
 			elevation[String(lbl)] = int(grp.get("elevation", 1))
@@ -162,15 +179,20 @@ func _draw() -> void:
 			# Altezza (sotto al terreno)
 			var ev: int = elevation.get(lbl, 0)
 			if ev > 0:
-				var ec: Color = ELEV_TINT[min(ev, 3)]
+				var ec: Color = ELEV_TINT[min(ev, 4)]
 				draw_colored_polygon(poly, Color(ec.r, ec.g, ec.b, a * 0.6))
 			# Terreno
 			if terrain.has(lbl):
 				var col: Color = TINT.get(terrain[lbl], Color(0,0,0,0))
 				if col.a > 0 or terrain[lbl] != "open":
 					draw_colored_polygon(poly, Color(col.r, col.g, col.b, a))
-			if roads.has(lbl):
-				draw_circle(_center(q, r), _hsize() * 0.22, Color(0.85, 0.72, 0.4, min(1.0, a + 0.3)))
+			if features.has(lbl):
+				var fc: Color = FEATURE_COLORS.get(features[lbl], Color(0.8,0.7,0.4))
+				draw_circle(_center(q, r), _hsize() * 0.24, Color(fc.r, fc.g, fc.b, min(1.0, a + 0.35)))
+				if features[lbl] == "railway":
+					_text("=", _center(q, r), 14, Color(1,1,1))
+				elif features[lbl] == "trail":
+					_text(".", _center(q, r), 16, Color(1,1,1))
 			if ev > 0:
 				_text("%d" % ev, _center(q, r) + Vector2(_hsize()*0.5, -_hsize()*0.5), 12, Color(1,1,1))
 
@@ -264,7 +286,7 @@ func _zoom(f: float) -> void:
 
 func _snapshot() -> void:
 	_undo_stack.append({
-		"terrain": terrain.duplicate(true), "roads": roads.duplicate(true),
+		"terrain": terrain.duplicate(true), "features": features.duplicate(true),
 		"sides": sides.duplicate(true), "elevation": elevation.duplicate(true),
 		"objectives": objectives.duplicate(true),
 	})
@@ -274,7 +296,7 @@ func _snapshot() -> void:
 func _undo() -> void:
 	if _undo_stack.is_empty(): return
 	var s: Dictionary = _undo_stack.pop_back()
-	terrain = s["terrain"]; roads = s["roads"]; sides = s["sides"]
+	terrain = s["terrain"]; features = s["features"]; sides = s["sides"]
 	elevation = s["elevation"]; objectives = s["objectives"]
 	_status = "Annullato"; queue_redraw()
 
@@ -294,21 +316,23 @@ func _paint(pos: Vector2, is_click: bool) -> void:
 	var h := _hex_under(pos)
 	if h.x < 0: return
 	var lbl := _label(h.x, h.y)
-	if tool in ["hedge", "bocage", "wall", "fence", "cliff", "stream_side"]:
+	if tool in ["hedge", "bocage", "wall", "fence", "cliff", "los_clear", "stream_side"]:
 		_set_side(h, pos, tool, is_click)
 		queue_redraw(); return
+	if tool in ["road", "railway", "trail"]:
+		if is_click and features.get(lbl, "") == tool: features.erase(lbl)
+		else: features[lbl] = tool
+		queue_redraw(); return
 	match tool:
-		"road":
-			if is_click and roads.has(lbl): roads.erase(lbl)
-			else: roads[lbl] = true
 		"elev1": elevation[lbl] = 1
 		"elev2": elevation[lbl] = 2
 		"elev3": elevation[lbl] = 3
+		"elev4": elevation[lbl] = 4
 		"elev0": elevation.erase(lbl)
 		"objective":
 			if is_click: _toggle_objective(lbl)
 		"erase":
-			terrain.erase(lbl); roads.erase(lbl); elevation.erase(lbl)
+			terrain.erase(lbl); features.erase(lbl); elevation.erase(lbl)
 		_: terrain[lbl] = tool
 	queue_redraw()
 
@@ -327,11 +351,11 @@ func _set_side(h: Vector2i, pos: Vector2, feat: String, is_click: bool) -> void:
 
 
 func _toggle_objective(lbl: String) -> void:
-	# Click ripetuti: 1 → 2 → 3 → rimuovi
+	# Click ripetuti: 1 → 2 → 3 → 4 → 5 → rimuovi
 	for i in objectives.size():
 		if objectives[i]["hex"] == lbl:
 			objectives[i]["vp"] += 1
-			if objectives[i]["vp"] > 3:
+			if objectives[i]["vp"] > 5:
 				objectives.remove_at(i)
 			return
 	objectives.append({ "hex": lbl, "vp": 1 })
@@ -358,9 +382,13 @@ func _save() -> void:
 	for key in sides:
 		var labs: PackedStringArray = key.split("|")
 		sf.append({ "from": labs[0], "to": labs[1], "feature": sides[key] })
+	var fgroups := { "road": [], "railway": [], "trail": [] }
+	for lbl in features:
+		var ft: String = features[lbl]
+		if fgroups.has(ft): fgroups[ft].append(lbl)
 	var data := {
 		"id": "map%d" % map_num, "cols": COLS, "rows": ROWS, "default": "open",
-		"terrainGroups": tgroups, "featureGroups": { "road": roads.keys() },
+		"terrainGroups": tgroups, "featureGroups": fgroups,
 		"elevationGroups": elev_arr, "sideFeatures": sf, "objectives": objectives,
 		"_calib": { "hex": grid_hex, "ox": grid_ox, "oy": grid_oy },  # taratura griglia per mappa
 	}
@@ -414,22 +442,28 @@ func _build_ui() -> void:
 	# Riga TERRENO
 	var row1 := HBoxContainer.new(); row1.add_theme_constant_override("separation", 3); v.add_child(row1)
 	_row_label(row1, "TERRENO:")
-	for t in TERRAIN_TOOLS:
-		_tool_btn(row1, t, t)
+	for pair in TERRAIN_TOOLS:
+		_tool_btn(row1, pair[0], pair[1])
 
-	# Riga LATI (siepi, muri, bocage…)
+	# Riga LATI (siepi, muri, bocage, LOS libera…)
 	var rowS := HBoxContainer.new(); rowS.add_theme_constant_override("separation", 3); v.add_child(rowS)
 	_row_label(rowS, "LATI:")
 	for pair in SIDE_TOOLS:
 		_tool_btn(rowS, pair[0], pair[1])
 
-	# Riga ALTRO (altezze, strada, obiettivo, cancella)
+	# Riga FEATURE/ALTEZZE
+	var rowF := HBoxContainer.new(); rowF.add_theme_constant_override("separation", 3); v.add_child(rowF)
+	_row_label(rowF, "LINEE/ALT:")
+	for pair in FEATURE_TOOLS:
+		_tool_btn(rowF, pair[0], pair[1])
+	_tool_btn(rowF, "alt.1", "elev1"); _tool_btn(rowF, "alt.2", "elev2")
+	_tool_btn(rowF, "alt.3", "elev3"); _tool_btn(rowF, "alt.4", "elev4")
+	_tool_btn(rowF, "alt.0", "elev0")
+
+	# Riga ALTRO
 	var row2 := HBoxContainer.new(); row2.add_theme_constant_override("separation", 3); v.add_child(row2)
 	_row_label(row2, "ALTRO:")
-	_tool_btn(row2, "alt.1", "elev1"); _tool_btn(row2, "alt.2", "elev2")
-	_tool_btn(row2, "alt.3", "elev3"); _tool_btn(row2, "alt.0", "elev0")
-	_tool_btn(row2, "strada", "road")
-	_tool_btn(row2, "obiettivo", "objective")
+	_tool_btn(row2, "obiettivo (1-5)", "objective")
 	_tool_btn(row2, "cancella", "erase")
 
 	var row3 := HBoxContainer.new(); row3.add_theme_constant_override("separation", 5); v.add_child(row3)
@@ -485,7 +519,7 @@ func _tool_btn(parent: Node, lbl: String, t: String) -> void:
 func _change_map(delta: int) -> void:
 	map_num = clampi(map_num + delta, 1, 24)
 	# Reimposta la griglia ai default; _load_existing la sovrascrive se la mappa ha _calib
-	grid_hex = 55.0; grid_ox = 138.0; grid_oy = 46.0
+	grid_hex = DEF_HEX; grid_ox = DEF_OX; grid_oy = DEF_OY
 	_load_image(); _load_existing(); _undo_stack.clear()
 	_update_map_label(); queue_redraw()
 
