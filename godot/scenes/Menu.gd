@@ -1,17 +1,70 @@
-## Schermata iniziale: titolo, scelta scenario e fazione.
+## Schermata iniziale: elenco dei 24 scenari + scelta della fazione.
 extends Control
 
-@onready var play_ger: Button = $Center/VBox/Factions/PlayGerman
-@onready var play_rus: Button = $Center/VBox/Factions/PlayRussian
-@onready var scenario_label: Label = $Center/VBox/ScenarioLabel
+## Scenari con dati completi di mappa/unità (giocabili).
+const IMPLEMENTED := { 1: true }
+
+@onready var list: VBoxContainer = $Scroll/List
+@onready var faction_panel: Panel = $FactionPanel
+@onready var scenario_label: Label = $FactionPanel/VBox/ScenarioLabel
+@onready var play_ger: Button = $FactionPanel/VBox/Factions/PlayGerman
+@onready var play_rus: Button = $FactionPanel/VBox/Factions/PlayRussian
+@onready var back_btn: Button = $FactionPanel/VBox/BackBtn
+
+var _selected_num: int = 0
+var _scenarios: Array = []
 
 
 func _ready() -> void:
-	scenario_label.text = "Scenario 1 — %s" % Scenario1.SCENARIO_NAME
+	faction_panel.visible = false
+	_scenarios = _load_scenarios()
+	_build_list()
 	play_ger.pressed.connect(_start.bind(Domain.Faction.GERMAN))
 	play_rus.pressed.connect(_start.bind(Domain.Faction.RUSSIAN))
+	back_btn.pressed.connect(_close_faction)
+
+
+func _load_scenarios() -> Array:
+	var f := FileAccess.open("res://assets/scenari.json", FileAccess.READ)
+	if f == null:
+		return []
+	var data: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	return data if data is Array else []
+
+
+func _build_list() -> void:
+	for child in list.get_children():
+		child.queue_free()
+	for sc in _scenarios:
+		var num := int(sc.get("numero", 0))
+		var titolo: String = sc.get("titolo", "—")
+		var luogo: String = sc.get("luogo", "")
+		var data: String = sc.get("data", "")
+		var playable: bool = IMPLEMENTED.get(num, false)
+
+		var btn := Button.new()
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.custom_minimum_size = Vector2(0, 46)
+		var tag := "" if playable else "   [in arrivo]"
+		btn.text = "%2d.  %s%s\n      %s — %s" % [num, titolo, tag, luogo, data]
+		btn.disabled = not playable
+		if playable:
+			btn.pressed.connect(_select_scenario.bind(num, titolo))
+		list.add_child(btn)
+
+
+func _select_scenario(num: int, titolo: String) -> void:
+	_selected_num = num
+	scenario_label.text = "Scenario %d — %s" % [num, titolo]
+	faction_panel.visible = true
+
+
+func _close_faction() -> void:
+	faction_panel.visible = false
 
 
 func _start(faction: int) -> void:
+	# Per ora è implementato solo lo Scenario 1.
 	Game.start_new_game(faction)
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
