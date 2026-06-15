@@ -26,12 +26,21 @@ func _ready() -> void:
 	_rng.randomize()
 
 
-## Avvia una nuova partita con lo scenario 1.
-func start_new_game(human_faction: int = Domain.Faction.GERMAN) -> void:
+## Avvia una nuova partita. `scenario_num` 1..24 (default 1).
+func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: int = 1) -> void:
 	state = GameState.new()
 	state.human_faction = human_faction
 
-	Scenario1.setup(state)
+	# Lo scenario 1 ha dati di piazzamento curati a mano; gli altri usano il
+	# loader generico (catalogo + ordini di battaglia recuperati).
+	if scenario_num <= 1:
+		Scenario1.setup(state)
+		state.scenario_number = 1
+		state.scenario_name = Scenario1.SCENARIO_NAME
+	elif not ScenarioLoader.setup(state, scenario_num):
+		Scenario1.setup(state)
+		state.scenario_number = 1
+		state.scenario_name = Scenario1.SCENARIO_NAME
 
 	# Costruisce e mescola i mazzi
 	state.german_deck = Cards.build_german_deck()
@@ -40,7 +49,7 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN) -> void:
 	Cards.shuffle(state.russian_deck)
 	Cards.deal_initial(state)
 
-	_log("═══ SCENARIO: %s ═══" % Scenario1.SCENARIO_NAME)
+	_log("═══ SCENARIO %d: %s ═══" % [state.scenario_number, state.scenario_name])
 	_log("Turno %d — iniziativa: %s" % [
 		state.turn_number,
 		Domain.FACTION_NAMES.get(state.initiative_holder, "?")

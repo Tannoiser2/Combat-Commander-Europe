@@ -1,8 +1,14 @@
 ## Schermata iniziale: elenco dei 24 scenari + scelta della fazione.
 extends Control
 
-## Scenari con dati completi di mappa/unità (giocabili).
-const IMPLEMENTED := { 1: true }
+## Scenari giocabili. Lo scenario 1 è curato a mano; 2..24 usano il loader
+## generico (catalogo + ordini di battaglia) con fazioni stand-in.
+const IMPLEMENTED := {
+	1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true,
+	9: true, 10: true, 11: true, 12: true, 13: true, 14: true, 15: true,
+	16: true, 17: true, 18: true, 19: true, 20: true, 21: true, 22: true,
+	23: true, 24: true,
+}
 
 @onready var list: VBoxContainer = $Scroll/List
 @onready var faction_panel: Panel = $FactionPanel
@@ -72,6 +78,5 @@ func _close_faction() -> void:
 
 
 func _start(faction: int) -> void:
-	# Per ora è implementato solo lo Scenario 1.
-	Game.start_new_game(faction)
+	Game.start_new_game(faction, _selected_num)
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")

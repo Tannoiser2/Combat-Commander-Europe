@@ -1,0 +1,2078 @@
+[
+ {
+  "numero": 1,
+  "nome": "Fat Lipki",
+  "luogo": "Lipki, Russia",
+  "anno": 1941,
+  "mappa": "map1",
+  "fazione_axis": "german",
+  "fazione_allies": "russian",
+  "ordini_axis": 2,
+  "ordini_allies": 3,
+  "mano_axis": 5,
+  "mano_allies": 5,
+  "sudden_death": 7,
+  "vp_iniziali": 0,
+  "posture_axis": "recon",
+  "posture_allies": "recon",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 5,
+  "resa_allies": 7,
+  "forze_axis": [
+   {
+    "tipo": "Lt. v. Karsties",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Winkler",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 4
+   },
+   {
+    "tipo": "Light MG",
+    "n": 1
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Sgt. Kovalev",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Krylov",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 8
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 1
+   }
+  ],
+  "setup_axis_anchors": [
+   "G10",
+   "N10"
+  ],
+  "setup_allies_anchors": [
+   "A2",
+   "O1"
+  ]
+ },
+ {
+  "numero": 2,
+  "nome": "Hedgerows & Hand Grenades",
+  "luogo": "Pont-Hebert, Normandia",
+  "anno": 1944,
+  "mappa": "map2",
+  "fazione_axis": "german",
+  "fazione_allies": "american",
+  "ordini_axis": 4,
+  "ordini_allies": 3,
+  "mano_axis": 4,
+  "mano_allies": 5,
+  "sudden_death": 8,
+  "vp_iniziali": 10,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "axis",
+  "lato_umano": "allies",
+  "resa_axis": 8,
+  "resa_allies": 9,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Schrader",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Esser",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Reiterhaus",
+    "n": 1
+   },
+   {
+    "tipo": "Volksgrenadier",
+    "n": 3
+   },
+   {
+    "tipo": "Conscript",
+    "n": 5
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Blankenship",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Smith",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Hubbard",
+    "n": 1
+   },
+   {
+    "tipo": "Elite",
+    "n": 2
+   },
+   {
+    "tipo": "Line",
+    "n": 6
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Radio 105mm",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 3,
+  "nome": "Bonfire of the NKVD",
+  "luogo": "Brest-Litovsk, Russia",
+  "anno": 1941,
+  "mappa": "map3",
+  "fazione_axis": "german",
+  "fazione_allies": "russian",
+  "ordini_axis": 3,
+  "ordini_allies": 4,
+  "mano_axis": 5,
+  "mano_allies": 4,
+  "sudden_death": 7,
+  "vp_iniziali": -20,
+  "posture_axis": "attack",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 7,
+  "resa_allies": 10,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Schrader",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Ganz",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 6
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Cpt. Egorov",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Maisky",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Gordov",
+    "n": 1
+   },
+   {
+    "tipo": "Militia",
+    "n": 10
+   },
+   {
+    "tipo": "Green",
+    "n": 1
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 1
+   },
+   {
+    "tipo": "Wire",
+    "n": 12
+   }
+  ]
+ },
+ {
+  "numero": 4,
+  "nome": "Closed for Renovation",
+  "luogo": "Humain, Belgio",
+  "anno": 1944,
+  "mappa": "map4",
+  "fazione_axis": "german",
+  "fazione_allies": "american",
+  "ordini_axis": 3,
+  "ordini_allies": 4,
+  "mano_axis": 6,
+  "mano_allies": 6,
+  "sudden_death": 7,
+  "vp_iniziali": 20,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 8,
+  "resa_allies": 11,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Lauerbach",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Schrader",
+    "n": 1
+   },
+   {
+    "tipo": "Elite Rifle",
+    "n": 6
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 3
+   },
+   {
+    "tipo": "IG 18 Gun",
+    "n": 1
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Wire",
+    "n": 5
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Wray",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Buehler",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. White",
+    "n": 1
+   },
+   {
+    "tipo": "Elite",
+    "n": 6
+   },
+   {
+    "tipo": "Line",
+    "n": 6
+   },
+   {
+    "tipo": "Engineer",
+    "n": 2
+   },
+   {
+    "tipo": ".50cal MG",
+    "n": 2
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 2
+   },
+   {
+    "tipo": "Radio 75mm",
+    "n": 1
+   },
+   {
+    "tipo": "Flamethrower",
+    "n": 2
+   }
+  ]
+ },
+ {
+  "numero": 5,
+  "nome": "Cold Front",
+  "luogo": "Staritsa, Russia",
+  "anno": 1941,
+  "mappa": "map5",
+  "fazione_axis": "german",
+  "fazione_allies": "russian",
+  "ordini_axis": 3,
+  "ordini_allies": 5,
+  "mano_axis": 5,
+  "mano_allies": 6,
+  "sudden_death": 13,
+  "vp_iniziali": 9,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "allies",
+  "lato_umano": "axis",
+  "resa_axis": 5,
+  "resa_allies": 12,
+  "forze_axis": [
+   {
+    "tipo": "Lt. v. Karsties",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Ganz",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 3
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 1
+   },
+   {
+    "tipo": "Trench",
+    "n": 6
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Sgt. Bikovets",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Kovalev",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Kaminsky",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Maisky",
+    "n": 1
+   },
+   {
+    "tipo": "Guards SMG",
+    "n": 12
+   }
+  ]
+ },
+ {
+  "numero": 6,
+  "nome": "Paralyzed from the West Down",
+  "luogo": "St. Mere-Eglise, Francia",
+  "anno": 1944,
+  "mappa": "map6",
+  "fazione_axis": "german",
+  "fazione_allies": "american",
+  "ordini_axis": 1,
+  "ordini_allies": 4,
+  "mano_axis": 5,
+  "mano_allies": 6,
+  "sudden_death": 6,
+  "vp_iniziali": 9,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "allies",
+  "lato_umano": "axis",
+  "resa_axis": 9,
+  "resa_allies": 11,
+  "forze_axis": [
+   {
+    "tipo": "Sgt. Esser",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Parachute",
+    "n": 3
+   },
+   {
+    "tipo": "Rifle",
+    "n": 3
+   },
+   {
+    "tipo": "Conscript",
+    "n": 3
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 2
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Wray",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Smith",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Hubbard",
+    "n": 1
+   },
+   {
+    "tipo": "Paratroop",
+    "n": 10
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 2
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   }
+  ]
+ },
+ {
+  "numero": 7,
+  "nome": "Bessarabian Nights",
+  "luogo": "Bessarabia",
+  "anno": 1944,
+  "mappa": "map7",
+  "fazione_axis": "german",
+  "fazione_allies": "russian",
+  "ordini_axis": 3,
+  "ordini_allies": 1,
+  "mano_axis": 5,
+  "mano_allies": 5,
+  "sudden_death": 5,
+  "vp_iniziali": 0,
+  "posture_axis": "recon",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 8,
+  "resa_allies": 14,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Schrader",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Volksgrenadier",
+    "n": 6
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Sgt. Maisky",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Bulganin",
+    "n": 1
+   },
+   {
+    "tipo": "SMG",
+    "n": 4
+   },
+   {
+    "tipo": "Militia",
+    "n": 4
+   },
+   {
+    "tipo": "Green",
+    "n": 4
+   },
+   {
+    "tipo": "Light MG",
+    "n": 4
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 4
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 8,
+  "nome": "Breakout Dance",
+  "luogo": "Velikiye-Luki, Russia",
+  "anno": 1943,
+  "mappa": "map8",
+  "fazione_axis": "german",
+  "fazione_allies": "russian",
+  "ordini_axis": 3,
+  "ordini_allies": 1,
+  "mano_axis": 5,
+  "mano_allies": 5,
+  "sudden_death": 5,
+  "vp_iniziali": -2,
+  "posture_axis": "recon",
+  "posture_allies": "recon",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 4,
+  "resa_allies": 9,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Schrader",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Ganz",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 3
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   },
+   {
+    "tipo": "Foxholes",
+    "n": 3
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Sgt. Kaminsky",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Maisky",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 10
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 9,
+  "nome": "Rush to Contact",
+  "luogo": "Hitdorf, Germania",
+  "anno": 1945,
+  "mappa": "map9",
+  "fazione_axis": "german",
+  "fazione_allies": "american",
+  "ordini_axis": 4,
+  "ordini_allies": 6,
+  "mano_axis": 5,
+  "mano_allies": 6,
+  "sudden_death": 12,
+  "vp_iniziali": 14,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 11,
+  "resa_allies": 13,
+  "forze_axis": [
+   {
+    "tipo": "Cpt. Wehling",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Pfeiffer",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Esser",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Volksgrenadier",
+    "n": 8
+   },
+   {
+    "tipo": "Rifle",
+    "n": 1
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 3
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 5
+   },
+   {
+    "tipo": "Radio 81mm",
+    "n": 1
+   },
+   {
+    "tipo": "Mines",
+    "n": 3
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Wray",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Esparza",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Blankenship",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Thomas",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Hubbard",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Smith",
+    "n": 1
+   },
+   {
+    "tipo": "Paratroop",
+    "n": 12
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 1
+   },
+   {
+    "tipo": "Radio 105mm",
+    "n": 1
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 3
+   }
+  ]
+ },
+ {
+  "numero": 10,
+  "nome": "Commando School",
+  "luogo": "Novorossiysk, Russia",
+  "anno": 1943,
+  "mappa": "map10",
+  "fazione_axis": "german",
+  "fazione_allies": "russian",
+  "ordini_axis": 4,
+  "ordini_allies": 3,
+  "mano_axis": 5,
+  "mano_allies": 6,
+  "sudden_death": 6,
+  "vp_iniziali": -9,
+  "posture_axis": "attack",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 7,
+  "resa_allies": 6,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Schrader",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Esser",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Pionier",
+    "n": 2
+   },
+   {
+    "tipo": "Rifle",
+    "n": 4
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Flamethrower",
+    "n": 1
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 1
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Khukovsky",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Bikovets",
+    "n": 1
+   },
+   {
+    "tipo": "Guards SMG",
+    "n": 2
+   },
+   {
+    "tipo": "Guards Rifle",
+    "n": 2
+   },
+   {
+    "tipo": "Elite",
+    "n": 2
+   },
+   {
+    "tipo": ".50cal MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 11,
+  "nome": "Hold the Line",
+  "luogo": "St. Jean de Daye, Francia",
+  "anno": 1944,
+  "mappa": "map11",
+  "fazione_axis": "german",
+  "fazione_allies": "american",
+  "ordini_axis": 2,
+  "ordini_allies": 2,
+  "mano_axis": 6,
+  "mano_allies": 5,
+  "sudden_death": 6,
+  "vp_iniziali": -10,
+  "posture_axis": "attack",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 6,
+  "resa_allies": 7,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Lauerbach",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Ganz",
+    "n": 1
+   },
+   {
+    "tipo": "SS",
+    "n": 4
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Wire",
+    "n": 14
+   },
+   {
+    "tipo": "Mines",
+    "n": 4
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Sgt. White",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Buehler",
+    "n": 1
+   },
+   {
+    "tipo": "Elite",
+    "n": 1
+   },
+   {
+    "tipo": "Line",
+    "n": 6
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 2
+   },
+   {
+    "tipo": "Foxholes",
+    "n": 2
+   },
+   {
+    "tipo": ".50cal MG",
+    "n": 1
+   },
+   {
+    "tipo": "Pack Howitzer",
+    "n": 1
+   },
+   {
+    "tipo": "Bunker",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 12,
+  "nome": "Misty Mountain",
+  "luogo": "Monte Castello, Italia",
+  "anno": 1944,
+  "mappa": "map12",
+  "fazione_axis": "german",
+  "fazione_allies": "brazilian",
+  "ordini_axis": 4,
+  "ordini_allies": 5,
+  "mano_axis": 5,
+  "mano_allies": 5,
+  "sudden_death": 12,
+  "vp_iniziali": 16,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 10,
+  "resa_allies": 17,
+  "forze_axis": [
+   {
+    "tipo": "Sgt. Esser",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Pfeiffer",
+    "n": 1
+   },
+   {
+    "tipo": "Volksgrenadier",
+    "n": 9
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 2
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Bunker",
+    "n": 1
+   },
+   {
+    "tipo": "Trench",
+    "n": 2
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Oliveira",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Pereira",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Santos",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Alves",
+    "n": 1
+   },
+   {
+    "tipo": "Line",
+    "n": 8
+   },
+   {
+    "tipo": "Green",
+    "n": 8
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 5
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   },
+   {
+    "tipo": "Medium Mortar",
+    "n": 2
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 13,
+  "nome": "Tussle at Maleme",
+  "luogo": "Maleme, Creta",
+  "anno": 1941,
+  "mappa": "map13",
+  "fazione_axis": "german",
+  "fazione_allies": "anzac",
+  "ordini_axis": 3,
+  "ordini_allies": 4,
+  "mano_axis": 6,
+  "mano_allies": 6,
+  "sudden_death": 6,
+  "vp_iniziali": 3,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 6,
+  "resa_allies": 9,
+  "forze_axis": [
+   {
+    "tipo": "Lt. v. Karsties",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Lauerbach",
+    "n": 1
+   },
+   {
+    "tipo": "Parachute",
+    "n": 6
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Walker",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Clarke",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Scott",
+    "n": 1
+   },
+   {
+    "tipo": "Guards",
+    "n": 9
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 2
+   }
+  ]
+ },
+ {
+  "numero": 14,
+  "nome": "At the Crossroads",
+  "luogo": "Sochaczew, Polonia",
+  "anno": 1939,
+  "mappa": "map14",
+  "fazione_axis": "german",
+  "fazione_allies": "polish",
+  "ordini_axis": 3,
+  "ordini_allies": 4,
+  "mano_axis": 5,
+  "mano_allies": 5,
+  "sudden_death": 6,
+  "vp_iniziali": 3,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 7,
+  "resa_allies": 10,
+  "forze_axis": [
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Lauerbach",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 7
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Foxholes",
+    "n": 1
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Szymanski",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Wojcik",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Nowak",
+    "n": 1
+   },
+   {
+    "tipo": "Line",
+    "n": 2
+   },
+   {
+    "tipo": "Regulars",
+    "n": 9
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "81mm Mortar",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 15,
+  "nome": "Armata Romana",
+  "luogo": "Bessarabia",
+  "anno": 1941,
+  "mappa": "map15",
+  "fazione_axis": "romanian",
+  "fazione_allies": "russian",
+  "ordini_axis": 5,
+  "ordini_allies": 3,
+  "mano_axis": 5,
+  "mano_allies": 5,
+  "sudden_death": 7,
+  "vp_iniziali": -12,
+  "posture_axis": "attack",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 17,
+  "resa_allies": 10,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Corname",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Rozin",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Stoica",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Popescu",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 6
+   },
+   {
+    "tipo": "Line",
+    "n": 14
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   },
+   {
+    "tipo": "Brandt Mortar",
+    "n": 1
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Gulkevich",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Krylov",
+    "n": 1
+   },
+   {
+    "tipo": "Guards Rifle",
+    "n": 3
+   },
+   {
+    "tipo": "Rifle",
+    "n": 6
+   },
+   {
+    "tipo": "Militia",
+    "n": 3
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   }
+  ]
+ },
+ {
+  "numero": 16,
+  "nome": "The Blitzkrieg Checked",
+  "luogo": "Gembloux, Francia",
+  "anno": 1940,
+  "mappa": "map16",
+  "fazione_axis": "german",
+  "fazione_allies": "french",
+  "ordini_axis": 4,
+  "ordini_allies": 3,
+  "mano_axis": 5,
+  "mano_allies": 6,
+  "sudden_death": 7,
+  "vp_iniziali": -30,
+  "posture_axis": "attack",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 10,
+  "resa_allies": 8,
+  "forze_axis": [
+   {
+    "tipo": "Lt. v. Karsties",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Ganz",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Winkler",
+    "n": 1
+   },
+   {
+    "tipo": "Elite Rifle",
+    "n": 3
+   },
+   {
+    "tipo": "Rifle",
+    "n": 6
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 2
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Cpl. Gough",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Besson",
+    "n": 1
+   },
+   {
+    "tipo": "BAR",
+    "n": 4
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 2
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 1
+   },
+   {
+    "tipo": "60mm Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Foxholes",
+    "n": 2
+   }
+  ]
+ },
+ {
+  "numero": 17,
+  "nome": "Little Stalingrad",
+  "luogo": "Ortona, Italia",
+  "anno": 1943,
+  "mappa": "map17",
+  "fazione_axis": "german",
+  "fazione_allies": "canadian",
+  "ordini_axis": 4,
+  "ordini_allies": 4,
+  "mano_axis": 6,
+  "mano_allies": 6,
+  "sudden_death": 7,
+  "vp_iniziali": 0,
+  "posture_axis": "recon",
+  "posture_allies": "recon",
+  "iniziativa": "allies",
+  "lato_umano": "axis",
+  "resa_axis": 9,
+  "resa_allies": 12,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Bolter",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Schrader",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Ganz",
+    "n": 1
+   },
+   {
+    "tipo": "Parachute",
+    "n": 9
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Petitclerc",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Poutre",
+    "n": 1
+   },
+   {
+    "tipo": "Smith, King's Hero",
+    "n": 1
+   },
+   {
+    "tipo": "Guards",
+    "n": 6
+   },
+   {
+    "tipo": "Line",
+    "n": 3
+   },
+   {
+    "tipo": "Elite",
+    "n": 3
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 4
+   }
+  ]
+ },
+ {
+  "numero": 18,
+  "nome": "Bridge Hunt",
+  "luogo": "Nisava, Jugoslavia",
+  "anno": 1941,
+  "mappa": "map18",
+  "fazione_axis": "german",
+  "fazione_allies": "yugoslav",
+  "ordini_axis": 3,
+  "ordini_allies": 3,
+  "mano_axis": 5,
+  "mano_allies": 4,
+  "sudden_death": 6,
+  "vp_iniziali": -16,
+  "posture_axis": "attack",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 7,
+  "resa_allies": 10,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Lauerbach",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 8
+   },
+   {
+    "tipo": "Light MG",
+    "n": 6
+   },
+   {
+    "tipo": "Radio 75mm",
+    "n": 1
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Dordevic",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Jovanovic",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 11
+   },
+   {
+    "tipo": "Green",
+    "n": 2
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 19,
+  "nome": "La Stagione di Metaxas",
+  "luogo": "Kilkis, Grecia",
+  "anno": 1941,
+  "mappa": "map19",
+  "fazione_axis": "german",
+  "fazione_allies": "french",
+  "ordini_axis": 3,
+  "ordini_allies": 4,
+  "mano_axis": 6,
+  "mano_allies": 5,
+  "sudden_death": 7,
+  "vp_iniziali": -12,
+  "posture_axis": "attack",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 7,
+  "resa_allies": 8,
+  "forze_axis": [
+   {
+    "tipo": "Cpt. Wehling",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Huntziger",
+    "n": 1
+   },
+   {
+    "tipo": "Pionier",
+    "n": 3
+   },
+   {
+    "tipo": "Elite Rifle",
+    "n": 4
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   },
+   {
+    "tipo": "IG 18 Gun",
+    "n": 1
+   },
+   {
+    "tipo": "Flamethrower",
+    "n": 1
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 2
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Aivaliotis",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Samaras",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Giannidis",
+    "n": 1
+   },
+   {
+    "tipo": "Garrison",
+    "n": 9
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 1
+   },
+   {
+    "tipo": "French '75",
+    "n": 1
+   },
+   {
+    "tipo": "Radio 75mm",
+    "n": 1
+   },
+   {
+    "tipo": "Bunker Complex",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 20,
+  "nome": "Marcia di Dicembre",
+  "luogo": "Tolvajarvi, Finlandia",
+  "anno": 1939,
+  "mappa": "map20",
+  "fazione_axis": "italian",
+  "fazione_allies": "russian",
+  "ordini_axis": 3,
+  "ordini_allies": 4,
+  "mano_axis": 6,
+  "mano_allies": 5,
+  "sudden_death": 7,
+  "vp_iniziali": -4,
+  "posture_axis": "attack",
+  "posture_allies": "recon",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 13,
+  "resa_allies": 13,
+  "forze_axis": [
+   {
+    "tipo": "Cpt. Pajari",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Jarvinen",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Virtanen",
+    "n": 1
+   },
+   {
+    "tipo": "Sissi",
+    "n": 15
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   },
+   {
+    "tipo": "Molotov Cocktail",
+    "n": 8
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Sgt. Kovalev",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Krylov",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Gordov",
+    "n": 1
+   },
+   {
+    "tipo": "Rifle",
+    "n": 15
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   }
+  ]
+ },
+ {
+  "numero": 21,
+  "nome": "Sant'Agata",
+  "luogo": "Sicilia settentrionale",
+  "anno": 1943,
+  "mappa": "map21",
+  "fazione_axis": "italian",
+  "fazione_allies": "american",
+  "ordini_axis": 3,
+  "ordini_allies": 3,
+  "mano_axis": 5,
+  "mano_allies": 5,
+  "sudden_death": 7,
+  "vp_iniziali": 12,
+  "posture_axis": "defend",
+  "posture_allies": "attack",
+  "iniziativa": "allies",
+  "lato_umano": "allies",
+  "resa_axis": 10,
+  "resa_allies": 7,
+  "forze_axis": [
+   {
+    "tipo": "Sgt. Ottolini",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Brachetta",
+    "n": 1
+   },
+   {
+    "tipo": "Fucilieri",
+    "n": 12
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Brixia Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Foxholes",
+    "n": 5
+   },
+   {
+    "tipo": "Mines",
+    "n": 3
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Sgt. Buehler",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. White",
+    "n": 1
+   },
+   {
+    "tipo": "Line",
+    "n": 8
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Medium MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 22,
+  "nome": "Un Vero Bagno di Sangue",
+  "luogo": "A sud di Goch, Olanda",
+  "anno": 1945,
+  "mappa": "map22",
+  "fazione_axis": "german",
+  "fazione_allies": "british",
+  "ordini_axis": 3,
+  "ordini_allies": 4,
+  "mano_axis": 4,
+  "mano_allies": 5,
+  "sudden_death": 6,
+  "vp_iniziali": 16,
+  "posture_axis": "defend",
+  "posture_allies": "recon",
+  "iniziativa": "axis",
+  "lato_umano": "allies",
+  "resa_axis": 6,
+  "resa_allies": 12,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Lauerbach",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Biermann",
+    "n": 1
+   },
+   {
+    "tipo": "Volksgrenadier",
+    "n": 2
+   },
+   {
+    "tipo": "Conscript",
+    "n": 7
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Medium Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Trench",
+    "n": 6
+   },
+   {
+    "tipo": "Wire",
+    "n": 6
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Forbes",
+    "n": 1
+   },
+   {
+    "tipo": "Lt. Chatham",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Casey",
+    "n": 1
+   },
+   {
+    "tipo": "Line",
+    "n": 9
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 2
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 3
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 23,
+  "nome": "Terra di Nessuno",
+  "luogo": "Deserto meridionale, Egitto",
+  "anno": 1942,
+  "mappa": "map23",
+  "fazione_axis": "italian",
+  "fazione_allies": "british",
+  "ordini_axis": 2,
+  "ordini_allies": 2,
+  "mano_axis": 5,
+  "mano_allies": 5,
+  "sudden_death": 12,
+  "vp_iniziali": 0,
+  "posture_axis": "recon",
+  "posture_allies": "recon",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 7,
+  "resa_allies": 4,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Pani",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Rovena",
+    "n": 1
+   },
+   {
+    "tipo": "Fucilieri",
+    "n": 6
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Medium Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Trench",
+    "n": 10
+   },
+   {
+    "tipo": "Mines",
+    "n": 5
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Chatham",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Singh",
+    "n": 1
+   },
+   {
+    "tipo": "Line",
+    "n": 3
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Radio 88mm",
+    "n": 1
+   },
+   {
+    "tipo": "Trench",
+    "n": 10
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Foxholes",
+    "n": 1
+   }
+  ]
+ },
+ {
+  "numero": 24,
+  "nome": "Sei Colline",
+  "luogo": "Passo Tug Argan, Somaliland",
+  "anno": 1940,
+  "mappa": "map24",
+  "fazione_axis": "italian",
+  "fazione_allies": "british",
+  "ordini_axis": 4,
+  "ordini_allies": 3,
+  "mano_axis": 5,
+  "mano_allies": 4,
+  "sudden_death": 7,
+  "vp_iniziali": -16,
+  "posture_axis": "attack",
+  "posture_allies": "defend",
+  "iniziativa": "axis",
+  "lato_umano": "axis",
+  "resa_axis": 12,
+  "resa_allies": 7,
+  "forze_axis": [
+   {
+    "tipo": "Lt. Visconti",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Radovic",
+    "n": 1
+   },
+   {
+    "tipo": "Sgt. Marcello",
+    "n": 1
+   },
+   {
+    "tipo": "Fucilieri",
+    "n": 9
+   },
+   {
+    "tipo": "Guastatori",
+    "n": 2
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 2
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 2
+   },
+   {
+    "tipo": "Brixia Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Radio 105mm",
+    "n": 1
+   },
+   {
+    "tipo": "Satchel Charge",
+    "n": 2
+   }
+  ],
+  "forze_allies": [
+   {
+    "tipo": "Lt. Lyndhurst",
+    "n": 1
+   },
+   {
+    "tipo": "Cpl. Singh",
+    "n": 1
+   },
+   {
+    "tipo": "Territorial",
+    "n": 6
+   },
+   {
+    "tipo": "Weapon Team",
+    "n": 1
+   },
+   {
+    "tipo": "Heavy MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light MG",
+    "n": 1
+   },
+   {
+    "tipo": "Light Mortar",
+    "n": 1
+   },
+   {
+    "tipo": "Foxholes",
+    "n": 6
+   }
+  ]
+ }
+]

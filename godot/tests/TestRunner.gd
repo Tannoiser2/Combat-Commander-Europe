@@ -57,6 +57,8 @@ func _ready() -> void:
 	_test_fire_suppress()
 	_test_fire_moving_break()
 	_test_maps_load()
+	_test_unit_chart()
+	_test_scenarios_load()
 	_report()
 
 
@@ -576,6 +578,42 @@ func _test_maps_load() -> void:
 	var m8 := GameState.new()
 	MapLoader.load_into(m8, "res://assets/maps/map8.json")
 	_check(m8.hex_at_label("A9").elevation == 1, "map8: quota 1 in A9 caricata")
+
+
+func _test_unit_chart() -> void:
+	print("· UnitChart: categorie e statistiche")
+	_check(UnitChart.category("Lt. Schrader") == UnitChart.Cat.LEADER, "Lt. → leader")
+	_check(UnitChart.category("Heavy MG") == UnitChart.Cat.WEAPON, "Heavy MG → arma")
+	_check(UnitChart.category("Rifle") == UnitChart.Cat.SQUAD, "Rifle → squadra")
+	_check(UnitChart.category("Foxholes") == UnitChart.Cat.FOXHOLE, "Foxholes → buca")
+	_check(UnitChart.category("Radio 105mm") == UnitChart.Cat.SKIP, "Radio → ignorata")
+	var ldr := UnitChart.build_unit("x", GER, "Cpt. Wehling", 0, 0)
+	_check(ldr.command >= 2 and ldr.is_leader(), "il capitano ha comando ≥2")
+	var mg := UnitChart.build_unit("y", RUS, "Medium MG", 1, 1)
+	_check(mg.is_weapon() and mg.range >= 10, "MMG è un'arma a lunga gittata")
+	var sq := UnitChart.build_unit("z", GER, "Elite Rifle", 2, 2)
+	_check(sq.morale >= 8 and sq.fp >= 6, "squadra élite: morale e FP alti")
+
+
+func _test_scenarios_load() -> void:
+	print("· Scenari: caricamento catalogo 2..24")
+	_check(ScenarioLoader.catalog().size() == 24, "catalogo ha 24 scenari")
+	for n in range(2, 25):
+		var st := GameState.new()
+		st.human_faction = GER
+		var ok := ScenarioLoader.setup(st, n)
+		_check(ok, "scenario %d caricato" % n)
+		_check(st.units.size() > 0, "scenario %d ha unità" % n)
+		var ger := 0
+		var rus := 0
+		var in_bounds := true
+		for u in st.units.values():
+			if u.q < 0 or u.q >= st.map_cols or u.r < 0 or u.r >= st.map_rows:
+				in_bounds = false
+			if u.faction == GER: ger += 1
+			else: rus += 1
+		_check(in_bounds, "scenario %d: unità tutte dentro la mappa" % n)
+		_check(ger > 0 and rus > 0, "scenario %d: entrambe le fazioni schierate" % n)
 
 
 func _report() -> void:
