@@ -44,6 +44,10 @@ func _ready() -> void:
 	_test_los_hexside()
 	_test_los_hindrance()
 	_test_step_cost()
+	_test_event_air_support()
+	_test_event_rubble()
+	_test_event_kia()
+	_test_event_suppressing_fire()
 	_report()
 
 
@@ -334,6 +338,58 @@ func _test_step_cost() -> void:
 	sr.hexes["1,0"].has_road = true
 	sr.hexes["1,0"].terrain = Domain.TerrainType.WOODS
 	_check(HexGrid.step_cost(sr, 0, 0, 1, 0) == 1, "lungo la strada anche il bosco costa 1")
+
+
+func _ev(name: String) -> Card:
+	var c := Card.new()
+	c.event_name = name
+	return c
+
+
+func _test_event_air_support() -> void:
+	print("· Evento: Supporto aereo")
+	var s := _new_state()
+	var a := _mk("ger", GER, SQUAD, RIFLE, 1, 1, 5, 7)  # B2 = (1,1)
+	var b := _mk("rus", RUS, SQUAD, RIFLE, 1, 1, 5, 7)
+	s.units[a.id] = a
+	s.units[b.id] = b
+	var card := _ev("SUPPORTO AEREO")
+	card.consequence = "event"  # così Fate.apply_consequence instrada verso Events.fire
+	card.random_hex_label = "B2"
+	var lines := Fate.apply_consequence(s, card, GER)
+	_check(not a.efficient and not b.efficient, "Supporto aereo rompe tutte le unità nell'esagono")
+	_check(lines.size() >= 2, "l'evento, via Fate, registra gli effetti")
+
+
+func _test_event_rubble() -> void:
+	print("· Evento: Macerie")
+	var s := _new_state()
+	var card := _ev("MACERIE")
+	card.random_hex_label = "C3"  # (2,2)
+	Events.fire(s, card, GER)
+	var hd := s.hex_at(2, 2)
+	_check(hd != null and hd.terrain == Domain.TerrainType.RUBBLE, "Macerie converte l'esagono in Rubble")
+
+
+func _test_event_kia() -> void:
+	print("· Evento: Ucciso in azione")
+	var s := _new_state()
+	var foe := _mk("rus", RUS, SQUAD, RIFLE, 0, 0, 5, 7)
+	foe.break_unit()
+	s.units[foe.id] = foe
+	Events.fire(s, _ev("UCCISO IN AZIONE"), GER)
+	_check(not s.units.has("rus"), "Ucciso in azione elimina un'unità rotta nemica")
+
+
+func _test_event_suppressing_fire() -> void:
+	print("· Evento: Fuoco di soppressione")
+	var s := _new_state()
+	var mg := _mk("mg", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 0, 0, 4, 7)
+	var foe := _mk("rus", RUS, SQUAD, RIFLE, 0, 1, 5, 7)  # adiacente, LOS libera
+	s.units[mg.id] = mg
+	s.units[foe.id] = foe
+	Events.fire(s, _ev("FUOCO DI SOPPRESSIONE"), GER)
+	_check(not foe.efficient, "Fuoco di soppressione rompe il nemico in gittata/LOS dell'MG")
 
 
 func _report() -> void:

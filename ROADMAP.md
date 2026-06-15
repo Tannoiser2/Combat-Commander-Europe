@@ -41,7 +41,7 @@ la logica regola per regola. Stato del motore Godot:
 | 🟢 Fatto | Ordini giocabili dalla mappa | MOVE/FIRE/ADVANCE con selezione bersaglio + evidenziazione; ROUT/RECOVER immediati. (`Game.play_card`, `HexMap._on_click`, `GameState.current_order`) |
 | 🟢 Fatto | Test motore headless | `godot/tests/TestRunner.tscn` + workflow CI `tests.yml` (Godot 4.6.3): controlli su fuoco/comando/recupero/melee/rotta/IA/Fato. |
 | 🟢 Fatto | Mazzo del Fato (dadi+conseguenze) | I tiri pescano i dadi dalla carta in cima al mazzo (`Fate.gd`); conseguenze Tempo!/Cecchino/Inceppamento applicate; il tempo avanza solo con Tempo!. (`Fate.gd`, `Game._draw_fate/_apply_fate`) |
-| 🟡 Da fare | Eventi (carte E) | Le carte Evento sono pescate e loggate ma gli handler dei singoli eventi (E43-E77) non sono ancora portati. |
+| 🟡 In corso | Eventi (carte E) | Dispatcher `Events.gd`: implementati Supporto aereo (E43), Macerie (E69), Shock (E72), Ucciso in azione (E62), Infiltrazione (E59), Fuoco di soppressione (E75), Acquattarsi (E51), Temprati (E44), Zappatori (no-op). Restano quelli con marker/Casualty Track/chit (loggati come non simulati). |
 | 🟢 Fatto | LOS/terreno avanzati | Linea di esagoni corretta (`HexGrid.line`/`_cube_round`); LOS bloccata da lati muro/siepe (intermedi) e bocage, varco LOS_CLEAR, hindrance cumulativo ed elevazione; movimento con costo dei lati + tariffa strada (`HexGrid.step_cost`). |
 | 🟡 Da fare | Artiglieria | Ordini ARTY/ARTY_DENIED ancora scartati: mancano Targeting Roll, spotter/LOS, scatter. |
 | 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |

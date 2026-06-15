@@ -20,7 +20,7 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 | Area regolamento | Stato | Dettaglio |
 |---|---|---|
 | Mazzo del Fato (dadi) | ✅ | I tiri (fuoco/melee/recupero/rotta) pescano i dadi dalla carta in cima al mazzo (`Fate.gd`); fallback RNG solo se mazzo+scarti vuoti. |
-| Conseguenze carta | ✅🟡 | Tempo!, Cecchino (colpisce l'hex + ripara armi), Inceppamento (arma fuori uso nel fuoco) implementate; **Evento** solo loggato (handler completi = milestone Eventi). |
+| Conseguenze carta | ✅🟡 | Tempo!, Cecchino (colpisce l'hex + ripara armi), Inceppamento (arma fuori uso nel fuoco) ed **Evento** (dispatcher `Events.gd`) implementate. |
 | Sequenza di gioco | 🟡 | Turni a blocchi (umano → IA). Manca alternanza carta-per-carta + finestra di reazione. |
 | Mano e scarti | 🟡 | Pesca/scarto/rimescolo OK; mano **fissa a 4** (non per Postura: Att 6/Recon 5/Dif 4); nessun limite di scarto per nazione. |
 | Ordine Mossa | 🟡 | Costo terreno + stacking. Manca bonus strada (ignorato in `move_cost`), lati esagono, malus PM armi, uscita mappa, attivazione multi-unità via leader. |
@@ -31,7 +31,7 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 | Passa | ✅ | Scarto + fine turno. |
 | Artiglieria (O18/ARTY) | ❌ | Carte ARTY/ARTY_DENIED scartate: niente radio/spotter, Targeting Roll, scatter. |
 | Azioni (carte A) | ❌ | `ActionType` definito ma inutilizzato. Niente Fuoco d'Assalto, Bombe a mano, Op Fire, Mimetizzazione, Trincerarsi, Fumogene… |
-| Eventi (carte E) | ❌ | Nessuno (React: 35+). |
+| Eventi (carte E) | 🟡 | Dispatcher `Events.gd` + eventi realizzabili coi sistemi attuali: Supporto aereo, Macerie, Shock da combattimento, Ucciso in azione, Infiltrazione, Fuoco di soppressione, Acquattarsi, Temprati, Zappatori (no-op). Quelli che richiedono marker/Casualty Track/chit obiettivo sono loggati come «non simulato». |
 | Comando/Leadership | 🟡 | Bonus nello stesso esagono ✅; raggio di Comando multi-esagono ❌ (`Rules.has_command_at` esiste, non usato). |
 | Linea di vista (LOS) | ✅🟡 | Linea di esagoni corretta (cube_round) + blocco da terreno opaco, **lati muro/siepe (intermedi) e bocage**, **varco LOS_CLEAR**, **hindrance cumulativo** (frutteto/campo/macchia) ed **elevazione** base. Restano cresta collina (T88.1), gully (T86), blind hex (T88.4), grazing, fumo. |
 | Terreno & movimento | ✅🟡 | Costi terreno + acqua impassabile ✅; **attraversamento lati** (muro/siepe/bocage/torrente +1, dirupo impassabile) e **tariffa strada** (1 PM lungo strada) ✅. Restano trail, double-time, malus PM armi. |

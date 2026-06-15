@@ -52,7 +52,7 @@ static func apply_consequence(
 		"jam":
 			_consequence_jam(state, context, lines)
 		"event":
-			lines.append("Evento pescato: %s (non ancora gestito)" % card.event_name)
+			lines.append_array(Events.fire(state, card, faction))
 	return lines
 
 

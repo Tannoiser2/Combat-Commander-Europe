@@ -52,9 +52,9 @@ static func _from_cube(cube: Vector3i) -> Vector2i:
 ## Arrotondamento cubico corretto (mantiene x+y+z=0): dà una vera linea di
 ## esagoni con celle consecutive adiacenti.
 static func _cube_round(x: float, y: float, z: float) -> Vector3i:
-	var rx := round(x)
-	var ry := round(y)
-	var rz := round(z)
+	var rx := roundf(x)
+	var ry := roundf(y)
+	var rz := roundf(z)
 	var dx := absf(rx - x)
 	var dy := absf(ry - y)
 	var dz := absf(rz - z)
