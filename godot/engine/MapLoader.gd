@@ -18,6 +18,13 @@ static func load_into(state: GameState, path: String) -> bool:
 
 	state.map_cols = int(data.get("cols", 15))
 	state.map_rows = int(data.get("rows", 10))
+
+	# Immagine e taratura griglia (stessi dati usati dall'editor di mappe).
+	state.map_image = String(data.get("id", "map1"))
+	var calib: Dictionary = data.get("_calib", {})
+	state.cal_hex = float(calib.get("hex", state.cal_hex))
+	state.cal_ox = float(calib.get("ox", state.cal_ox))
+	state.cal_oy = float(calib.get("oy", state.cal_oy))
 	var default_t: int = Domain.TERRAIN_FROM_STRING.get(data.get("default", "open"), Domain.TerrainType.OPEN)
 
 	# Crea tutti gli esagoni col terreno di default

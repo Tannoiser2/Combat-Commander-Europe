@@ -26,6 +26,13 @@ var hexes: Dictionary = {}
 var map_cols: int = 15
 var map_rows: int = 10
 
+## Visualizzazione mappa: id immagine (es. "map1") e taratura griglia dal JSON
+## (`_calib`), in pixel dell'immagine a piena risoluzione.
+var map_image: String = "map1"
+var cal_hex: float = 59.2
+var cal_ox: float = 129.0
+var cal_oy: float = 69.0
+
 ## Lati di esagono: ogni voce { "a": Vector2i, "b": Vector2i, "feature": int }
 var side_features: Array[Dictionary] = []
 
