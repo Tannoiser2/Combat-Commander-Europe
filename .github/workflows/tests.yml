@@ -1,0 +1,38 @@
+name: Test motore (GDScript headless)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  engine-tests:
+    name: Test del motore di gioco
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scarica Godot 4.6.3 (headless)
+        run: |
+          set -eux
+          URL="https://github.com/godotengine/godot/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip"
+          wget -q "$URL" -O godot.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.6.3-stable_linux.x86_64
+          echo "GODOT=$PWD/Godot_v4.6.3-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Importa risorse (genera la cache delle classi)
+        run: |
+          set -eux
+          # Prima apertura: Godot scansiona gli script e registra le classi
+          # globali (class_name). Tollerante: alcune versioni terminano con
+          # codice non-zero anche dopo un import riuscito.
+          "$GODOT" --headless --path godot --import || true
+
+      - name: Esegui i test
+        run: |
+          set -euxo pipefail
+          "$GODOT" --headless --path godot res://tests/TestRunner.tscn 2>&1 | tee test_output.txt
+          # Il codice di uscita di Godot va perso nella pipe: si valida l'output.
+          grep -q "TEST_RESULT: PASS" test_output.txt

@@ -81,6 +81,13 @@ var selected_card_index: int = -1
 var highlighted_hexes: Array[String] = []
 
 
+# ─── Ordine in corso ─────────────────────────────────────────────────────────
+
+## Domain.OrderType dell'ordine attualmente in esecuzione (-1 = nessuno).
+## Determina come la mappa interpreta i click (movimento / fuoco / avanzata).
+var current_order: int = -1
+
+
 # ─── Movimento passo per passo ───────────────────────────────────────────────
 
 var moving_unit_id: String = ""
@@ -124,6 +131,15 @@ func units_of(faction: int) -> Array[Unit]:
 	var result: Array[Unit] = []
 	for u in units.values():
 		if u.faction == faction:
+			result.append(u)
+	return result
+
+
+## Uomini rotti (lato rovesciato) di una fazione — bersagli di Recupero e Rotta.
+func broken_men_of(faction: int) -> Array[Unit]:
+	var result: Array[Unit] = []
+	for u in units.values():
+		if u.faction == faction and u.is_man() and not u.efficient:
 			result.append(u)
 	return result
 

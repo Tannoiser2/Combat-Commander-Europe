@@ -55,6 +55,32 @@ func is_man() -> bool:
 	return type != Domain.UnitType.WEAPON
 
 
+# ─── Stato di rottura (CC:E) ───────────────────────────────────────────────────
+# Un'unità è "Rotta" quando `efficient == false` (lato rovesciato della pedina).
+# Le unità rotte non possono sparare, devono ritirarsi (Rotta) e si recuperano
+# con un tiro di Morale (Recupero). Un colpo su un'unità già rotta la elimina.
+
+func is_broken() -> bool:
+	return not efficient
+
+
+## Potenza di fuoco effettiva: dimezzata (lato rovesciato) se rotta.
+func effective_fp() -> int:
+	return fp if efficient else int(fp / 2)
+
+
+## Rompe l'unità (lato rovesciato). `suppressed` resta sincronizzato per l'HUD.
+func break_unit() -> void:
+	efficient = false
+	suppressed = true
+
+
+## Recupera l'unità (lato efficiente).
+func recover() -> void:
+	efficient = true
+	suppressed = false
+
+
 func pos() -> Vector2i:
 	return Vector2i(q, r)
 

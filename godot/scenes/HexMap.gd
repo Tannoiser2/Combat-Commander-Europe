@@ -376,11 +376,19 @@ func _on_click(mouse_pos: Vector2) -> void:
 
 	if s.phase == Domain.Phase.PLAYER_MOVING:
 		# Clicco su esagono amico → cambia selezione; su evidenziato → muovi
-		var own_here := units_here.filter(func(u): return u.faction == s.human_faction)
-		if own_here.size() > 0 and s.highlighted_hexes.has(key) == false:
-			Game.select_unit(own_here[0].id)
-		elif s.highlighted_hexes.has(key):
-			Game.click_hex_move(clicked_q, clicked_r)
+		if s.selected_unit_id != "" and s.highlighted_hexes.has(key):
+			match s.current_order:
+				Domain.OrderType.MOVE:
+					Game.click_hex_move(clicked_q, clicked_r)
+				Domain.OrderType.FIRE:
+					Game.click_hex_fire(clicked_q, clicked_r)
+				Domain.OrderType.ADVANCE:
+					Game.click_hex_advance(clicked_q, clicked_r)
+		else:
+			var own_here := units_here.filter(
+				func(u): return u.faction == s.human_faction and not u.activated)
+			if own_here.size() > 0:
+				Game.select_unit(own_here[0].id)
 	elif s.phase == Domain.Phase.PLAYER_TURN:
 		# Seleziona unità amica
 		var own := units_here.filter(func(u): return u.faction == s.human_faction and not u.activated)

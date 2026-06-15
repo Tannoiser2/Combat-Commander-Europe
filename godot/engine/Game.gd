@@ -60,15 +60,30 @@ func select_unit(unit_id: String) -> void:
 		emit_signal("state_changed")
 		return
 	state.selected_unit_id = unit_id
-	# Evidenzia esagoni raggiungibili
+	state.highlighted_hexes.clear()
+	# Evidenzia gli esagoni validi secondo l'ordine in corso.
 	if state.phase == Domain.Phase.PLAYER_MOVING:
-		var reach := HexGrid.reachable(u, state)
-		state.highlighted_hexes.clear()
-		for h in reach:
-			state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
-	else:
-		state.highlighted_hexes.clear()
+		match state.current_order:
+			Domain.OrderType.MOVE:
+				for h in HexGrid.reachable(u, state):
+					state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
+			Domain.OrderType.FIRE:
+				for h in _fire_targets(u):
+					state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
+			Domain.OrderType.ADVANCE:
+				for h in HexGrid.neighbors(u.q, u.r):
+					if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
+						state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 	emit_signal("state_changed")
+
+
+## Esagoni nemici che l'unità può colpire (gittata + LOS + nemico presente).
+func _fire_targets(u: Unit) -> Array[Vector2i]:
+	var targets: Array[Vector2i] = []
+	for h in HexGrid.hexes_in_range(u.q, u.r, u.range, state):
+		if Combat.can_fire(u, h.x, h.y, state):
+			targets.append(h)
+	return targets
 
 
 func deselect() -> void:
@@ -92,20 +107,23 @@ func play_card(hand_index: int) -> void:
 	_log("Carta #%d giocata: %s" % [card.number, Domain.ORDER_LABELS.get(card.order, card.order_label)])
 
 	match card.order:
-		Domain.OrderType.MOVE:
+		Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE:
+			# Ordini con bersaglio: si entra in fase di selezione sulla mappa.
 			state.order_count += 1
+			state.current_order = card.order
+			state.selected_card_index = hand_index
+			state.selected_unit_id = ""
+			state.highlighted_hexes.clear()
 			_change_phase(Domain.Phase.PLAYER_MOVING)
-			state.selected_card_index = hand_index
-		Domain.OrderType.FIRE:
-			state.order_count += 1
-			_change_phase(Domain.Phase.PLAYER_MOVING)  # riusa fase per selezione bersaglio
-			state.selected_card_index = hand_index
 		Domain.OrderType.RECOVER:
 			_execute_recover(hand_index)
+		Domain.OrderType.ROUT:
+			_execute_rout(hand_index)
 		Domain.OrderType.PASS:
 			_discard_card(hand_index)
 			_end_player_turn()
 		_:
+			# Artiglieria e altri ordini non ancora portati: scartati.
 			_discard_card(hand_index)
 
 
@@ -132,28 +150,41 @@ func click_hex_fire(tq: int, tr: int) -> void:
 	var u := state.unit_by_id(uid)
 	if u == null or u.faction != state.human_faction:
 		return
+	if state.current_order != Domain.OrderType.FIRE:
+		return
 	if not Combat.can_fire(u, tq, tr, state):
 		_log("Fuoco illegale verso (%d,%d)" % [tq, tr])
 		return
+	# Tutto il gruppo di fuoco (unità co-locate in gittata) si attiva.
+	for g in Combat.fire_group(u, tq, tr, state):
+		g.activated = true
 	var result := Combat.resolve_fire(u, tq, tr, state, _rng)
-	u.activated = true
 	_log(result.log_line)
-	for uid2 in result.broken:
+	for uid2 in result.eliminated:
 		emit_signal("unit_eliminated", uid2)
 	emit_signal("fire_resolved", result)
-	# Scarta la carta usata e pesca una nuova
-	var hand := state.hand_of(state.human_faction)
-	var discard := state.german_discard if state.human_faction == Domain.Faction.GERMAN else state.russian_discard
-	var deck := state.german_deck if state.human_faction == Domain.Faction.GERMAN else state.russian_deck
-	var ci := state.selected_card_index
-	if ci >= 0 and ci < hand.size():
-		Cards.discard_from_hand(hand, discard, ci)
-		Cards.draw(deck, discard, hand)
-	state.selected_card_index = -1
-	state.selected_unit_id = ""
-	state.highlighted_hexes.clear()
+	_discard_card(state.selected_card_index)
+	_clear_order_selection()
 	_change_phase(Domain.Phase.PLAYER_TURN)
 	_check_end_conditions()
+
+
+## Giocatore clicca un esagono adiacente durante un'Avanzata.
+func click_hex_advance(tq: int, tr: int) -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
+		return
+	if state.current_order != Domain.OrderType.ADVANCE:
+		return
+	var uid := state.selected_unit_id
+	if uid == "":
+		return
+	var u := state.unit_by_id(uid)
+	if u == null or u.faction != state.human_faction:
+		return
+	if HexGrid.distance(u.q, u.r, tq, tr) != 1:
+		_log("Avanzata: scegli un esagono adiacente.")
+		return
+	_execute_advance(u, tq, tr)
 
 
 # ─── Implementazioni interne ──────────────────────────────────────────────────
@@ -193,16 +224,85 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	emit_signal("state_changed")
 
 
+## Avanzata (O21): l'unità entra nell'esagono adiacente. Se vi sono nemici si
+## risolve un corpo a corpo tra tutte le unità presenti nei due schieramenti.
+func _execute_advance(u: Unit, tq: int, tr: int) -> void:
+	var enemies := state.men_at(tq, tr).filter(
+		func(m: Unit) -> bool: return m.faction != u.faction
+	)
+
+	if enemies.is_empty():
+		# Avanzata semplice in esagono vuoto/amico (rispetta lo stacking).
+		if u.is_man() and state.men_at(tq, tr).size() >= 8:
+			_log("Stacking: max 8 uomini in (%d,%d)" % [tq, tr])
+			return
+		u.q = tq; u.r = tr
+		u.activated = true
+		_log("%s avanza in (%d,%d)" % [u.unit_name, tq, tr])
+		emit_signal("unit_moved", u.id, tq, tr)
+	else:
+		# Corpo a corpo: attaccanti = unità amiche che entrano; difensori = nemici.
+		u.q = tq; u.r = tr
+		u.activated = true
+		var attackers := state.men_at(tq, tr).filter(
+			func(m: Unit) -> bool: return m.faction == u.faction
+		)
+		var defenders := state.men_at(tq, tr).filter(
+			func(m: Unit) -> bool: return m.faction != u.faction
+		)
+		var mr := Rules.resolve_melee(state, attackers, defenders, state.initiative_holder, _rng)
+		_log(mr.log_line)
+		for uid in mr.eliminated:
+			emit_signal("unit_eliminated", uid)
+
+	_discard_card(state.selected_card_index)
+	_clear_order_selection()
+	_change_phase(Domain.Phase.PLAYER_TURN)
+	_check_end_conditions()
+
+
+## Recupero (O22): tiro di Morale per ogni unità rotta amica.
 func _execute_recover(hand_index: int) -> void:
-	# Rimuove soppressione da tutte le unità amiche
-	var count := 0
-	for u in state.units_of(state.human_faction):
-		if u.suppressed:
-			u.suppressed = false
-			count += 1
+	state.order_count += 1
+	var recovered := 0
+	for u in state.broken_men_of(state.human_faction):
+		var r := Rules.try_recover(state, u, _rng)
+		_log("Recupero %s: %d vs %d → %s" % [
+			u.unit_name, r["roll"], r["target"], "OK" if r["success"] else "fallito"
+		])
+		if r["success"]:
+			recovered += 1
+	if recovered == 0 and state.broken_men_of(state.human_faction).is_empty():
+		_log("Recupero: nessuna unità rotta da ripristinare.")
 	_discard_card(hand_index)
-	_log("Recupero: %d unità ripristinate" % count)
 	emit_signal("state_changed")
+
+
+## Rotta (O23): ogni unità rotta amica si ritira verso il bordo amico.
+func _execute_rout(hand_index: int) -> void:
+	state.order_count += 1
+	var broken := state.broken_men_of(state.human_faction)
+	if broken.is_empty():
+		_log("Rotta: nessuna unità rotta.")
+	for u in broken:
+		var r := Rules.rout_unit(state, u, _rng)
+		if r["eliminated"]:
+			_log("Rotta %s: %d esagoni → ELIMINATA (nessuna via di fuga)" % [u.unit_name, r["steps"]])
+			emit_signal("unit_eliminated", u.id)
+		else:
+			_log("Rotta %s: tiro %d, si ritira di %d esagoni" % [u.unit_name, r["roll"], r["moved"]])
+			emit_signal("unit_moved", u.id, u.q, u.r)
+	_discard_card(hand_index)
+	_check_end_conditions()
+	emit_signal("state_changed")
+
+
+## Azzera la selezione e l'ordine corrente dopo aver risolto un ordine.
+func _clear_order_selection() -> void:
+	state.selected_card_index = -1
+	state.selected_unit_id = ""
+	state.current_order = -1
+	state.highlighted_hexes.clear()
 
 
 func _discard_card(hand_index: int) -> void:
@@ -219,6 +319,7 @@ func _end_player_turn() -> void:
 	state.moving_unit_id = ""
 	state.moving_remaining_mp = 0
 	state.moving_card_index = -1
+	state.current_order = -1
 	state.selected_unit_id = ""
 	state.highlighted_hexes.clear()
 	for u in state.units.values():

@@ -24,6 +24,28 @@
 | 🟢 Fatto | Catalogo scenari | Tutti i 24 scenari con dati ufficiali estratti dal manuale (fazioni, ordini, hand size, sudden death, VP, posture, iniziativa, humanSide). |
 | 🟢 Fatto | Ordini di battaglia | OB completo per tutti i 24 scenari in `scenarioOBs.ts` con resa, leader, squadre, weapon team, fortificazioni. |
 
+## Port Godot 4.x — stato del motore (aggiornato 2026-06-15)
+
+Il **prodotto attuale è il port in Godot** (`godot/`, vedi `README.md`). La ROADMAP
+sopra descrive l'app **React** di riferimento (`_recupero_react/`), da cui si porta
+la logica regola per regola. Stato del motore Godot:
+
+| Stato | Area | Note Godot (file) |
+| --- | --- | --- |
+| 🟢 Fatto | Scenario 1 | Mappa, obiettivi, mazzi German/Russian, turni, traccia Tempo, fine partita. |
+| 🟢 Fatto | Modello rottura (break) | `Unit.efficient` = lato pedina. Fuoco ≥ Morale **rompe** un'unità efficiente; un secondo colpo la **elimina**. `effective_fp()` dimezza il lato rotto. (`Unit.gd`, `Combat.gd`) — sostituisce il vecchio «≥ morale+4 = morto». |
+| 🟢 Fatto | Gruppo di fuoco + Comando | FP = Σ unità co-locate in gittata + Comando del miglior leader nell'esagono. (`Combat.fire_group`, `Rules.command_bonus_at`) |
+| 🟢 Fatto | Recupero (O22) | Tiro 2d6 ≤ Morale (+Comando) **per unità**, non più azzeramento globale. (`Rules.try_recover`, `Game._execute_recover`) |
+| 🟢 Fatto | Avanzata + Corpo a corpo (O21) | Avanzata di 1 esagono; in esagono nemico → melee: ΣFP + riquadri + Comando + 2d6; pareggio a chi **non** ha l'iniziativa; il perdente perde **tutte** le unità. (`Rules.resolve_melee`, `Game._execute_advance`) |
+| 🟢 Fatto | Rotta (O23) | N = (2d6 − Morale) esagoni verso il bordo amico, lontano dai nemici; intrappolata + nemico adiacente → eliminata. (`Rules.rout_unit`, `Game._execute_rout`) |
+| 🟢 Fatto | Ordini giocabili dalla mappa | MOVE/FIRE/ADVANCE con selezione bersaglio + evidenziazione; ROUT/RECOVER immediati. (`Game.play_card`, `HexMap._on_click`, `GameState.current_order`) |
+| 🟢 Fatto | Test motore headless | `godot/tests/TestRunner.tscn` + workflow CI `tests.yml` (Godot 4.6.3): controlli su fuoco/comando/recupero/melee/rotta. |
+| 🟡 Da fare | Conseguenze carta | jam/sniper/time/event non gestite alla pescata; il fuoco usa 2d6 RNG, non i dadi del Fato della carta. |
+| 🟡 Da fare | Artiglieria | Ordini ARTY/ARTY_DENIED ancora scartati: mancano Targeting Roll, spotter/LOS, scatter. |
+| 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
+| 🟡 Da fare | IA | L'IA russa muove solo verso l'obiettivo; non spara/avanza/recupera né usa i nuovi ordini. |
+| 🟡 Da fare | Scenari 2-24 (Godot) | In Godot esiste solo lo Scenario 1; dati scenario/OB e terreno mappe da portare (mappe in digitalizzazione). |
+
 ## Milestone 0: Base Tecnica
 
 | Stato | Voce | Note |

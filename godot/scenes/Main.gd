@@ -83,8 +83,7 @@ func _refresh_unit_info() -> void:
 	if u.is_weapon():
 		lines += "   (malus mov. %d)" % u.move_penalty
 	var stato: Array[String] = []
-	if not u.efficient: stato.append("inefficiente")
-	if u.suppressed: stato.append("soppressa")
+	if not u.efficient: stato.append("rotta")
 	if u.activated: stato.append("attivata")
 	if stato.size() > 0:
 		lines += "\n[i]%s[/i]" % ", ".join(stato)
