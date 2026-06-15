@@ -54,6 +54,8 @@ func _ready() -> void:
 	_test_grenade()
 	_test_melee_tie()
 	_test_stacking()
+	_test_fire_suppress()
+	_test_fire_moving_break()
 	_report()
 
 
@@ -103,12 +105,12 @@ func _test_fire_break_then_eliminate() -> void:
 	s.units[atk.id] = atk
 	s.units[tgt.id] = tgt
 
-	var r1 := Combat.resolve_fire(atk, 0, 1, s, Vector2i(1, 1))
+	var r1 := Combat.resolve_fire(atk, 0, 1, s, Vector2i(6, 6), Vector2i(1, 1))
 	_check(r1.broken.has("rus"), "unità efficiente colpita si rompe")
 	_check(s.units.has("rus"), "unità rotta resta in gioco")
 	_check(s.units.has("rus") and not s.units["rus"].efficient, "unità marcata come rotta")
 
-	var r2 := Combat.resolve_fire(atk, 0, 1, s, Vector2i(1, 1))
+	var r2 := Combat.resolve_fire(atk, 0, 1, s, Vector2i(6, 6), Vector2i(1, 1))
 	_check(r2.eliminated.has("rus"), "unità già rotta colpita viene eliminata")
 	_check(not s.units.has("rus"), "unità eliminata rimossa dallo stato")
 
@@ -120,8 +122,8 @@ func _test_fire_no_effect() -> void:
 	var tgt := _mk("rus", RUS, SQUAD, RIFLE, 0, 1, 5, 99)  # morale irraggiungibile
 	s.units[atk.id] = atk
 	s.units[tgt.id] = tgt
-	var r := Combat.resolve_fire(atk, 0, 1, s, Vector2i(6, 6))
-	_check(r.broken.is_empty() and r.eliminated.is_empty(), "punteggio < morale → nessun effetto")
+	var r := Combat.resolve_fire(atk, 0, 1, s, Vector2i(6, 6), Vector2i(1, 1))
+	_check(r.broken.is_empty() and r.eliminated.is_empty() and r.suppressed.is_empty(), "difesa > attacco → nessun effetto")
 	_check(s.units["rus"].efficient, "bersaglio resta efficiente")
 
 
@@ -395,7 +397,7 @@ func _test_event_suppressing_fire() -> void:
 	s.units[mg.id] = mg
 	s.units[foe.id] = foe
 	Events.fire(s, _ev("FUOCO DI SOPPRESSIONE"), GER)
-	_check(not foe.efficient, "Fuoco di soppressione rompe il nemico in gittata/LOS dell'MG")
+	_check(foe.suppressed, "Fuoco di soppressione sopprime il nemico in gittata/LOS dell'MG")
 
 
 func _test_objectives_vp() -> void:
@@ -478,9 +480,9 @@ func _test_actions() -> void:
 	s3.units[def.id] = def
 	Actions.play(s3, _act("MIMETIZZAZIONE"), RUS)
 	_check(def.concealed, "Mimetizzazione nasconde le unità")
-	# FP5, dadi 1+1=2 → 7; morale 7 ma +1 da mimetica = 8 → NON si rompe
-	var r := Combat.resolve_fire(atk, 0, 1, s3, Vector2i(1, 1))
-	_check(r.broken.is_empty(), "una unità mimetizzata resiste a un tiro al limite")
+	# attacco 5+2=7; difesa 7+1(mimetica)+6=14 → nessun effetto, ma rivelata
+	var r := Combat.resolve_fire(atk, 0, 1, s3, Vector2i(1, 1), Vector2i(3, 3))
+	_check(r.broken.is_empty(), "una unità mimetizzata resiste meglio")
 	_check(not def.concealed, "il fuoco rivela la mimetizzazione")
 
 	# Granate fumogene → fumo → hindrance lungo la LOS
@@ -528,6 +530,33 @@ func _test_stacking() -> void:
 	var w := _mk("w", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 1, 1, 4, 7)
 	s.units[w.id] = w
 	_check(s.soldier_icons_at(1, 1) == 5, "le armi non contano come figure")
+
+
+func _test_fire_suppress() -> void:
+	print("· Fuoco: soppressione (pareggio, bersaglio fermo)")
+	var s := _new_state()
+	var atk := _mk("ger", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	var def := _mk("rus", RUS, SQUAD, RIFLE, 0, 1, 5, 7)
+	s.units[atk.id] = atk
+	s.units[def.id] = def
+	# attacco 5+12=17; difesa 7+0+10=17 → pareggio, fermo → soppressa
+	var r := Combat.resolve_fire(atk, 0, 1, s, Vector2i(6, 6), Vector2i(5, 5))
+	_check(r.suppressed.has("rus"), "pareggio su unità ferma → soppressa")
+	_check(def.suppressed and def.efficient, "soppressa resta sul lato efficiente")
+	_check(r.broken.is_empty(), "la soppressione non rompe")
+	_check(not Combat.can_fire(def, 0, 0, s), "una unità soppressa non può sparare")
+
+
+func _test_fire_moving_break() -> void:
+	print("· Fuoco: pareggio su unità in movimento → rotta")
+	var s := _new_state()
+	var atk := _mk("ger", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	var def := _mk("rus", RUS, SQUAD, RIFLE, 0, 1, 5, 7)
+	s.units[atk.id] = atk
+	s.units[def.id] = def
+	s.moving_unit_id = "rus"  # il bersaglio si sta muovendo
+	var r := Combat.resolve_fire(atk, 0, 1, s, Vector2i(6, 6), Vector2i(5, 5))
+	_check(r.broken.has("rus"), "pareggio su unità in movimento → rotta")
 
 
 func _report() -> void:

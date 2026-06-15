@@ -203,13 +203,15 @@ func click_hex_fire(tq: int, tr: int) -> void:
 		g.activated = true
 		if g.is_weapon():
 			weapon_ids.append(g.id)
-	var fate := _draw_fate(state.human_faction)
-	var result := Combat.resolve_fire(u, tq, tr, state, _dice_of(fate))
+	var atk_fate := _draw_fate(state.human_faction)
+	var def_fate := _draw_fate(_ai_faction())
+	var result := Combat.resolve_fire(u, tq, tr, state, _dice_of(atk_fate), _dice_of(def_fate))
 	_log(result.log_line)
 	for uid2 in result.eliminated:
 		emit_signal("unit_eliminated", uid2)
 	emit_signal("fire_resolved", result)
-	_apply_fate(fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
+	_apply_fate(atk_fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
+	_apply_fate(def_fate, _ai_faction())
 	_discard_card(state.selected_card_index)
 	_clear_order_selection()
 	_check_end_conditions()  # aggiorna obiettivi/VP e gestisce la fine partita
@@ -397,6 +399,11 @@ func _ai_faction() -> int:
 	return Domain.Faction.RUSSIAN if state.human_faction == Domain.Faction.GERMAN else Domain.Faction.GERMAN
 
 
+## La fazione avversaria di `f`.
+func _opponent(f: int) -> int:
+	return Domain.Faction.RUSSIAN if f == Domain.Faction.GERMAN else Domain.Faction.GERMAN
+
+
 # ─── Mazzo del Fato ────────────────────────────────────────────────────────────
 
 ## Pesca una carta del Fato per la fazione (per ottenere i dadi del tiro).
@@ -426,12 +433,14 @@ func _op_fire(mover: Unit, defender: int) -> bool:
 	for g in group:
 		if g.is_weapon():
 			weapon_ids.append(g.id)
-	var fate := _draw_fate(defender)
-	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(fate))
+	var atk_fate := _draw_fate(defender)
+	var def_fate := _draw_fate(mover.faction)
+	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
 	_log("⚡ Opportunità — " + res.log_line)
 	for id in res.eliminated:
 		emit_signal("unit_eliminated", id)
-	_apply_fate(fate, defender, { "kind": "fire", "weapons": weapon_ids })
+	_apply_fate(atk_fate, defender, { "kind": "fire", "weapons": weapon_ids })
+	_apply_fate(def_fate, mover.faction)
 	return res.eliminated.has(mover.id) or res.broken.has(mover.id)
 
 
@@ -504,11 +513,13 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 					if g.is_weapon():
 						weapon_ids.append(g.id)
 				var ffate := _draw_fate(faction)
-				var fres := Combat.resolve_fire(atk, fq, fr, state, _dice_of(ffate))
+				var dfate := _draw_fate(_opponent(faction))
+				var fres := Combat.resolve_fire(atk, fq, fr, state, _dice_of(ffate), _dice_of(dfate))
 				_log("IA — " + fres.log_line)
 				for fid in fres.eliminated:
 					emit_signal("unit_eliminated", fid)
 				_apply_fate(ffate, faction, { "kind": "fire", "weapons": weapon_ids })
+				_apply_fate(dfate, _opponent(faction))
 		Domain.OrderType.ADVANCE:
 			var mover := state.unit_by_id(String(play["unit_id"]))
 			if mover != null:
@@ -615,8 +626,11 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 		u.r = best.y
 		emit_signal("unit_moved", u.id, best.x, best.y)
 		# Il difensore (avversario di chi muove) reagisce col Fuoco di Opportunità.
-		var defender := state.human_faction if u.faction == _ai_faction() else _ai_faction()
-		_op_fire(u, defender)
+		# Marca l'unità come "in movimento" così un pareggio difesa la rompe (A33).
+		var prev_moving := state.moving_unit_id
+		state.moving_unit_id = u.id
+		_op_fire(u, _opponent(u.faction))
+		state.moving_unit_id = prev_moving
 
 
 # ─── Fine partita ─────────────────────────────────────────────────────────────

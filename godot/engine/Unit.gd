@@ -82,13 +82,17 @@ func effective_fp() -> int:
 	return fp if efficient else int(fp / 2)
 
 
-## Rompe l'unità (lato rovesciato). `suppressed` resta sincronizzato per l'HUD.
+## Rompe l'unità (lato rovesciato). Stato distinto dalla soppressione.
 func break_unit() -> void:
 	efficient = false
+
+
+## Sopprime l'unità (marcatore; resta sul lato efficiente).
+func suppress() -> void:
 	suppressed = true
 
 
-## Recupera l'unità (lato efficiente).
+## Recupera l'unità: toglie rottura e soppressione (Recupero O22).
 func recover() -> void:
 	efficient = true
 	suppressed = false

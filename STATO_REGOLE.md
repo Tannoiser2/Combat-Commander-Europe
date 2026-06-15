@@ -28,7 +28,7 @@ richiedono marker non ancora modellati, **altre 4 fazioni/mazzi** e gli
 | Sequenza di gioco | 🟡 | Turni a blocchi (umano → IA). Manca alternanza carta-per-carta + finestra di reazione. |
 | Mano e scarti | 🟡 | Pesca/scarto/rimescolo OK; mano **fissa a 4** (non per Postura: Att 6/Recon 5/Dif 4); nessun limite di scarto per nazione. |
 | Ordine Mossa | 🟡 | Costo terreno + stacking. Manca bonus strada (ignorato in `move_cost`), lati esagono, malus PM armi, uscita mappa, attivazione multi-unità via leader. |
-| Ordine Fuoco (O20) | ✅🟡 | Gruppo (FP pezzo migliore **+1 per pezzo aggiuntivo**, O20.3.1) + Comando + copertura + hindrance + 2d6 + rottura→eliminazione. Manca il Fire Defense Roll del difensore (Suppress vs Break), ordnance/Targeting Roll, gruppo multi-esagono. |
+| Ordine Fuoco (O20) | ✅🟡 | Gruppo (FP pezzo migliore **+1/aggiuntivo**) + Comando − hindrance, **Attacco vs Fire Defense Roll** (Morale+copertura+dadi del difensore): difesa< → rotta/eliminata; pareggio → rotta se in movimento, altrimenti **soppressa**; difesa> → nessun effetto. Suppress e Break sono ora stati distinti. Manca ordnance/Targeting Roll, tiro di difesa per-unità (ora per-esagono), gruppo multi-esagono. |
 | Corpo a corpo (O16.4) | ✅ | Adiacenza, ΣFP (no Comando) + riquadri + 2d6; lato più debole eliminato, **pareggio → entrambi eliminati** (salvo Bunker/Pillbox). |
 | Recupero (O22) | ✅ | 2d6 ≤ Morale (+Comando nell'hex). |
 | Rotta (O23) | ✅ | N = 2d6 − Morale verso il bordo amico; intrappolata+nemico adiacente → eliminata. |

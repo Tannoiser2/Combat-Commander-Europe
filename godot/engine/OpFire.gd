@@ -12,7 +12,7 @@ extends RefCounted
 static func eligible_shooters(state: GameState, mover: Unit, defender: int) -> Array[Unit]:
 	var result: Array[Unit] = []
 	for u in state.units_of(defender):
-		if not u.efficient or u.fp <= 0:
+		if not u.efficient or u.suppressed or u.fp <= 0:
 			continue
 		if u.unit_class == Domain.UnitClass.MORTAR or u.unit_class == Domain.UnitClass.AT:
 			continue

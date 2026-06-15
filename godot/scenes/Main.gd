@@ -84,6 +84,7 @@ func _refresh_unit_info() -> void:
 		lines += "   (malus mov. %d)" % u.move_penalty
 	var stato: Array[String] = []
 	if not u.efficient: stato.append("rotta")
+	if u.suppressed: stato.append("soppressa")
 	if u.activated: stato.append("attivata")
 	if stato.size() > 0:
 		lines += "\n[i]%s[/i]" % ", ".join(stato)
