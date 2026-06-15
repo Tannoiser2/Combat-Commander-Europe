@@ -11,7 +11,9 @@ class HexData:
 	var terrain: int        # Domain.TerrainType
 	var elevation: int = 0
 	var objective_id: int = -1  # -1 = nessun obiettivo
-	var has_road: bool = false  # sovrapposizione strada
+	var has_road: bool = false     # sovrapposizione strada
+	var has_foxhole: bool = false  # buca/trincea (Trincerarsi): +2 copertura
+	var has_smoke: bool = false    # fumo (Granate Fumogene): hindrance
 
 	func _init(p_terrain: int, p_elev: int = 0) -> void:
 		terrain = p_terrain

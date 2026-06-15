@@ -69,7 +69,11 @@ static func resolve_fire(
 	# sottratti alla potenza di fuoco.
 	var hd: GameState.HexData = state.hex_at(tq, tr)
 	var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0
+	if hd != null and hd.has_foxhole:
+		cover += 2  # buca/trincea
 	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state)
+	if hd != null and hd.has_smoke:
+		hind += 1  # fumo sul bersaglio
 	var fp_before := fp
 	fp = maxi(1, fp - cover - hind)
 	res.fp_total = fp
@@ -82,7 +86,11 @@ static func resolve_fire(
 	for t in state.men_at(tq, tr):
 		if t.faction == attacker.faction:
 			continue
-		if res.final_score >= t.morale:
+		var threshold := t.morale
+		if t.concealed:
+			threshold += 1       # più difficile colpire una unità mimetizzata
+			t.concealed = false  # il fuoco la rivela comunque
+		if res.final_score >= threshold:
 			if t.efficient:
 				t.break_unit()
 				res.broken.append(t.id)

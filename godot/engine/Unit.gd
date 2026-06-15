@@ -30,6 +30,7 @@ var efficient: bool = true    ## true = efficiente, false = inefficiente (rovesc
 var suppressed: bool = false  ## marcatore di soppressione
 var activated: bool = false   ## già attivata in questo turno
 var veteran: bool = false     ## marcatore veterano
+var concealed: bool = false   ## mimetizzata (Mimetizzazione): +1 morale finché non rivelata
 
 
 func _init(
@@ -99,4 +100,5 @@ func clone() -> Unit:
 	u.q = q; u.r = r
 	u.efficient = efficient; u.suppressed = suppressed
 	u.activated = activated; u.veteran = veteran
+	u.concealed = concealed
 	return u

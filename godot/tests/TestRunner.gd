@@ -50,6 +50,8 @@ func _ready() -> void:
 	_test_event_suppressing_fire()
 	_test_objectives_vp()
 	_test_op_fire()
+	_test_actions()
+	_test_grenade()
 	_report()
 
 
@@ -441,6 +443,61 @@ func _test_op_fire() -> void:
 		if u.id == "rus-far":
 			has_far = true
 	_check(not has_far, "un tiratore fuori gittata non è idoneo all'opportunità")
+
+
+func _act(name: String) -> Card:
+	var c := Card.new()
+	c.action_name = name
+	return c
+
+
+func _test_actions() -> void:
+	print("· Azioni (carte A)")
+	# Ferite leggere
+	var s := _new_state()
+	var u := _mk("ger", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	u.break_unit()
+	s.units[u.id] = u
+	Actions.play(s, _act("FERITE LEGGERE"), GER)
+	_check(u.efficient, "Ferite leggere recupera un'unità rotta")
+
+	# Trincerarsi → buca + più copertura
+	var s2 := _new_state()
+	var u2 := _mk("ger", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	s2.units[u2.id] = u2
+	Actions.play(s2, _act("TRINCERARSI"), GER)
+	_check(s2.hex_at(2, 2).has_foxhole, "Trincerarsi crea una buca sull'esagono dell'unità")
+
+	# Mimetizzazione → concealed (sopravvive a un tiro al limite del morale)
+	var s3 := _new_state()
+	var atk := _mk("ger", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	var def := _mk("rus", RUS, SQUAD, RIFLE, 0, 1, 5, 7)
+	s3.units[atk.id] = atk
+	s3.units[def.id] = def
+	Actions.play(s3, _act("MIMETIZZAZIONE"), RUS)
+	_check(def.concealed, "Mimetizzazione nasconde le unità")
+	# FP5, dadi 1+1=2 → 7; morale 7 ma +1 da mimetica = 8 → NON si rompe
+	var r := Combat.resolve_fire(atk, 0, 1, s3, Vector2i(1, 1))
+	_check(r.broken.is_empty(), "una unità mimetizzata resiste a un tiro al limite")
+	_check(not def.concealed, "il fuoco rivela la mimetizzazione")
+
+	# Granate fumogene → fumo → hindrance lungo la LOS
+	var s4 := _new_state()
+	var c4 := _act("GRANATE FUMOGENE")
+	c4.random_hex_label = "B1"  # (1,0)
+	Actions.play(s4, c4, GER)
+	_check(s4.hex_at(1, 0).has_smoke, "Granate fumogene posano fumo sull'esagono")
+
+
+func _test_grenade() -> void:
+	print("· Azione: Bombe a mano")
+	var s := _new_state()
+	var thrower := _mk("ger", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	var foe := _mk("rus", RUS, SQUAD, RIFLE, 2, 1, 5, 7)  # adiacente a (1,1)
+	s.units[thrower.id] = thrower
+	s.units[foe.id] = foe
+	var res := Actions.grenade_attack(s, thrower, 2, 1, Vector2i(6, 6))
+	_check(res["broken"].has("rus"), "Bombe a mano rompono il nemico adiacente")
 
 
 func _report() -> void:

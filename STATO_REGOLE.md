@@ -30,7 +30,7 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 | Rotta (O23) | ✅ | N = 2d6 − Morale verso il bordo amico; intrappolata+nemico adiacente → eliminata. |
 | Passa | ✅ | Scarto + fine turno. |
 | Artiglieria (O18/ARTY) | ❌ | Carte ARTY/ARTY_DENIED scartate: niente radio/spotter, Targeting Roll, scatter. |
-| Azioni (carte A) | ❌ | `ActionType` definito ma inutilizzato. Niente Fuoco d'Assalto, Bombe a mano, Op Fire, Mimetizzazione, Trincerarsi, Fumogene… |
+| Azioni (carte A) | 🟡 | `Actions.gd` + `Game.play_action` (click destro su una carta). Implementate: Ferite leggere (recupero), Trincerarsi (buca→+copertura), Mimetizzazione (nascondimento→+morale), Granate fumogene (fumo→hindrance), Bombe a mano (attacco ravvicinato). I modificatori di fuoco (Fuoco Incrociato/Sostenuto/Sventagliata/Mirato/Assalto) e i marker nascosti (mine/filo/casamatta/unità nascoste) sono loggati come non simulati. |
 | Eventi (carte E) | 🟡 | Dispatcher `Events.gd` + eventi realizzabili coi sistemi attuali: Supporto aereo, Macerie, Shock da combattimento, Ucciso in azione, Infiltrazione, Fuoco di soppressione, Acquattarsi, Temprati, Zappatori (no-op). Quelli che richiedono marker/Casualty Track/chit obiettivo sono loggati come «non simulato». |
 | Comando/Leadership | 🟡 | Bonus nello stesso esagono ✅; raggio di Comando multi-esagono ❌ (`Rules.has_command_at` esiste, non usato). |
 | Linea di vista (LOS) | ✅🟡 | Linea di esagoni corretta (cube_round) + blocco da terreno opaco, **lati muro/siepe (intermedi) e bocage**, **varco LOS_CLEAR**, **hindrance cumulativo** (frutteto/campo/macchia) ed **elevazione** base. Restano cresta collina (T88.1), gully (T86), blind hex (T88.4), grazing, fumo. |
@@ -40,7 +40,7 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 | Traccia Tempo & Morte Subitanea | ✅🟡 | Il tempo ora avanza **solo** con un Tempo! pescato dal Fato (corretto); Tempo! dà +1 VP al difensore e rimescola i mazzi. Restano gli altri effetti della traccia (dig-in, rinforzi, rimozione fumo, auto-vittoria su 5 obiettivi). |
 | Obiettivi / VP / Chit (7.3) | ✅🟡 | Controllo (più uomini nell'hex) e bilancia VP **aggiornati a ogni azione**; **vittoria automatica** controllando tutti gli obiettivi (`Game._update_objectives`/`_check_end_conditions`). Restano i chit (segreti/aperti, 22), VP da eliminazione/uscita. |
 | Resa / Casualty Track | ❌ | Valori di resa inutilizzati; nessuna traccia perdite/resa/rinforzi. |
-| Fortificazioni & marker | ❌ | Foxhole, trincea, filo, mine, pillbox, fumo, incendio: assenti. |
+| Fortificazioni & marker | 🟡 | Buca/trincea (Trincerarsi → `HexData.has_foxhole`, +2 copertura) e fumo (Granate fumogene → `HexData.has_smoke`, hindrance) implementati. Restano mine, filo spinato, casamatta, incendio. |
 | Fuoco di Opportunità (A33) | ✅🟡 | Durante il movimento, il difensore reagisce col miglior tiratore idoneo (efficiente, in gittata/LOS, no mortai/cannoni); può interrompere il movimento se rompe il mover (`OpFire.gd`, `Game._op_fire`). Per ora il tiratore è scelto automaticamente (manca la scelta interattiva del giocatore). |
 | Fazioni & mazzi | 🟡 | Solo Germania+Russia (2/6); dati carta completi ma si usa solo l'ordine. No routing fazione→mazzo. |
 | Iniziativa | 🟡 | Tracciata, usata per il pareggio in melee; nessuno scambio/re-roll. |
@@ -55,5 +55,5 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 2. ~~Aggiornamento continuo controllo obiettivi + VP~~ ✅ **fatto** (+ auto-vittoria; restano i chit obiettivo).
 3. ~~LOS/terreno: lati esagono + hindrance + elevazione~~ ✅ **fatto** (restano cresta/gully/blind hex/grazing/fumo).
 4. ~~Op Fire (A33) durante il movimento~~ ✅ **fatto** (resta la scelta interattiva del tiratore).
-5. **Azioni base (carte A)**, poi **Eventi (carte E)** completi.
+5. ~~Azioni base (carte A)~~ ✅ **fatto** (restano i modificatori di fuoco e i marker nascosti); **Eventi (carte E)** completi ancora da fare.
 6. **Chit obiettivo** (segreti/aperti, VP cumulativi).

@@ -138,6 +138,8 @@ static func los_hindrance(q1: int, r1: int, q2: int, r2: int, state: GameState) 
 		var hd: GameState.HexData = state.hex_at(path[i].x, path[i].y)
 		if hd != null:
 			total += int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0))
+			if hd.has_smoke:
+				total += 1
 	return total
 
 

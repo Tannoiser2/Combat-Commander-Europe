@@ -103,10 +103,11 @@ func _refresh_hand() -> void:
 		tb.ignore_texture_size = true
 		tb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		tb.custom_minimum_size = Vector2(78, 108)
-		tb.tooltip_text = "%s — %s" % [
+		tb.tooltip_text = "Sx: %s  ·  Dx: %s" % [
 			Domain.ORDER_LABELS.get(card.order, card.order_label), card.action_name
 		]
 		tb.pressed.connect(_on_card_pressed.bind(i))
+		tb.gui_input.connect(_on_card_input.bind(i))
 		hand_container.add_child(tb)
 
 
@@ -128,6 +129,13 @@ func _on_end_turn() -> void:
 
 func _on_card_pressed(index: int) -> void:
 	Game.play_card(index)
+
+
+## Click destro su una carta = gioca l'AZIONE (banda inferiore) invece dell'ordine.
+func _on_card_input(event: InputEvent, index: int) -> void:
+	if event is InputEventMouseButton and event.pressed \
+			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
+		Game.play_action(index)
 
 
 func _on_menu() -> void:

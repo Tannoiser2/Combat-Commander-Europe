@@ -127,6 +127,47 @@ func play_card(hand_index: int) -> void:
 			_discard_card(hand_index)
 
 
+## Gioca la CARTA come AZIONE (banda inferiore) invece che come ordine.
+func play_action(hand_index: int) -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_TURN:
+		return
+	var hand := state.hand_of(state.human_faction)
+	if hand_index < 0 or hand_index >= hand.size():
+		return
+	var card: Card = hand[hand_index]
+	_log("Azione giocata: %s" % card.action_name)
+	if card.action_name == "BOMBE A MANO":
+		_resolve_grenades(state.human_faction)
+	else:
+		for line in Actions.play(state, card, state.human_faction):
+			_log(line)
+	_discard_card(hand_index)
+	_check_end_conditions()
+	emit_signal("state_changed")
+
+
+## Bombe a mano: la prima unità amica adiacente a un nemico lancia (auto-target).
+func _resolve_grenades(faction: int) -> void:
+	for u in state.units_of(faction):
+		if not (u.is_man() and u.efficient):
+			continue
+		for nb in HexGrid.neighbors(u.q, u.r):
+			if nb.x < 0 or nb.x >= state.map_cols or nb.y < 0 or nb.y >= state.map_rows:
+				continue
+			var enemies := state.men_at(nb.x, nb.y).filter(
+				func(m: Unit) -> bool: return m.faction != faction)
+			if enemies.is_empty():
+				continue
+			var fate := _draw_fate(faction)
+			var res := Actions.grenade_attack(state, u, nb.x, nb.y, _dice_of(fate))
+			_log(String(res["log"]))
+			for id in res["eliminated"]:
+				emit_signal("unit_eliminated", id)
+			_apply_fate(fate, faction)
+			return
+	_log("Bombe a mano: nessun nemico adiacente.")
+
+
 ## Giocatore clicca su un esagono durante la fase di movimento.
 func click_hex_move(tq: int, tr: int) -> void:
 	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
