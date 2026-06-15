@@ -116,9 +116,9 @@ static func _infiltration(state: GameState, faction: int, lines: Array[String]) 
 			var hd: GameState.HexData = state.hex_at(u.q, u.r)
 			var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0
 			if cover < 1:
-				u.break_unit()
+				u.suppress()
 				hit += 1
-	lines.append("Infiltrazione: %d unità nemiche allo scoperto rotte." % hit)
+	lines.append("Infiltrazione: %d unità nemiche allo scoperto soppresse." % hit)
 
 
 ## E75 Fuoco di soppressione: rompe i nemici in gittata e LOS di una MG amica.
@@ -134,10 +134,10 @@ static func _suppressing_fire(state: GameState, faction: int, lines: Array[Strin
 		for mg in mgs:
 			if HexGrid.distance(mg.q, mg.r, e.q, e.r) <= mg.range \
 					and HexGrid.has_los(mg.q, mg.r, e.q, e.r, state):
-				e.break_unit()
+				e.suppress()
 				hit += 1
 				break
-	lines.append("Fuoco di soppressione: %d unità nemiche rotte." % hit)
+	lines.append("Fuoco di soppressione: %d unità nemiche soppresse." % hit)
 
 
 ## E51 Acquattarsi: le squadre di chi pesca fuori dal raggio di Comando si rompono.
@@ -146,9 +146,9 @@ static func _cower(state: GameState, faction: int, lines: Array[String]) -> void
 	for u in state.units_of(faction):
 		if u.type == Domain.UnitType.SQUAD and u.efficient:
 			if not Rules.has_command_at(state, u.q, u.r, faction):
-				u.break_unit()
+				u.suppress()
 				hit += 1
-	lines.append("Acquattarsi: %d squadre fuori comando si rompono." % hit)
+	lines.append("Acquattarsi: %d squadre fuori comando soppresse." % hit)
 
 
 ## E44 Temprati dalla guerra: una unità di chi pesca diventa veterana (+1 morale).

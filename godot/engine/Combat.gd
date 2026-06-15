@@ -19,6 +19,7 @@ class FireResult:
 	var final_score: int   ## fp_total + dice_roll
 	var broken: Array[String] = []      ## IDs unità rotte in questo attacco
 	var eliminated: Array[String] = []  ## IDs unità eliminate (erano già rotte)
+	var suppressed: Array[String] = []  ## IDs unità soppresse in questo attacco
 	var log_line: String
 
 
@@ -33,13 +34,24 @@ static func fire_group(attacker: Unit, tq: int, tr: int, state: GameState) -> Ar
 	return group
 
 
-## Effettua un attacco di fuoco. attacker = unità sparante (capofila del gruppo).
-## `dice` sono i due dadi del Fato (pescati dal mazzo dal chiamante).
-## state viene modificato in-place (rottura/eliminazione).
+## Colpisce un'unità: efficiente → rotta; già rotta → eliminata.
+static func _apply_hit(t: Unit, res: FireResult) -> void:
+	if t.efficient:
+		t.break_unit()
+		res.broken.append(t.id)
+	else:
+		res.eliminated.append(t.id)
+
+
+## Effettua un attacco di fuoco (O20). `atk_dice` = dadi del Fato dell'attaccante,
+## `def_dice` = dadi del Fire Defense Roll del difensore (entrambi pescati dal
+## chiamante). Attacco = (FP gruppo − hindrance) + dadi att.; Difesa = Morale +
+## copertura + dadi dif. Difesa < Attacco → colpita; pari → colpita se in
+## movimento, altrimenti soppressa; Difesa > Attacco → nessun effetto.
 static func resolve_fire(
 	attacker: Unit, tq: int, tr: int,
 	state: GameState,
-	dice: Vector2i
+	atk_dice: Vector2i, def_dice: Vector2i
 ) -> FireResult:
 	var res := FireResult.new()
 	res.attacker_id = attacker.id
@@ -69,49 +81,56 @@ static func resolve_fire(
 	var cmd_bonus := Rules.command_bonus_at(state, attacker.q, attacker.r, attacker.faction)
 	fp += cmd_bonus
 
-	# Copertura del bersaglio + ostacolo (hindrance) lungo la LOS, entrambi
-	# sottratti alla potenza di fuoco.
+	# Ostacolo (hindrance) lungo la LOS: riduce la potenza di fuoco. La copertura
+	# del bersaglio va invece sul tiro di difesa.
 	var hd: GameState.HexData = state.hex_at(tq, tr)
-	var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0
-	if hd != null and hd.has_foxhole:
-		cover += 3  # buca/foxhole (scheda Fortificazioni: copertura 3)
 	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state)
 	if hd != null and hd.has_smoke:
 		hind += 1  # fumo sul bersaglio
-	var fp_before := fp
-	fp = maxi(1, fp - cover - hind)
-	res.fp_total = fp
+	var attack_fp := maxi(1, fp - hind)
+	res.fp_total = attack_fp
+	res.dice_roll = atk_dice.x + atk_dice.y
+	var attack_total := attack_fp + res.dice_roll
+	res.final_score = attack_total
 
-	# ─── Tiro (dadi del Fato) ────────────────────────────────────────────────
-	res.dice_roll = dice.x + dice.y
-	res.final_score = fp + res.dice_roll
+	# Copertura per il tiro di difesa.
+	var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0
+	if hd != null and hd.has_foxhole:
+		cover += 3  # buca/foxhole (scheda Fortificazioni: copertura 3)
+	var def_roll := def_dice.x + def_dice.y
 
-	# ─── Effetti: rottura / eliminazione ─────────────────────────────────────
+	# ─── Fire Defense Roll per ogni difensore (O20.3.4) ──────────────────────
 	for t in state.men_at(tq, tr):
 		if t.faction == attacker.faction:
 			continue
-		var threshold := t.morale
+		var defense := t.morale + cover + def_roll
 		if t.concealed:
-			threshold += 1       # più difficile colpire una unità mimetizzata
+			defense += 1         # mimetizzazione: più difficile da colpire
 			t.concealed = false  # il fuoco la rivela comunque
-		if res.final_score >= threshold:
-			if t.efficient:
-				t.break_unit()
-				res.broken.append(t.id)
+		var moving := t.id == state.moving_unit_id
+		if attack_total > defense:
+			_apply_hit(t, res)
+		elif attack_total == defense:
+			if moving or t.suppressed:
+				_apply_hit(t, res)   # in movimento (o già soppressa) → si rompe
 			else:
-				res.eliminated.append(t.id)
+				t.suppress()
+				res.suppressed.append(t.id)
+		# attack_total < defense → nessun effetto
 
 	# ─── Log ─────────────────────────────────────────────────────────────────
 	var cmd_str := " +cmd%d" % cmd_bonus if cmd_bonus > 0 else ""
-	res.log_line = "%s (×%d%s) spara su (%d,%d): FP%d − cop.%d − hind.%d + dadi(%d+%d)=%d → tot %d" % [
+	res.log_line = "%s (×%d%s) spara su (%d,%d): ATT %d (FP%d−h%d+%d) vs DIF (mor+cop%d+%d)" % [
 		attacker.unit_name, group.size(), cmd_str, tq, tr,
-		fp_before, cover, hind, dice.x, dice.y, res.dice_roll, res.final_score
+		attack_total, fp, hind, res.dice_roll, cover, def_roll
 	]
 	if res.eliminated.size() > 0:
 		res.log_line += " ⇒ ELIMINATE: %s" % ", ".join(res.eliminated)
 	if res.broken.size() > 0:
 		res.log_line += " ⇒ ROTTE: %s" % ", ".join(res.broken)
-	if res.eliminated.is_empty() and res.broken.is_empty():
+	if res.suppressed.size() > 0:
+		res.log_line += " ⇒ SOPPRESSE: %s" % ", ".join(res.suppressed)
+	if res.eliminated.is_empty() and res.broken.is_empty() and res.suppressed.is_empty():
 		res.log_line += " ⇒ nessun effetto"
 
 	# Rimuove dallo stato le unità eliminate.
@@ -127,6 +146,8 @@ static func can_fire(attacker: Unit, tq: int, tr: int, state: GameState) -> bool
 		return false
 	if not attacker.efficient:
 		return false  # unità rotta: non può sparare
+	if attacker.suppressed:
+		return false  # unità soppressa: non può sparare
 	var dist := HexGrid.distance(attacker.q, attacker.r, tq, tr)
 	if dist == 0 or dist > attacker.range:
 		return false
