@@ -41,7 +41,7 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 | Obiettivi / VP / Chit (7.3) | ✅🟡 | Controllo (più uomini nell'hex) e bilancia VP **aggiornati a ogni azione**; **vittoria automatica** controllando tutti gli obiettivi (`Game._update_objectives`/`_check_end_conditions`). Restano i chit (segreti/aperti, 22), VP da eliminazione/uscita. |
 | Resa / Casualty Track | ❌ | Valori di resa inutilizzati; nessuna traccia perdite/resa/rinforzi. |
 | Fortificazioni & marker | ❌ | Foxhole, trincea, filo, mine, pillbox, fumo, incendio: assenti. |
-| Fuoco di Opportunità (A33) | ❌ | Fasi `REACTION_WINDOW`/`AI_OPP_FIRE` dichiarate ma vuote. |
+| Fuoco di Opportunità (A33) | ✅🟡 | Durante il movimento, il difensore reagisce col miglior tiratore idoneo (efficiente, in gittata/LOS, no mortai/cannoni); può interrompere il movimento se rompe il mover (`OpFire.gd`, `Game._op_fire`). Per ora il tiratore è scelto automaticamente (manca la scelta interattiva del giocatore). |
 | Fazioni & mazzi | 🟡 | Solo Germania+Russia (2/6); dati carta completi ma si usa solo l'ordine. No routing fazione→mazzo. |
 | Iniziativa | 🟡 | Tracciata, usata per il pareggio in melee; nessuno scambio/re-roll. |
 | IA | 🟡 | Gioca la mano (fuoco/avanzata/recupero/rotta/mossa) con euristiche semplici. Manca copertura, rischio reattivo, difesa obiettivi. |
@@ -54,5 +54,6 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 1. ~~Mazzo del Fato come motore di dadi + conseguenze~~ ✅ **fatto** (resta da implementare gli handler dei singoli **Eventi**).
 2. ~~Aggiornamento continuo controllo obiettivi + VP~~ ✅ **fatto** (+ auto-vittoria; restano i chit obiettivo).
 3. ~~LOS/terreno: lati esagono + hindrance + elevazione~~ ✅ **fatto** (restano cresta/gully/blind hex/grazing/fumo).
-4. **Op Fire (A33)** durante il movimento.
+4. ~~Op Fire (A33) durante il movimento~~ ✅ **fatto** (resta la scelta interattiva del tiratore).
 5. **Azioni base (carte A)**, poi **Eventi (carte E)** completi.
+6. **Chit obiettivo** (segreti/aperti, VP cumulativi).

@@ -49,6 +49,7 @@ func _ready() -> void:
 	_test_event_kia()
 	_test_event_suppressing_fire()
 	_test_objectives_vp()
+	_test_op_fire()
 	_report()
 
 
@@ -412,6 +413,34 @@ func _test_objectives_vp() -> void:
 	_check(s.vp_tracker == 5, "VP cumulati su entrambi gli obiettivi")
 	_check(sweep2 == GER, "controllo di TUTTI gli obiettivi → vittoria automatica")
 	Game.state = null
+
+
+func _test_op_fire() -> void:
+	print("· Fuoco di opportunità (A33)")
+	var s := _new_state()
+	var mover := _mk("ger", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	var mg := _mk("rus-mg", RUS, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 2, 0, 4, 7)
+	s.units[mover.id] = mover
+	s.units[mg.id] = mg
+	var elig := OpFire.eligible_shooters(s, mover, RUS)
+	_check(elig.size() == 1 and elig[0].id == "rus-mg", "MG nemica in gittata/LOS può fare opportunità")
+
+	var mortar := _mk("rus-mortar", RUS, Domain.UnitType.WEAPON, Domain.UnitClass.MORTAR, 2, 1, 6, 7)
+	s.units[mortar.id] = mortar
+	_check(OpFire.eligible_shooters(s, mover, RUS).size() == 1, "il mortaio è escluso dall'opportunità")
+
+	var rifle := _mk("rus-r", RUS, SQUAD, RIFLE, 1, 2, 7, 7)  # FP più alto, adiacente
+	s.units[rifle.id] = rifle
+	_check(OpFire.best_shooter(s, mover, RUS).id == "rus-r", "il miglior tiratore ha l'FP più alto")
+
+	var far := _mk("rus-far", RUS, SQUAD, RIFLE, 0, 4, 5, 7)
+	far.range = 1  # troppo lontano dal mover in (2,2)
+	s.units[far.id] = far
+	var has_far := false
+	for u in OpFire.eligible_shooters(s, mover, RUS):
+		if u.id == "rus-far":
+			has_far = true
+	_check(not has_far, "un tiratore fuori gittata non è idoneo all'opportunità")
 
 
 func _report() -> void:

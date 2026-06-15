@@ -222,6 +222,17 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	])
 	emit_signal("unit_moved", u.id, tq, tr)
 
+	# Fuoco di Opportunità del difensore (A33): può interrompere il movimento.
+	if _op_fire(u, _ai_faction()):
+		state.moving_unit_id = ""
+		state.moving_remaining_mp = 0
+		state.current_order = -1
+		state.selected_unit_id = ""
+		state.highlighted_hexes.clear()
+		_check_end_conditions()
+		emit_signal("state_changed")
+		return
+
 	# Aggiorna esagoni raggiungibili
 	var reach := HexGrid.reachable(u, state)
 	state.highlighted_hexes.clear()
@@ -357,6 +368,30 @@ func _dice_of(card: Card) -> Vector2i:
 	if card == null:
 		return Rules.roll_dice(_rng)
 	return Fate.dice(card)
+
+
+# ─── Fuoco di Opportunità (A33) ───────────────────────────────────────────────
+
+## Il difensore reagisce al movimento di `mover` con il miglior tiratore idoneo
+## (fuoco automatico per ora; la scelta interattiva del tiratore è un'aggiunta
+## futura). Restituisce true se il mover è stato rotto o eliminato (movimento da
+## interrompere).
+func _op_fire(mover: Unit, defender: int) -> bool:
+	var shooter := OpFire.best_shooter(state, mover, defender)
+	if shooter == null:
+		return false
+	var group := Combat.fire_group(shooter, mover.q, mover.r, state)
+	var weapon_ids: Array = []
+	for g in group:
+		if g.is_weapon():
+			weapon_ids.append(g.id)
+	var fate := _draw_fate(defender)
+	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(fate))
+	_log("⚡ Opportunità — " + res.log_line)
+	for id in res.eliminated:
+		emit_signal("unit_eliminated", id)
+	_apply_fate(fate, defender, { "kind": "fire", "weapons": weapon_ids })
+	return res.eliminated.has(mover.id) or res.broken.has(mover.id)
 
 
 ## Applica la conseguenza della carta del Fato (Tempo!/Cecchino/Inceppamento/
@@ -538,6 +573,9 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 		u.q = best.x
 		u.r = best.y
 		emit_signal("unit_moved", u.id, best.x, best.y)
+		# Il difensore (avversario di chi muove) reagisce col Fuoco di Opportunità.
+		var defender := state.human_faction if u.faction == _ai_faction() else _ai_faction()
+		_op_fire(u, defender)
 
 
 # ─── Fine partita ─────────────────────────────────────────────────────────────
