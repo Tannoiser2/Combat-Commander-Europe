@@ -79,7 +79,7 @@ static func grenade_attack(
 	if hd != null:
 		cover = int(Domain.TERRAIN_COVER.get(hd.terrain, 0))
 		if hd.has_foxhole:
-			cover += 2
+			cover += 3
 	var final_score := maxi(1, fp - cover) + dice.x + dice.y
 	for t in state.men_at(tq, tr):
 		if t.faction == attacker.faction:

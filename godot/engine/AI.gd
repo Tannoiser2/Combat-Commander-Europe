@@ -69,7 +69,9 @@ static func _fire_score(state: GameState, u: Unit, tq: int, tr: int, faction: in
 	var group := Combat.fire_group(u, tq, tr, state)
 	var fp := 0
 	for g in group:
-		fp += g.fp
+		fp = maxi(fp, g.fp)  # gruppo di fuoco: pezzo migliore...
+	if group.size() > 1:
+		fp += group.size() - 1  # ...+1 per pezzo aggiuntivo (O20.3.1)
 	fp += Rules.command_bonus_at(state, u.q, u.r, faction)
 	var hd: GameState.HexData = state.hex_at(tq, tr)
 	var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0

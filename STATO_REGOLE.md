@@ -24,12 +24,12 @@ richiedono marker non ancora modellati, **altre 4 fazioni/mazzi** e gli
 | Area regolamento | Stato | Dettaglio |
 |---|---|---|
 | Mazzo del Fato (dadi) | ✅ | I tiri (fuoco/melee/recupero/rotta) pescano i dadi dalla carta in cima al mazzo (`Fate.gd`); fallback RNG solo se mazzo+scarti vuoti. |
-| Conseguenze carta | ✅🟡 | Tempo!, Cecchino (colpisce l'hex + ripara armi), Inceppamento (arma fuori uso nel fuoco) ed **Evento** (dispatcher `Events.gd`) implementate. |
+| Conseguenze carta | ✅🟡 | Tempo! (avanza tempo + rimuove un fumo + reshuffle + 1 VP difensore), Cecchino (rompe **una** unità in/adiacente all'hex), Inceppamento (arma fuori uso nel fuoco) ed **Evento** (dispatcher `Events.gd`). |
 | Sequenza di gioco | 🟡 | Turni a blocchi (umano → IA). Manca alternanza carta-per-carta + finestra di reazione. |
 | Mano e scarti | 🟡 | Pesca/scarto/rimescolo OK; mano **fissa a 4** (non per Postura: Att 6/Recon 5/Dif 4); nessun limite di scarto per nazione. |
 | Ordine Mossa | 🟡 | Costo terreno + stacking. Manca bonus strada (ignorato in `move_cost`), lati esagono, malus PM armi, uscita mappa, attivazione multi-unità via leader. |
-| Ordine Fuoco (O20) | ✅🟡 | Gruppo co-locato + Comando + copertura + 2d6 + rottura→eliminazione. Manca hindrance, elevazione, ordnance/Targeting Roll, gruppo multi-esagono. |
-| Avanzata + Corpo a corpo (O21) | ✅ | Adiacenza, ΣFP+riquadri+Comando+2d6, pareggio al non-iniziativa, perdente perde tutto. |
+| Ordine Fuoco (O20) | ✅🟡 | Gruppo (FP pezzo migliore **+1 per pezzo aggiuntivo**, O20.3.1) + Comando + copertura + hindrance + 2d6 + rottura→eliminazione. Manca il Fire Defense Roll del difensore (Suppress vs Break), ordnance/Targeting Roll, gruppo multi-esagono. |
+| Corpo a corpo (O16.4) | ✅ | Adiacenza, ΣFP (no Comando) + riquadri + 2d6; lato più debole eliminato, **pareggio → entrambi eliminati** (salvo Bunker/Pillbox). |
 | Recupero (O22) | ✅ | 2d6 ≤ Morale (+Comando nell'hex). |
 | Rotta (O23) | ✅ | N = 2d6 − Morale verso il bordo amico; intrappolata+nemico adiacente → eliminata. |
 | Passa | ✅ | Scarto + fine turno. |
@@ -40,7 +40,7 @@ richiedono marker non ancora modellati, **altre 4 fazioni/mazzi** e gli
 | Linea di vista (LOS) | ✅🟡 | Linea di esagoni corretta (cube_round) + blocco da terreno opaco, **lati muro/siepe (intermedi) e bocage**, **varco LOS_CLEAR**, **hindrance cumulativo** (frutteto/campo/macchia) ed **elevazione** base. Restano cresta collina (T88.1), gully (T86), blind hex (T88.4), grazing, fumo. |
 | Terreno & movimento | ✅🟡 | Costi terreno + acqua impassabile ✅; **attraversamento lati** (muro/siepe/bocage/torrente +1, dirupo impassabile) e **tariffa strada** (1 PM lungo strada) ✅. Restano trail, double-time, malus PM armi. |
 | Armi | 🟡 | Sparano come unità. Manca trasporto/pairing 1↔1 (8.1.1), ordnance+minRange, FP radio, cattura/recupero, armi rotte/inceppate. |
-| Impilamento (8.1) | 🟡 | Max **8 uomini**/hex; il regolamento è **7 figure** (squad 4/team 2/leader 1). |
+| Impilamento (8.1) | ✅ | Max **7 soldier icons**/hex (squad 4, leader 1, armi 0); applicato a movimento/avanzata/IA. (`Unit.soldier_icons`, `GameState.soldier_icons_at`) |
 | Traccia Tempo & Morte Subitanea | ✅🟡 | Il tempo ora avanza **solo** con un Tempo! pescato dal Fato (corretto); Tempo! dà +1 VP al difensore e rimescola i mazzi. Restano gli altri effetti della traccia (dig-in, rinforzi, rimozione fumo, auto-vittoria su 5 obiettivi). |
 | Obiettivi / VP / Chit (7.3) | ✅🟡 | Controllo (più uomini nell'hex) e bilancia VP **aggiornati a ogni azione**; **vittoria automatica** controllando tutti gli obiettivi (`Game._update_objectives`/`_check_end_conditions`). Restano i chit (segreti/aperti, 22), VP da eliminazione/uscita. |
 | Resa / Casualty Track | ❌ | Valori di resa inutilizzati; nessuna traccia perdite/resa/rinforzi. |

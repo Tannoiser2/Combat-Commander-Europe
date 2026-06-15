@@ -59,9 +59,13 @@ static func resolve_fire(
 
 	# ─── Potenza di fuoco del gruppo + Comando ───────────────────────────────
 	var group := fire_group(attacker, tq, tr, state)
+	# Gruppo di fuoco (O20.3.1): FP del pezzo migliore + 1 per ogni pezzo
+	# aggiuntivo (NON la somma di tutti gli FP).
 	var fp := 0
 	for u in group:
-		fp += u.fp
+		fp = maxi(fp, u.fp)
+	if group.size() > 1:
+		fp += group.size() - 1
 	var cmd_bonus := Rules.command_bonus_at(state, attacker.q, attacker.r, attacker.faction)
 	fp += cmd_bonus
 
@@ -70,7 +74,7 @@ static func resolve_fire(
 	var hd: GameState.HexData = state.hex_at(tq, tr)
 	var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0
 	if hd != null and hd.has_foxhole:
-		cover += 2  # buca/trincea
+		cover += 3  # buca/foxhole (scheda Fortificazioni: copertura 3)
 	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state)
 	if hd != null and hd.has_smoke:
 		hind += 1  # fumo sul bersaglio
