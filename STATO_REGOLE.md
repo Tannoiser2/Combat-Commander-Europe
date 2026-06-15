@@ -10,10 +10,14 @@ _Aggiornato: 2026-06-15._
 
 ## Quadro sintetico
 
-Il **ciclo di combattimento base** è completo (muovi → fuoco/avanzata/melee →
-recupero/rotta) con IA che gioca la propria mano. Manca il **cuore di CC:E**: il
-**Mazzo del Fato come motore di dadi + conseguenze** (oggi i dadi sono RNG 2d6,
-quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
+Il **ciclo di combattimento** gira sul **Mazzo del Fato** (dadi pescati dalle
+carte + conseguenze Tempo!/Cecchino/Inceppamento/Evento): ordini completi
+(mossa/fuoco/avanzata-melee/recupero/rotta), IA che gioca la mano, LOS e terreno
+avanzati, obiettivi/VP live con auto-vittoria, Fuoco di Opportunità e azioni
+base. Restano soprattutto: **Artiglieria**, **chit obiettivo segreti**, **resa/
+Casualty Track**, **modificatori di fuoco/melee** e gli **eventi/azioni** che
+richiedono marker non ancora modellati, **altre 4 fazioni/mazzi** e gli
+**scenari 2-24**. Stima copertura motore: ~65-70%.
 
 ## Punto per punto
 
