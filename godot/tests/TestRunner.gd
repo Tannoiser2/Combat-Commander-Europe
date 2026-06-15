@@ -56,6 +56,7 @@ func _ready() -> void:
 	_test_stacking()
 	_test_fire_suppress()
 	_test_fire_moving_break()
+	_test_maps_load()
 	_report()
 
 
@@ -557,6 +558,24 @@ func _test_fire_moving_break() -> void:
 	s.moving_unit_id = "rus"  # il bersaglio si sta muovendo
 	var r := Combat.resolve_fire(atk, 0, 1, s, Vector2i(6, 6), Vector2i(5, 5))
 	_check(r.broken.has("rus"), "pareggio su unità in movimento → rotta")
+
+
+func _test_maps_load() -> void:
+	print("· Mappe: caricamento map1..map24")
+	for n in range(1, 25):
+		var st := GameState.new()
+		var ok := MapLoader.load_into(st, "res://assets/maps/map%d.json" % n)
+		_check(ok, "map%d caricata" % n)
+		_check(st.map_cols == 15 and st.map_rows == 10, "map%d 15×10" % n)
+		_check(st.objectives.size() == 5, "map%d ha 5 obiettivi" % n)
+	# Sentiero (map7), ferrovia (map7), quota (map8) preservati dal loader.
+	var m7 := GameState.new()
+	MapLoader.load_into(m7, "res://assets/maps/map7.json")
+	_check(m7.hex_at_label("D1").has_trail, "map7: sentiero D1 caricato")
+	_check(m7.hex_at_label("O2").has_railway, "map7: ferrovia O2 caricata")
+	var m8 := GameState.new()
+	MapLoader.load_into(m8, "res://assets/maps/map8.json")
+	_check(m8.hex_at_label("A9").elevation == 1, "map8: quota 1 in A9 caricata")
 
 
 func _report() -> void:

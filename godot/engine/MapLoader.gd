@@ -36,13 +36,30 @@ static func load_into(state: GameState, path: String) -> bool:
 			if hd:
 				hd.terrain = tt
 
-	# Sovrapposizioni (strade)
+	# Sovrapposizioni lineari (strade, sentieri, ferrovie)
 	var fgroups: Dictionary = data.get("featureGroups", {})
 	for lbl in fgroups.get("road", []):
-		var qr := Domain.label_to_qr(String(lbl))
-		var hd: GameState.HexData = state.hex_at(qr.x, qr.y)
+		var hd: GameState.HexData = state.hex_at_label(String(lbl))
 		if hd:
 			hd.has_road = true
+	for lbl in fgroups.get("trail", []):
+		var hd: GameState.HexData = state.hex_at_label(String(lbl))
+		if hd:
+			hd.has_trail = true
+	for lbl in fgroups.get("railway", []):
+		var hd: GameState.HexData = state.hex_at_label(String(lbl))
+		if hd:
+			hd.has_railway = true
+
+	# Quote (elevationGroups: { elevation, hexes:[...] })
+	for grp in data.get("elevationGroups", []):
+		if not (grp is Dictionary):
+			continue
+		var elev := int(grp.get("elevation", 0))
+		for lbl in grp.get("hexes", []):
+			var hd: GameState.HexData = state.hex_at_label(String(lbl))
+			if hd:
+				hd.elevation = elev
 
 	# Lati di esagono (siepi, muri)
 	state.side_features.clear()

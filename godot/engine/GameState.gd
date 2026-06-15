@@ -12,6 +12,8 @@ class HexData:
 	var elevation: int = 0
 	var objective_id: int = -1  # -1 = nessun obiettivo
 	var has_road: bool = false     # sovrapposizione strada
+	var has_trail: bool = false    # sentiero (tariffa strada in movimento)
+	var has_railway: bool = false  # ferrovia (tariffa strada in movimento)
 	var has_foxhole: bool = false  # buca/trincea (Trincerarsi): +3 copertura
 	var has_smoke: bool = false    # fumo (Granate Fumogene): hindrance
 
@@ -112,6 +114,14 @@ static func hex_key(q: int, r: int) -> String:
 
 func hex_at(q: int, r: int) -> HexData:
 	return hexes.get(hex_key(q, r))
+
+
+## HexData a partire dall'etichetta "A1" (null se fuori mappa).
+func hex_at_label(lbl: String) -> HexData:
+	var qr := Domain.label_to_qr(lbl)
+	if qr.x < 0:
+		return null
+	return hex_at(qr.x, qr.y)
 
 
 func unit_by_id(id: String) -> Unit:

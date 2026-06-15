@@ -1,0 +1,320 @@
+{
+	"_calib": {
+		"hex": 59.2,
+		"ox": 129.0,
+		"oy": 69.0
+	},
+	"cols": 15,
+	"default": "open",
+	"elevationGroups": [],
+	"featureGroups": {
+		"railway": [],
+		"road": [
+			"A2",
+			"B1",
+			"C2",
+			"D2",
+			"D1",
+			"E2",
+			"F2",
+			"G2",
+			"H2",
+			"H1",
+			"H3",
+			"I4",
+			"J4",
+			"K4",
+			"L4",
+			"M5",
+			"N5",
+			"O6",
+			"I5",
+			"H5",
+			"G6",
+			"F5"
+		],
+		"trail": []
+	},
+	"id": "map14",
+	"objectives": [
+		{
+			"hex": "I5",
+			"vp": 3
+		},
+		{
+			"hex": "K5",
+			"vp": 4
+		},
+		{
+			"hex": "G3",
+			"vp": 5
+		},
+		{
+			"hex": "F8",
+			"vp": 1
+		},
+		{
+			"hex": "F10",
+			"vp": 2
+		}
+	],
+	"rows": 10,
+	"sideFeatures": [
+		{
+			"feature": "hedge",
+			"from": "F3",
+			"to": "G3"
+		},
+		{
+			"feature": "hedge",
+			"from": "G3",
+			"to": "G4"
+		},
+		{
+			"feature": "hedge",
+			"from": "G4",
+			"to": "H3"
+		},
+		{
+			"feature": "hedge",
+			"from": "H3",
+			"to": "H4"
+		},
+		{
+			"feature": "hedge",
+			"from": "H4",
+			"to": "I4"
+		},
+		{
+			"feature": "hedge",
+			"from": "I4",
+			"to": "I5"
+		},
+		{
+			"feature": "hedge",
+			"from": "J4",
+			"to": "K5"
+		},
+		{
+			"feature": "hedge",
+			"from": "K4",
+			"to": "K5"
+		},
+		{
+			"feature": "hedge",
+			"from": "K5",
+			"to": "L4"
+		},
+		{
+			"feature": "hedge",
+			"from": "K5",
+			"to": "L5"
+		},
+		{
+			"feature": "hedge",
+			"from": "K5",
+			"to": "K6"
+		},
+		{
+			"feature": "hedge",
+			"from": "K4",
+			"to": "L3"
+		},
+		{
+			"feature": "hedge",
+			"from": "L3",
+			"to": "L4"
+		},
+		{
+			"feature": "hedge",
+			"from": "L4",
+			"to": "M4"
+		},
+		{
+			"feature": "hedge",
+			"from": "M4",
+			"to": "M5"
+		},
+		{
+			"feature": "hedge",
+			"from": "F1",
+			"to": "F2"
+		},
+		{
+			"feature": "hedge",
+			"from": "F1",
+			"to": "G2"
+		},
+		{
+			"feature": "hedge",
+			"from": "G1",
+			"to": "G2"
+		},
+		{
+			"feature": "hedge",
+			"from": "G1",
+			"to": "H1"
+		},
+		{
+			"feature": "hedge",
+			"from": "N6",
+			"to": "N7"
+		},
+		{
+			"feature": "hedge",
+			"from": "M7",
+			"to": "N7"
+		},
+		{
+			"feature": "hedge",
+			"from": "M8",
+			"to": "N7"
+		},
+		{
+			"feature": "hedge",
+			"from": "M8",
+			"to": "N8"
+		},
+		{
+			"feature": "hedge",
+			"from": "M9",
+			"to": "N8"
+		},
+		{
+			"feature": "hedge",
+			"from": "M9",
+			"to": "N9"
+		},
+		{
+			"feature": "hedge",
+			"from": "M10",
+			"to": "N9"
+		},
+		{
+			"feature": "hedge",
+			"from": "M10",
+			"to": "N10"
+		},
+		{
+			"feature": "hedge",
+			"from": "O5",
+			"to": "O6"
+		},
+		{
+			"feature": "hedge",
+			"from": "N5",
+			"to": "O5"
+		},
+		{
+			"feature": "los_clear",
+			"from": "F6",
+			"to": "F7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "F7",
+			"to": "F8"
+		},
+		{
+			"feature": "los_clear",
+			"from": "F8",
+			"to": "F9"
+		}
+	],
+	"terrainGroups": {
+		"brush": [
+			"N7",
+			"N8",
+			"N9",
+			"O10",
+			"O9",
+			"O8",
+			"N10",
+			"O5",
+			"O4",
+			"O3",
+			"N3",
+			"N2",
+			"M2",
+			"M3"
+		],
+		"building": [
+			"F6",
+			"F7",
+			"F8",
+			"F9",
+			"F10",
+			"I5",
+			"G3",
+			"K5"
+		],
+		"field": [
+			"D2",
+			"C3",
+			"C4",
+			"D3",
+			"E3",
+			"E4",
+			"E5",
+			"D4",
+			"C5",
+			"D5",
+			"B2",
+			"B3",
+			"B4",
+			"B5",
+			"B6",
+			"A6",
+			"A5",
+			"A4",
+			"A3",
+			"A7",
+			"B7",
+			"C7",
+			"D7",
+			"E7",
+			"D6",
+			"E8",
+			"E9",
+			"E10",
+			"D10",
+			"D9",
+			"C9",
+			"D8",
+			"C8",
+			"B8",
+			"A9",
+			"A8",
+			"A10",
+			"B10",
+			"B9",
+			"C10"
+		],
+		"gully": [
+			"K1",
+			"L1",
+			"L2",
+			"L3",
+			"M4",
+			"J2",
+			"J1"
+		],
+		"orchard": [
+			"G7",
+			"H6",
+			"I7",
+			"I6",
+			"J6",
+			"J5",
+			"J7",
+			"J8",
+			"I8",
+			"I9",
+			"H8",
+			"G8",
+			"H7",
+			"G4",
+			"F3"
+		]
+	}
+}

@@ -156,8 +156,10 @@ static func step_cost(state: GameState, fq: int, fr: int, tq: int, tr: int) -> i
 	if base >= 99:
 		return -1
 	var fhd: GameState.HexData = state.hex_at(fq, fr)
-	if hd.has_road and fhd != null and fhd.has_road:
-		base = 1  # movimento lungo la strada
+	if fhd != null and ((hd.has_road and fhd.has_road) \
+			or (hd.has_trail and fhd.has_trail) \
+			or (hd.has_railway and fhd.has_railway)):
+		base = 1  # tariffa strada lungo strada/sentiero/ferrovia
 	var feat := state.side_feature_between(Vector2i(fq, fr), Vector2i(tq, tr))
 	if feat == Domain.HexsideFeature.CLIFF:
 		return -1
