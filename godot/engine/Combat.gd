@@ -72,7 +72,7 @@ static func resolve_fire(
 	var hd: GameState.HexData = state.hex_at(tq, tr)
 	var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0
 	var fp_before := fp
-	fp = max(1, fp - cover)
+	fp = maxi(1, fp - cover)
 	res.fp_total = fp
 
 	# ─── Tiro (2d6) ──────────────────────────────────────────────────────────

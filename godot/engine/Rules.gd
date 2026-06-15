@@ -25,7 +25,7 @@ static func command_bonus_at(state: GameState, q: int, r: int, faction: int) -> 
 	var best := 0
 	for u in state.units_at(q, r):
 		if u.faction == faction and u.is_leader() and u.efficient:
-			best = max(best, u.command)
+			best = maxi(best, u.command)
 	return best
 
 
@@ -78,7 +78,7 @@ static func _melee_strength(units: Array) -> int:
 		if u.fp_boxed:
 			total += 1
 		if u.is_leader():
-			best_cmd = max(best_cmd, u.command)
+			best_cmd = maxi(best_cmd, u.command)
 	return total + best_cmd
 
 
@@ -143,7 +143,7 @@ static func _nearest_enemy_dist(state: GameState, q: int, r: int, faction: int) 
 	var best := 9999
 	for u in state.units.values():
 		if u.faction != faction and u.is_man():
-			best = min(best, HexGrid.distance(q, r, u.q, u.r))
+			best = mini(best, HexGrid.distance(q, r, u.q, u.r))
 	return best
 
 
@@ -183,7 +183,7 @@ static func rout_unit(
 		state.units.erase(u.id)
 
 	return {
-		"unit": u.id, "roll": roll, "steps": max(0, steps),
+		"unit": u.id, "roll": roll, "steps": maxi(0, steps),
 		"moved": moved, "eliminated": eliminated
 	}
 
@@ -191,9 +191,9 @@ static func rout_unit(
 ## Punteggio di un esagono per la ritirata: minore è meglio.
 ## Priorità alla distanza dal bordo amico, poi alla lontananza dai nemici.
 static func _rout_score(state: GameState, q: int, r: int, edge_col: int, faction: int) -> int:
-	var to_edge := abs(q - edge_col)
+	var to_edge := absi(q - edge_col)
 	var enemy_dist := _nearest_enemy_dist(state, q, r, faction)
-	return to_edge * 10 - min(enemy_dist, 9)
+	return to_edge * 10 - mini(enemy_dist, 9)
 
 
 ## Un esagono è percorribile in ritirata: in mappa, niente nemici, terreno

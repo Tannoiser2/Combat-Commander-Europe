@@ -178,7 +178,12 @@ func _test_rout_trapped() -> void:
 
 func _report() -> void:
 	print("")
-	if _failures.is_empty():
+	if _checks == 0:
+		# Nessun controllo eseguito = qualcosa è andato storto (es. errore di
+		# script che interrompe i test): da trattare come fallimento.
+		print("TEST_RESULT: FAIL (nessun controllo eseguito)")
+		get_tree().quit(1)
+	elif _failures.is_empty():
 		print("TEST_RESULT: PASS (%d controlli)" % _checks)
 		get_tree().quit(0)
 	else:
