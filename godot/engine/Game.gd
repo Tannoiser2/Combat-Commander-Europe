@@ -306,12 +306,22 @@ func _clear_order_selection() -> void:
 
 
 func _discard_card(hand_index: int) -> void:
-	var hand := state.hand_of(state.human_faction)
-	var discard := state.german_discard if state.human_faction == Domain.Faction.GERMAN else state.russian_discard
-	var deck := state.german_deck if state.human_faction == Domain.Faction.GERMAN else state.russian_deck
+	_discard_for(state.human_faction, hand_index)
+
+
+## Scarta e ripesca per una fazione qualsiasi (umana o IA).
+func _discard_for(faction: int, hand_index: int) -> void:
+	var hand := state.hand_of(faction)
+	var discard := state.german_discard if faction == Domain.Faction.GERMAN else state.russian_discard
+	var deck := state.german_deck if faction == Domain.Faction.GERMAN else state.russian_deck
 	if hand_index >= 0 and hand_index < hand.size():
 		Cards.discard_from_hand(hand, discard, hand_index)
 		Cards.draw(deck, discard, hand)
+
+
+## La fazione controllata dall'IA (l'opposta dell'umano).
+func _ai_faction() -> int:
+	return Domain.Faction.RUSSIAN if state.human_faction == Domain.Faction.GERMAN else Domain.Faction.GERMAN
 
 
 func _end_player_turn() -> void:
@@ -333,45 +343,131 @@ func _end_player_turn() -> void:
 
 	state.turn_number += 1
 	_log("--- Fine turno %d ---" % (state.turn_number - 1))
-	# In questo prototipo il giocatore è sempre GERMAN; l'IA gestisce i russi brevemente
+	# Turno dell'IA (la fazione opposta all'umano).
 	_run_ai_turn()
+	if state.phase == Domain.Phase.GAME_OVER:
+		return  # l'IA ha chiuso la partita: non riportare il turno all'umano
 	_change_phase(Domain.Phase.PLAYER_TURN)
 	_log("Turno %d — il tuo ordine" % state.turn_number)
 
 
 func _run_ai_turn() -> void:
-	# IA minimale: muove ogni unità russa verso l'obiettivo centrale
-	var obj: Objective = null
-	if state.objectives.size() > 0:
-		obj = state.objectives[0]
-	for u in state.units_of(Domain.Faction.RUSSIAN):
-		if u.is_weapon():
+	var faction := _ai_faction()
+	var plays := 0
+	while plays < state.ai_max_orders:
+		var play := AI.choose_play(state, faction)
+		if play.is_empty():
+			break
+		_ai_execute(faction, play)
+		plays += 1
+		_check_end_conditions()
+		if state.phase == Domain.Phase.GAME_OVER:
+			return
+	if plays == 0:
+		_log("IA: nessun ordine giocabile.")
+
+
+## Esegue un ordine scelto dall'IA (vedi AI.choose_play) e scarta la carta.
+func _ai_execute(faction: int, play: Dictionary) -> void:
+	match int(play["order"]):
+		Domain.OrderType.FIRE:
+			var atk := state.unit_by_id(String(play["attacker_id"]))
+			var fq := int(play["q"])
+			var fr := int(play["r"])
+			if atk != null and Combat.can_fire(atk, fq, fr, state):
+				for g in Combat.fire_group(atk, fq, fr, state):
+					g.activated = true
+				var fres := Combat.resolve_fire(atk, fq, fr, state, _rng)
+				_log("IA — " + fres.log_line)
+				for fid in fres.eliminated:
+					emit_signal("unit_eliminated", fid)
+		Domain.OrderType.ADVANCE:
+			var mover := state.unit_by_id(String(play["unit_id"]))
+			if mover != null:
+				_ai_advance(faction, mover, int(play["q"]), int(play["r"]))
+		Domain.OrderType.RECOVER:
+			for ru in state.broken_men_of(faction):
+				var rec := Rules.try_recover(state, ru, _rng)
+				_log("IA recupero %s: %s" % [ru.unit_name, "OK" if rec["success"] else "fallito"])
+		Domain.OrderType.ROUT:
+			for ou in state.broken_men_of(faction):
+				var rou := Rules.rout_unit(state, ou, _rng)
+				if rou["eliminated"]:
+					emit_signal("unit_eliminated", ou.id)
+				else:
+					emit_signal("unit_moved", ou.id, ou.q, ou.r)
+		Domain.OrderType.MOVE:
+			_ai_move_order(faction)
+	_discard_for(faction, int(play["card_index"]))
+	emit_signal("state_changed")
+
+
+## Avanzata dell'IA in (tq,tr); se vi sono nemici risolve il corpo a corpo (O21).
+func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
+	u.q = tq
+	u.r = tr
+	u.activated = true
+	emit_signal("unit_moved", u.id, tq, tr)
+	var defenders := state.men_at(tq, tr).filter(
+		func(m: Unit) -> bool: return m.faction != faction)
+	if defenders.is_empty():
+		_log("IA — %s avanza in (%d,%d)" % [u.unit_name, tq, tr])
+		return
+	var attackers := state.men_at(tq, tr).filter(
+		func(m: Unit) -> bool: return m.faction == faction)
+	var mr := Rules.resolve_melee(state, attackers, defenders, state.initiative_holder, _rng)
+	_log("IA — " + mr.log_line)
+	for mid in mr.eliminated:
+		emit_signal("unit_eliminated", mid)
+
+
+## Ordine di Mossa dell'IA: avvicina gli uomini all'obiettivo più vicino.
+func _ai_move_order(faction: int) -> void:
+	for u in state.units_of(faction):
+		if u.activated or u.is_weapon() or not u.efficient:
 			continue
-		if obj:
-			_ai_move_toward(u, obj.q, obj.r)
+		var obj := _nearest_objective(faction, u)
+		if obj != null:
+			_ai_move_toward(u, obj.q, obj.r, faction)
+		u.activated = true
 
 
-func _ai_move_toward(u: Unit, tq: int, tr: int) -> void:
+## Obiettivo più vicino non controllato dall'IA (o il primo disponibile).
+func _nearest_objective(faction: int, u: Unit) -> Objective:
+	var best: Objective = null
+	var best_d := 99999
+	for o in state.objectives:
+		if o.controller == faction:
+			continue
+		var d := HexGrid.distance(u.q, u.r, o.q, o.r)
+		if d < best_d:
+			best_d = d
+			best = o
+	if best == null and state.objectives.size() > 0:
+		best = state.objectives[0]
+	return best
+
+
+func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 	if u.move <= 0:
 		return
-	var nb := HexGrid.neighbors(u.q, u.r)
 	var best: Vector2i = Vector2i(u.q, u.r)
 	var best_dist := HexGrid.distance(u.q, u.r, tq, tr)
-	for n in nb:
+	for n in HexGrid.neighbors(u.q, u.r):
 		if n.x < 0 or n.x >= state.map_cols or n.y < 0 or n.y >= state.map_rows:
 			continue
 		var d := HexGrid.distance(n.x, n.y, tq, tr)
-		if d < best_dist:
-			# Controlla stacking e nemici
-			var men := state.men_at(n.x, n.y)
-			var enemy := false
-			for m in men:
-				if m.faction == Domain.Faction.GERMAN:
-					enemy = true
-					break
-			if not enemy and men.size() < 8:
-				best_dist = d
-				best = n
+		if d >= best_dist:
+			continue
+		var men := state.men_at(n.x, n.y)
+		var enemy := false
+		for m in men:
+			if m.faction != faction:
+				enemy = true
+				break
+		if not enemy and men.size() < 8:
+			best_dist = d
+			best = n
 	if best != Vector2i(u.q, u.r):
 		u.q = best.x
 		u.r = best.y

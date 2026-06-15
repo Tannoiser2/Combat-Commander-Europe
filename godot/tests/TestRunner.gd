@@ -34,6 +34,9 @@ func _ready() -> void:
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
+	_test_ai_best_fire()
+	_test_ai_best_advance()
+	_test_ai_choose_play()
 	_report()
 
 
@@ -174,6 +177,54 @@ func _test_rout_trapped() -> void:
 	var r := Rules.rout_unit(s, u, _rng)
 	_check(r["eliminated"], "intrappolata + nemico adiacente → eliminata")
 	_check(not s.units.has("ger"), "unità intrappolata rimossa")
+
+
+func _test_ai_best_fire() -> void:
+	print("· IA: scelta del fuoco")
+	var s := _new_state()
+	var ai := _mk("rus", RUS, SQUAD, RIFLE, 0, 0, 6, 7)
+	var foe := _mk("ger", GER, SQUAD, RIFLE, 0, 1, 5, 7)
+	s.units[ai.id] = ai
+	s.units[foe.id] = foe
+	var f := AI.best_fire(s, RUS)
+	_check(not f.is_empty(), "IA trova un bersaglio di fuoco")
+	_check(String(f.get("attacker_id", "")) == "rus", "IA sceglie lo sparatore corretto")
+	_check(int(f.get("q", -9)) == 0 and int(f.get("r", -9)) == 1, "IA sceglie l'esagono bersaglio")
+	s.units.erase("ger")
+	_check(AI.best_fire(s, RUS).is_empty(), "IA non spara senza bersagli")
+
+
+func _test_ai_best_advance() -> void:
+	print("· IA: scelta dell'avanzata")
+	var s := _new_state()
+	var strong := _mk("rus", RUS, SQUAD, RIFLE, 1, 1, 8, 7)
+	var weak := _mk("ger", GER, SQUAD, RIFLE, 2, 1, 1, 7)  # adiacente a (1,1)
+	s.units[strong.id] = strong
+	s.units[weak.id] = weak
+	var a := AI.best_advance(s, RUS)
+	_check(not a.is_empty(), "IA trova un'avanzata vantaggiosa")
+	_check(String(a.get("unit_id", "")) == "rus", "IA sceglie l'attaccante corretto")
+	weak.fp = 20
+	_check(AI.best_advance(s, RUS).is_empty(), "IA non avanza contro un nemico più forte")
+
+
+func _test_ai_choose_play() -> void:
+	print("· IA: scelta dell'ordine dalla mano")
+	var s := _new_state()
+	var ai := _mk("rus", RUS, SQUAD, RIFLE, 0, 0, 6, 7)
+	var foe := _mk("ger", GER, SQUAD, RIFLE, 0, 1, 5, 7)
+	s.units[ai.id] = ai
+	s.units[foe.id] = foe
+	var move_card := Card.new()
+	move_card.order = Domain.OrderType.MOVE
+	var fire_card := Card.new()
+	fire_card.order = Domain.OrderType.FIRE
+	s.russian_hand.append(move_card)
+	s.russian_hand.append(fire_card)
+	var play := AI.choose_play(s, RUS)
+	_check(not play.is_empty(), "IA sceglie un ordine")
+	_check(int(play.get("order", -1)) == Domain.OrderType.FIRE, "IA preferisce il Fuoco al Movimento se può colpire")
+	_check(int(play.get("card_index", -1)) == 1, "IA punta alla carta Fuoco in mano")
 
 
 func _report() -> void:

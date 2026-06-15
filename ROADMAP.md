@@ -43,7 +43,8 @@ la logica regola per regola. Stato del motore Godot:
 | 🟡 Da fare | Conseguenze carta | jam/sniper/time/event non gestite alla pescata; il fuoco usa 2d6 RNG, non i dadi del Fato della carta. |
 | 🟡 Da fare | Artiglieria | Ordini ARTY/ARTY_DENIED ancora scartati: mancano Targeting Roll, spotter/LOS, scatter. |
 | 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
-| 🟡 Da fare | IA | L'IA russa muove solo verso l'obiettivo; non spara/avanza/recupera né usa i nuovi ordini. |
+| 🟢 Fatto | IA che gioca la mano | `AI.gd`: l'IA sceglie e risolve fino a `ai_max_orders` ordini dalla propria mano (Fuoco col bersaglio migliore, Avanzata in melee vantaggiosa, Recupero/Rotta delle unità rotte, Mossa verso l'obiettivo più vicino). (`AI.choose_play`, `Game._ai_execute`) |
+| 🟡 Da fare | IA avanzata | Valutazioni più fini: copertura, rischio di fuoco reattivo, difesa degli obiettivi propri, scelta del gruppo di fuoco multi-esagono. |
 | 🟡 Da fare | Scenari 2-24 (Godot) | In Godot esiste solo lo Scenario 1; dati scenario/OB e terreno mappe da portare (mappe in digitalizzazione). |
 
 ## Milestone 0: Base Tecnica

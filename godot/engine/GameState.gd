@@ -56,6 +56,7 @@ var human_faction: int = Domain.Faction.GERMAN
 var turn_number: int = 1
 var order_count: int = 0
 var max_orders: int = 2
+var ai_max_orders: int = 2  ## Ordini giocati dall'IA nel suo turno
 
 
 # ─── Traccia del tempo ────────────────────────────────────────────────────────
