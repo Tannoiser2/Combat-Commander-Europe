@@ -12,7 +12,7 @@ class HexData:
 	var elevation: int = 0
 	var objective_id: int = -1  # -1 = nessun obiettivo
 	var has_road: bool = false     # sovrapposizione strada
-	var has_foxhole: bool = false  # buca/trincea (Trincerarsi): +2 copertura
+	var has_foxhole: bool = false  # buca/trincea (Trincerarsi): +3 copertura
 	var has_smoke: bool = false    # fumo (Granate Fumogene): hindrance
 
 	func _init(p_terrain: int, p_elev: int = 0) -> void:
@@ -128,6 +128,14 @@ func units_at(q: int, r: int) -> Array[Unit]:
 
 func men_at(q: int, r: int) -> Array[Unit]:
 	return units_at(q, r).filter(func(u): return u.is_man())
+
+
+## Somma dei "soldier icons" nell'esagono (impilamento: max 7).
+func soldier_icons_at(q: int, r: int) -> int:
+	var total := 0
+	for u in units_at(q, r):
+		total += u.soldier_icons()
+	return total
 
 
 func units_of(faction: int) -> Array[Unit]:

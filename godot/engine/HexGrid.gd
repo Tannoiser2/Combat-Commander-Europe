@@ -206,11 +206,9 @@ static func reachable(u: Unit, state: GameState) -> Array[Vector2i]:
 					break
 			if enemy_present:
 				continue
-			# Controllo stacking: max 8 uomini
-			if u.is_man():
-				var men_count := state.men_at(nb.x, nb.y).size()
-				if men_count >= 8:
-					continue
+			# Controllo impilamento: max 7 soldier icons (8.1)
+			if u.is_man() and state.soldier_icons_at(nb.x, nb.y) + u.soldier_icons() > 7:
+				continue
 			visited[key] = total
 			frontier.append({"q": nb.x, "r": nb.y, "spent": total})
 			result.append(Vector2i(nb.x, nb.y))

@@ -248,9 +248,9 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	if cost < 0:
 		_log("Esagono (%d,%d) irraggiungibile (PM insufficienti)" % [tq, tr])
 		return
-	# Controllo stacking
-	if u.is_man() and state.men_at(tq, tr).size() >= 8:
-		_log("Stacking: max 8 uomini in (%d,%d)" % [tq, tr])
+	# Controllo impilamento: max 7 soldier icons per esagono (8.1)
+	if u.is_man() and state.soldier_icons_at(tq, tr) + u.soldier_icons() > 7:
+		_log("Impilamento: max 7 figure in (%d,%d)" % [tq, tr])
 		return
 
 	var old_q := u.q
@@ -292,9 +292,9 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 	)
 
 	if enemies.is_empty():
-		# Avanzata semplice in esagono vuoto/amico (rispetta lo stacking).
-		if u.is_man() and state.men_at(tq, tr).size() >= 8:
-			_log("Stacking: max 8 uomini in (%d,%d)" % [tq, tr])
+		# Avanzata semplice in esagono vuoto/amico (rispetta l'impilamento).
+		if u.is_man() and state.soldier_icons_at(tq, tr) + u.soldier_icons() > 7:
+			_log("Impilamento: max 7 figure in (%d,%d)" % [tq, tr])
 			return
 		u.q = tq; u.r = tr
 		u.activated = true
@@ -314,7 +314,7 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 		var af := _draw_fate(u.faction)
 		var df := _draw_fate(def_faction)
 		var mr := Rules.resolve_melee(
-			state, attackers, defenders, state.initiative_holder, _dice_of(af), _dice_of(df))
+			state, attackers, defenders, _dice_of(af), _dice_of(df))
 		_log(mr.log_line)
 		for uid in mr.eliminated:
 			emit_signal("unit_eliminated", uid)
@@ -555,7 +555,7 @@ func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
 	var af := _draw_fate(faction)
 	var df := _draw_fate(def_faction)
 	var mr := Rules.resolve_melee(
-		state, attackers, defenders, state.initiative_holder, _dice_of(af), _dice_of(df))
+		state, attackers, defenders, _dice_of(af), _dice_of(df))
 	_log("IA — " + mr.log_line)
 	for mid in mr.eliminated:
 		emit_signal("unit_eliminated", mid)
@@ -607,7 +607,7 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 			if m.faction != faction:
 				enemy = true
 				break
-		if not enemy and men.size() < 8:
+		if not enemy and state.soldier_icons_at(n.x, n.y) + u.soldier_icons() <= 7:
 			best_dist = d
 			best = n
 	if best != Vector2i(u.q, u.r):

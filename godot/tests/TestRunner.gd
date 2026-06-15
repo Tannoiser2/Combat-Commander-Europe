@@ -52,6 +52,8 @@ func _ready() -> void:
 	_test_op_fire()
 	_test_actions()
 	_test_grenade()
+	_test_melee_tie()
+	_test_stacking()
 	_report()
 
 
@@ -163,7 +165,7 @@ func _test_melee_winner_and_losses() -> void:
 	s.units[d2.id] = d2
 	var attackers: Array[Unit] = [a]
 	var defenders: Array[Unit] = [d1, d2]
-	var mr := Rules.resolve_melee(s, attackers, defenders, RUS, Vector2i(1, 1), Vector2i(6, 6))
+	var mr := Rules.resolve_melee(s, attackers, defenders, Vector2i(1, 1), Vector2i(6, 6))
 	_check(mr.winner == GER, "vince il lato con totale più alto")
 	_check(mr.eliminated.has("rus-1") and mr.eliminated.has("rus-2"), "il lato perdente perde TUTTE le unità")
 	_check(not s.units.has("rus-1") and not s.units.has("rus-2"), "perdenti rimossi dallo stato")
@@ -498,6 +500,34 @@ func _test_grenade() -> void:
 	s.units[foe.id] = foe
 	var res := Actions.grenade_attack(s, thrower, 2, 1, Vector2i(6, 6))
 	_check(res["broken"].has("rus"), "Bombe a mano rompono il nemico adiacente")
+
+
+func _test_melee_tie() -> void:
+	print("· Corpo a corpo: pareggio → entrambi eliminati")
+	var s := _new_state()
+	var a := _mk("ger", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	var d := _mk("rus", RUS, SQUAD, RIFLE, 1, 1, 5, 7)
+	s.units[a.id] = a
+	s.units[d.id] = d
+	var atkrs: Array[Unit] = [a]
+	var defs: Array[Unit] = [d]
+	var mr := Rules.resolve_melee(s, atkrs, defs, Vector2i(3, 3), Vector2i(3, 3))
+	_check(mr.winner == -1, "pareggio: nessun vincitore")
+	_check(not s.units.has("ger") and not s.units.has("rus"), "pareggio: entrambi i lati eliminati")
+
+
+func _test_stacking() -> void:
+	print("· Impilamento (7 soldier icons)")
+	var s := _new_state()
+	var sq := _mk("g1", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	s.units[sq.id] = sq
+	_check(s.soldier_icons_at(1, 1) == 4, "una squadra vale 4 figure")
+	var ld := _mk("g2", GER, LEADER, ELITE, 1, 1, 1, 9, 6, 2)
+	s.units[ld.id] = ld
+	_check(s.soldier_icons_at(1, 1) == 5, "squadra + leader = 5 figure")
+	var w := _mk("w", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 1, 1, 4, 7)
+	s.units[w.id] = w
+	_check(s.soldier_icons_at(1, 1) == 5, "le armi non contano come figure")
 
 
 func _report() -> void:

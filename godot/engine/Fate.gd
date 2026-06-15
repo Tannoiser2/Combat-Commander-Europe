@@ -7,8 +7,6 @@
 class_name Fate
 extends RefCounted
 
-const SNIPER_FP := 2  ## Potenza di fuoco del cecchino (oltre ai dadi della carta)
-
 
 ## Pesca la carta in cima al mazzo della fazione (rimescolando gli scarti se
 ## necessario). La carta finisce negli scarti. null se mazzo e scarti sono vuoti.
@@ -70,31 +68,39 @@ static func _consequence_time(state: GameState, lines: Array[String]) -> void:
 		state.vp_tracker -= 1
 	_reshuffle(state, Domain.Faction.GERMAN)
 	_reshuffle(state, Domain.Faction.RUSSIAN)
+	# Passo 4 (6.1.2): rimuovi UN marker fumo.
+	for key in state.hexes:
+		var h: GameState.HexData = state.hexes[key]
+		if h.has_smoke:
+			h.has_smoke = false
+			lines.append("TEMPO!: rimosso un marker fumo.")
+			break
 
 
-## Cecchino: ripara le armi inceppate di chi pesca e colpisce i nemici
-## nell'esagono indicato dalla carta.
+## Cecchino (1.9.1): rompe UNA unità nemica in o adiacente all'esagono indicato
+## (se già rotta, la elimina).
 static func _consequence_sniper(
 	state: GameState, card: Card, faction: int, lines: Array[String]
 ) -> void:
-	for w in state.units_of(faction):
-		if w.is_weapon() and not w.efficient:
-			w.efficient = true
-			lines.append("Cecchino: %s riparata" % w.unit_name)
 	var qr := Domain.label_to_qr(card.random_hex_label)
 	if qr.x < 0:
 		return
-	var hit := card.dice_white + card.dice_red + SNIPER_FP
-	for t in state.men_at(qr.x, qr.y):
-		if t.faction == faction:
+	var victim: Unit = null
+	for u in state.units.values():
+		if u.faction == faction or not u.is_man():
 			continue
-		if hit >= t.morale:
-			if t.efficient:
-				t.break_unit()
-				lines.append("Cecchino rompe %s in %s" % [t.unit_name, card.random_hex_label])
-			else:
-				state.units.erase(t.id)
-				lines.append("Cecchino elimina %s in %s" % [t.unit_name, card.random_hex_label])
+		if HexGrid.distance(qr.x, qr.y, u.q, u.r) <= 1:
+			victim = u
+			break
+	if victim == null:
+		lines.append("Cecchino in %s: nessun bersaglio in o adiacente." % card.random_hex_label)
+		return
+	if victim.efficient:
+		victim.break_unit()
+		lines.append("Cecchino: %s rotta (vicino a %s)." % [victim.unit_name, card.random_hex_label])
+	else:
+		state.units.erase(victim.id)
+		lines.append("Cecchino: %s eliminata (vicino a %s)." % [victim.unit_name, card.random_hex_label])
 
 
 ## Inceppamento: se la conseguenza arriva da un fuoco, le armi del gruppo si

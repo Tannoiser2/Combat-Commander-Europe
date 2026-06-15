@@ -67,27 +67,23 @@ class MeleeResult:
 
 
 ## Somma FP di un gruppo per il corpo a corpo: FP effettivo (dimezzato se rotto)
-## + 1 per ogni unità con FP "in riquadro" + miglior Comando dei leader del gruppo.
+## + 1 per ogni unità con FP "in riquadro" (O16.4: niente bonus Comando in melee).
 ## Accetta Array non tipizzato (Array.filter() restituisce Array non tipizzato).
 static func _melee_strength(units: Array) -> int:
 	var total := 0
-	var best_cmd := 0
 	for u in units:
 		total += u.effective_fp()
 		if u.fp_boxed:
 			total += 1
-		if u.is_leader():
-			best_cmd = maxi(best_cmd, u.command)
-	return total + best_cmd
+	return total
 
 
-## Risolve un corpo a corpo (O21). attackers/defenders sono gli UOMINI nell'hex.
-## In pareggio vince chi NON detiene l'iniziativa. Il lato perdente perde TUTTE
-## le unità partecipanti (rulebook 20th Anniversary). Modifica lo stato.
+## Risolve un corpo a corpo (O16.4). attackers/defenders sono gli UOMINI nell'hex.
+## Il lato col totale più basso è eliminato; in PAREGGIO entrambi i lati sono
+## eliminati (salvo Bunker/Pillbox, non ancora modellati). Modifica lo stato.
 static func resolve_melee(
 	state: GameState,
 	attackers: Array, defenders: Array,
-	initiative_faction: int,
 	atk_dice: Vector2i, def_dice: Vector2i
 ) -> MeleeResult:
 	var res := MeleeResult.new()
@@ -100,32 +96,30 @@ static func resolve_melee(
 
 	res.atk_dice = atk_dice
 	res.def_dice = def_dice
-	res.atk_total = _melee_strength(attackers) + res.atk_dice.x + res.atk_dice.y
-	res.def_total = _melee_strength(defenders) + res.def_dice.x + res.def_dice.y
+	res.atk_total = _melee_strength(attackers) + atk_dice.x + atk_dice.y
+	res.def_total = _melee_strength(defenders) + def_dice.x + def_dice.y
 
-	var loser_faction: int
+	var losers: Array = []
 	if res.atk_total > res.def_total:
 		res.winner = atk_faction
-		loser_faction = def_faction
+		losers = defenders
 	elif res.def_total > res.atk_total:
 		res.winner = def_faction
-		loser_faction = atk_faction
+		losers = attackers
 	else:
-		# Pareggio: vince chi NON ha l'iniziativa.
-		res.winner = atk_faction if initiative_faction != atk_faction else def_faction
-		loser_faction = def_faction if res.winner == atk_faction else atk_faction
+		# Pareggio: entrambi i lati eliminati.
+		res.winner = -1
+		losers = attackers + defenders
 
-	# Il lato perdente perde tutte le unità partecipanti.
-	var losers := attackers if loser_faction == atk_faction else defenders
 	for u in losers:
 		res.eliminated.append(u.id)
 		state.units.erase(u.id)
 
-	res.log_line = "Corpo a corpo: ATT %d (FP+%d+%d) vs DIF %d (FP+%d+%d) → vince %s, eliminate %d unità" % [
-		res.atk_total, res.atk_dice.x, res.atk_dice.y,
-		res.def_total, res.def_dice.x, res.def_dice.y,
-		Domain.FACTION_SHORT.get(res.winner, "?"), res.eliminated.size()
-	]
+	var outcome := "PAREGGIO (entrambi eliminati)"
+	if res.winner != -1:
+		outcome = "vince %s" % Domain.FACTION_SHORT.get(res.winner, "?")
+	res.log_line = "Corpo a corpo: ATT %d vs DIF %d → %s, eliminate %d unità" % [
+		res.atk_total, res.def_total, outcome, res.eliminated.size()]
 	return res
 
 
