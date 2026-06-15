@@ -48,6 +48,7 @@ func _ready() -> void:
 	_test_event_rubble()
 	_test_event_kia()
 	_test_event_suppressing_fire()
+	_test_objectives_vp()
 	_report()
 
 
@@ -390,6 +391,27 @@ func _test_event_suppressing_fire() -> void:
 	s.units[foe.id] = foe
 	Events.fire(s, _ev("FUOCO DI SOPPRESSIONE"), GER)
 	_check(not foe.efficient, "Fuoco di soppressione rompe il nemico in gittata/LOS dell'MG")
+
+
+func _test_objectives_vp() -> void:
+	print("· Obiettivi: controllo e VP live")
+	var s := _new_state()
+	s.objectives.append(Objective.new(1, 1, 1, 3))  # obiettivo a (1,1), 3 VP
+	s.objectives.append(Objective.new(2, 3, 3, 2))  # obiettivo a (3,3), 2 VP
+	var g := _mk("ger", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	s.units[g.id] = g
+	Game.state = s
+	var sweep := Game._update_objectives()
+	_check(s.objectives[0].controller == GER, "obiettivo presidiato è controllato")
+	_check(s.vp_tracker == 3, "VP = valore dell'obiettivo controllato")
+	_check(sweep == -1, "non tutti gli obiettivi controllati → niente vittoria automatica")
+
+	var g2 := _mk("ger2", GER, SQUAD, RIFLE, 3, 3, 5, 7)
+	s.units[g2.id] = g2
+	var sweep2 := Game._update_objectives()
+	_check(s.vp_tracker == 5, "VP cumulati su entrambi gli obiettivi")
+	_check(sweep2 == GER, "controllo di TUTTI gli obiettivi → vittoria automatica")
+	Game.state = null
 
 
 func _report() -> void:

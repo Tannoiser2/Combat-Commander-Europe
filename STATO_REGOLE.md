@@ -38,7 +38,7 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 | Armi | 🟡 | Sparano come unità. Manca trasporto/pairing 1↔1 (8.1.1), ordnance+minRange, FP radio, cattura/recupero, armi rotte/inceppate. |
 | Impilamento (8.1) | 🟡 | Max **8 uomini**/hex; il regolamento è **7 figure** (squad 4/team 2/leader 1). |
 | Traccia Tempo & Morte Subitanea | ✅🟡 | Il tempo ora avanza **solo** con un Tempo! pescato dal Fato (corretto); Tempo! dà +1 VP al difensore e rimescola i mazzi. Restano gli altri effetti della traccia (dig-in, rinforzi, rimozione fumo, auto-vittoria su 5 obiettivi). |
-| Obiettivi / VP / Chit (7.3) | 🟡→❌ | Controllo = più uomini nell'hex; VP calcolati **solo alla Morte Subitanea**. Niente chit (segreti/aperti, 22), VP cumulativi, VP da eliminazione/uscita, auto-win. |
+| Obiettivi / VP / Chit (7.3) | ✅🟡 | Controllo (più uomini nell'hex) e bilancia VP **aggiornati a ogni azione**; **vittoria automatica** controllando tutti gli obiettivi (`Game._update_objectives`/`_check_end_conditions`). Restano i chit (segreti/aperti, 22), VP da eliminazione/uscita. |
 | Resa / Casualty Track | ❌ | Valori di resa inutilizzati; nessuna traccia perdite/resa/rinforzi. |
 | Fortificazioni & marker | ❌ | Foxhole, trincea, filo, mine, pillbox, fumo, incendio: assenti. |
 | Fuoco di Opportunità (A33) | ❌ | Fasi `REACTION_WINDOW`/`AI_OPP_FIRE` dichiarate ma vuote. |
@@ -52,7 +52,7 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 ## Prossime priorità (in ordine)
 
 1. ~~Mazzo del Fato come motore di dadi + conseguenze~~ ✅ **fatto** (resta da implementare gli handler dei singoli **Eventi**).
-2. **Aggiornamento continuo controllo obiettivi + VP** (oggi solo a fine partita).
+2. ~~Aggiornamento continuo controllo obiettivi + VP~~ ✅ **fatto** (+ auto-vittoria; restano i chit obiettivo).
 3. ~~LOS/terreno: lati esagono + hindrance + elevazione~~ ✅ **fatto** (restano cresta/gully/blind hex/grazing/fumo).
 4. **Op Fire (A33)** durante il movimento.
 5. **Azioni base (carte A)**, poi **Eventi (carte E)** completi.

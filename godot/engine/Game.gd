@@ -171,9 +171,9 @@ func click_hex_fire(tq: int, tr: int) -> void:
 	_apply_fate(fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
 	_discard_card(state.selected_card_index)
 	_clear_order_selection()
+	_check_end_conditions()  # aggiorna obiettivi/VP e gestisce la fine partita
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
-	_check_end_conditions()
 
 
 ## Giocatore clicca un esagono adiacente durante un'Avanzata.
@@ -228,6 +228,7 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	for h in reach:
 		state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 
+	_check_end_conditions()  # un movimento può conquistare un obiettivo
 	emit_signal("state_changed")
 
 
@@ -270,9 +271,9 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 
 	_discard_card(state.selected_card_index)
 	_clear_order_selection()
+	_check_end_conditions()  # aggiorna obiettivi/VP e gestisce la fine partita
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
-	_check_end_conditions()
 
 
 ## Recupero (O22): tiro di Morale per ogni unità rotta amica.
@@ -541,7 +542,14 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 
 # ─── Fine partita ─────────────────────────────────────────────────────────────
 
+## Da chiamare dopo ogni azione: aggiorna obiettivi/VP, controlla la vittoria
+## automatica (tutti gli obiettivi) e l'eliminazione totale di una fazione.
 func _check_end_conditions() -> void:
+	var sweep := _update_objectives()
+	if sweep != -1:
+		_log("%s controlla tutti gli obiettivi — vittoria automatica!" % Domain.FACTION_NAMES.get(sweep, "?"))
+		_end_game(sweep)
+		return
 	var ger_units := state.units_of(Domain.Faction.GERMAN).size()
 	var rus_units := state.units_of(Domain.Faction.RUSSIAN).size()
 	if ger_units == 0:
@@ -556,11 +564,14 @@ func _check_sudden_death() -> void:
 	_end_game(winner)
 
 
-func _count_objectives() -> int:
+## Ricalcola il controllo degli obiettivi e la bilancia VP (in-place).
+## Restituisce la fazione che controlla TUTTI gli obiettivi, o -1.
+func _update_objectives() -> int:
 	var ger_vp := 0
 	var rus_vp := 0
+	var all_ger := state.objectives.size() > 0
+	var all_rus := state.objectives.size() > 0
 	for obj in state.objectives:
-		# Controller = fazione con più uomini nell'esagono
 		var ger := 0
 		var rus := 0
 		for u in state.men_at(obj.q, obj.r):
@@ -571,16 +582,29 @@ func _count_objectives() -> int:
 		if ger > rus:
 			obj.controller = Domain.Faction.GERMAN
 			ger_vp += obj.vp
+			all_rus = false
 		elif rus > ger:
 			obj.controller = Domain.Faction.RUSSIAN
 			rus_vp += obj.vp
+			all_ger = false
 		else:
 			obj.controller = -1
+			all_ger = false
+			all_rus = false
 	state.vp_tracker = ger_vp - rus_vp
-	_log("VP finali — GER: %d, RUS: %d" % [ger_vp, rus_vp])
-	if ger_vp > rus_vp:
+	if all_ger:
 		return Domain.Faction.GERMAN
-	elif rus_vp > ger_vp:
+	if all_rus:
+		return Domain.Faction.RUSSIAN
+	return -1
+
+
+func _count_objectives() -> int:
+	_update_objectives()
+	_log("VP finali — bilancia %+d (positivo = Germania)" % state.vp_tracker)
+	if state.vp_tracker > 0:
+		return Domain.Faction.GERMAN
+	elif state.vp_tracker < 0:
 		return Domain.Faction.RUSSIAN
 	return -1
 
