@@ -19,7 +19,8 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 
 | Area regolamento | Stato | Dettaglio |
 |---|---|---|
-| Mazzo del Fato (dadi) | ❌ | I tiri usano RNG 2d6, non i dadi della carta pescata. Blocca azioni/eventi/conseguenze. |
+| Mazzo del Fato (dadi) | ✅ | I tiri (fuoco/melee/recupero/rotta) pescano i dadi dalla carta in cima al mazzo (`Fate.gd`); fallback RNG solo se mazzo+scarti vuoti. |
+| Conseguenze carta | ✅🟡 | Tempo!, Cecchino (colpisce l'hex + ripara armi), Inceppamento (arma fuori uso nel fuoco) implementate; **Evento** solo loggato (handler completi = milestone Eventi). |
 | Sequenza di gioco | 🟡 | Turni a blocchi (umano → IA). Manca alternanza carta-per-carta + finestra di reazione. |
 | Mano e scarti | 🟡 | Pesca/scarto/rimescolo OK; mano **fissa a 4** (non per Postura: Att 6/Recon 5/Dif 4); nessun limite di scarto per nazione. |
 | Ordine Mossa | 🟡 | Costo terreno + stacking. Manca bonus strada (ignorato in `move_cost`), lati esagono, malus PM armi, uscita mappa, attivazione multi-unità via leader. |
@@ -36,7 +37,7 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 | Terreno & movimento | 🟡 | Tabella costi + acqua impassabile ✅; strada/trail/lati/elevazione/double-time/malus armi non applicati. |
 | Armi | 🟡 | Sparano come unità. Manca trasporto/pairing 1↔1 (8.1.1), ordnance+minRange, FP radio, cattura/recupero, armi rotte/inceppate. |
 | Impilamento (8.1) | 🟡 | Max **8 uomini**/hex; il regolamento è **7 figure** (squad 4/team 2/leader 1). |
-| Traccia Tempo & Morte Subitanea | 🟡 | `time_marker` cresce ogni fine turno → fine a spazio fisso. Manca Time! pescato dal Fato e gli effetti della traccia (rimuovi fumo, dig-in, rinforzi, +1 VP difensore, auto-vittoria su 5 obiettivi). |
+| Traccia Tempo & Morte Subitanea | ✅🟡 | Il tempo ora avanza **solo** con un Tempo! pescato dal Fato (corretto); Tempo! dà +1 VP al difensore e rimescola i mazzi. Restano gli altri effetti della traccia (dig-in, rinforzi, rimozione fumo, auto-vittoria su 5 obiettivi). |
 | Obiettivi / VP / Chit (7.3) | 🟡→❌ | Controllo = più uomini nell'hex; VP calcolati **solo alla Morte Subitanea**. Niente chit (segreti/aperti, 22), VP cumulativi, VP da eliminazione/uscita, auto-win. |
 | Resa / Casualty Track | ❌ | Valori di resa inutilizzati; nessuna traccia perdite/resa/rinforzi. |
 | Fortificazioni & marker | ❌ | Foxhole, trincea, filo, mine, pillbox, fumo, incendio: assenti. |
@@ -50,8 +51,8 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 
 ## Prossime priorità (in ordine)
 
-1. **Mazzo del Fato come motore di dadi + conseguenze** (jam/sniper/Time!/eventi) — prerequisito di quasi tutto.
+1. ~~Mazzo del Fato come motore di dadi + conseguenze~~ ✅ **fatto** (resta da implementare gli handler dei singoli **Eventi**).
 2. **Aggiornamento continuo controllo obiettivi + VP** (oggi solo a fine partita).
 3. **LOS/terreno completi** (lati esagono già caricati: siepe/muro/dirupo + hindrance + elevazione).
 4. **Op Fire (A33)** durante il movimento.
-5. **Azioni base (carte A)**, poi **Eventi (carte E)**.
+5. **Azioni base (carte A)**, poi **Eventi (carte E)** completi.

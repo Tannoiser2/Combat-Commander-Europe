@@ -156,16 +156,23 @@ func click_hex_fire(tq: int, tr: int) -> void:
 		_log("Fuoco illegale verso (%d,%d)" % [tq, tr])
 		return
 	# Tutto il gruppo di fuoco (unità co-locate in gittata) si attiva.
-	for g in Combat.fire_group(u, tq, tr, state):
+	var group := Combat.fire_group(u, tq, tr, state)
+	var weapon_ids: Array = []
+	for g in group:
 		g.activated = true
-	var result := Combat.resolve_fire(u, tq, tr, state, _rng)
+		if g.is_weapon():
+			weapon_ids.append(g.id)
+	var fate := _draw_fate(state.human_faction)
+	var result := Combat.resolve_fire(u, tq, tr, state, _dice_of(fate))
 	_log(result.log_line)
 	for uid2 in result.eliminated:
 		emit_signal("unit_eliminated", uid2)
 	emit_signal("fire_resolved", result)
+	_apply_fate(fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
 	_discard_card(state.selected_card_index)
 	_clear_order_selection()
-	_change_phase(Domain.Phase.PLAYER_TURN)
+	if state.phase != Domain.Phase.GAME_OVER:
+		_change_phase(Domain.Phase.PLAYER_TURN)
 	_check_end_conditions()
 
 
@@ -250,30 +257,39 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 		var defenders := state.men_at(tq, tr).filter(
 			func(m: Unit) -> bool: return m.faction != u.faction
 		)
-		var mr := Rules.resolve_melee(state, attackers, defenders, state.initiative_holder, _rng)
+		var def_faction: int = defenders[0].faction
+		var af := _draw_fate(u.faction)
+		var df := _draw_fate(def_faction)
+		var mr := Rules.resolve_melee(
+			state, attackers, defenders, state.initiative_holder, _dice_of(af), _dice_of(df))
 		_log(mr.log_line)
 		for uid in mr.eliminated:
 			emit_signal("unit_eliminated", uid)
+		_apply_fate(af, u.faction)
+		_apply_fate(df, def_faction)
 
 	_discard_card(state.selected_card_index)
 	_clear_order_selection()
-	_change_phase(Domain.Phase.PLAYER_TURN)
+	if state.phase != Domain.Phase.GAME_OVER:
+		_change_phase(Domain.Phase.PLAYER_TURN)
 	_check_end_conditions()
 
 
 ## Recupero (O22): tiro di Morale per ogni unità rotta amica.
 func _execute_recover(hand_index: int) -> void:
 	state.order_count += 1
-	var recovered := 0
-	for u in state.broken_men_of(state.human_faction):
-		var r := Rules.try_recover(state, u, _rng)
+	var broken := state.broken_men_of(state.human_faction)
+	if broken.is_empty():
+		_log("Recupero: nessuna unità rotta da ripristinare.")
+	for u in broken:
+		var fate := _draw_fate(state.human_faction)
+		var r := Rules.try_recover(state, u, _dice_of(fate))
 		_log("Recupero %s: %d vs %d → %s" % [
 			u.unit_name, r["roll"], r["target"], "OK" if r["success"] else "fallito"
 		])
-		if r["success"]:
-			recovered += 1
-	if recovered == 0 and state.broken_men_of(state.human_faction).is_empty():
-		_log("Recupero: nessuna unità rotta da ripristinare.")
+		_apply_fate(fate, state.human_faction)
+		if state.phase == Domain.Phase.GAME_OVER:
+			break
 	_discard_card(hand_index)
 	emit_signal("state_changed")
 
@@ -285,13 +301,17 @@ func _execute_rout(hand_index: int) -> void:
 	if broken.is_empty():
 		_log("Rotta: nessuna unità rotta.")
 	for u in broken:
-		var r := Rules.rout_unit(state, u, _rng)
+		var fate := _draw_fate(state.human_faction)
+		var r := Rules.rout_unit(state, u, _dice_of(fate))
 		if r["eliminated"]:
 			_log("Rotta %s: %d esagoni → ELIMINATA (nessuna via di fuga)" % [u.unit_name, r["steps"]])
 			emit_signal("unit_eliminated", u.id)
 		else:
 			_log("Rotta %s: tiro %d, si ritira di %d esagoni" % [u.unit_name, r["roll"], r["moved"]])
 			emit_signal("unit_moved", u.id, u.q, u.r)
+		_apply_fate(fate, state.human_faction)
+		if state.phase == Domain.Phase.GAME_OVER:
+			break
 	_discard_card(hand_index)
 	_check_end_conditions()
 	emit_signal("state_changed")
@@ -324,6 +344,31 @@ func _ai_faction() -> int:
 	return Domain.Faction.RUSSIAN if state.human_faction == Domain.Faction.GERMAN else Domain.Faction.GERMAN
 
 
+# ─── Mazzo del Fato ────────────────────────────────────────────────────────────
+
+## Pesca una carta del Fato per la fazione (per ottenere i dadi del tiro).
+func _draw_fate(faction: int) -> Card:
+	return Fate.draw(state, faction)
+
+
+## I dadi della carta pescata (fallback RNG se mazzo+scarti sono vuoti).
+func _dice_of(card: Card) -> Vector2i:
+	if card == null:
+		return Rules.roll_dice(_rng)
+	return Fate.dice(card)
+
+
+## Applica la conseguenza della carta del Fato (Tempo!/Cecchino/Inceppamento/
+## Evento) e controlla l'eventuale Morte Subitanea.
+func _apply_fate(card: Card, faction: int, context: Dictionary = {}) -> void:
+	if card == null:
+		return
+	for line in Fate.apply_consequence(state, card, faction, context):
+		_log("Fato — " + line)
+	if state.time_marker >= state.sudden_death_space and state.phase != Domain.Phase.GAME_OVER:
+		_check_sudden_death()
+
+
 func _end_player_turn() -> void:
 	# Azzera attivazioni e PM residui
 	state.moving_unit_id = ""
@@ -335,8 +380,8 @@ func _end_player_turn() -> void:
 	for u in state.units.values():
 		u.activated = false
 
-	# Avanza il segnatore del tempo
-	state.time_marker += 1
+	# Il tempo NON avanza a ogni turno: in CC:E si muove solo con un "Tempo!"
+	# pescato dal Mazzo del Fato (vedi Fate._consequence_time).
 	if state.time_marker >= state.sudden_death_space:
 		_check_sudden_death()
 		return
@@ -375,27 +420,41 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 			var fq := int(play["q"])
 			var fr := int(play["r"])
 			if atk != null and Combat.can_fire(atk, fq, fr, state):
-				for g in Combat.fire_group(atk, fq, fr, state):
+				var group := Combat.fire_group(atk, fq, fr, state)
+				var weapon_ids: Array = []
+				for g in group:
 					g.activated = true
-				var fres := Combat.resolve_fire(atk, fq, fr, state, _rng)
+					if g.is_weapon():
+						weapon_ids.append(g.id)
+				var ffate := _draw_fate(faction)
+				var fres := Combat.resolve_fire(atk, fq, fr, state, _dice_of(ffate))
 				_log("IA — " + fres.log_line)
 				for fid in fres.eliminated:
 					emit_signal("unit_eliminated", fid)
+				_apply_fate(ffate, faction, { "kind": "fire", "weapons": weapon_ids })
 		Domain.OrderType.ADVANCE:
 			var mover := state.unit_by_id(String(play["unit_id"]))
 			if mover != null:
 				_ai_advance(faction, mover, int(play["q"]), int(play["r"]))
 		Domain.OrderType.RECOVER:
 			for ru in state.broken_men_of(faction):
-				var rec := Rules.try_recover(state, ru, _rng)
+				var rfate := _draw_fate(faction)
+				var rec := Rules.try_recover(state, ru, _dice_of(rfate))
 				_log("IA recupero %s: %s" % [ru.unit_name, "OK" if rec["success"] else "fallito"])
+				_apply_fate(rfate, faction)
+				if state.phase == Domain.Phase.GAME_OVER:
+					break
 		Domain.OrderType.ROUT:
 			for ou in state.broken_men_of(faction):
-				var rou := Rules.rout_unit(state, ou, _rng)
+				var ofate := _draw_fate(faction)
+				var rou := Rules.rout_unit(state, ou, _dice_of(ofate))
 				if rou["eliminated"]:
 					emit_signal("unit_eliminated", ou.id)
 				else:
 					emit_signal("unit_moved", ou.id, ou.q, ou.r)
+				_apply_fate(ofate, faction)
+				if state.phase == Domain.Phase.GAME_OVER:
+					break
 		Domain.OrderType.MOVE:
 			_ai_move_order(faction)
 	_discard_for(faction, int(play["card_index"]))
@@ -413,12 +472,18 @@ func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
 	if defenders.is_empty():
 		_log("IA — %s avanza in (%d,%d)" % [u.unit_name, tq, tr])
 		return
+	var def_faction: int = defenders[0].faction
 	var attackers := state.men_at(tq, tr).filter(
 		func(m: Unit) -> bool: return m.faction == faction)
-	var mr := Rules.resolve_melee(state, attackers, defenders, state.initiative_holder, _rng)
+	var af := _draw_fate(faction)
+	var df := _draw_fate(def_faction)
+	var mr := Rules.resolve_melee(
+		state, attackers, defenders, state.initiative_holder, _dice_of(af), _dice_of(df))
 	_log("IA — " + mr.log_line)
 	for mid in mr.eliminated:
 		emit_signal("unit_eliminated", mid)
+	_apply_fate(af, faction)
+	_apply_fate(df, def_faction)
 
 
 ## Ordine di Mossa dell'IA: avvicina gli uomini all'obiettivo più vicino.
@@ -521,6 +586,8 @@ func _count_objectives() -> int:
 
 
 func _end_game(winner: int) -> void:
+	if state.phase == Domain.Phase.GAME_OVER:
+		return  # partita già conclusa: evita doppio segnale
 	_change_phase(Domain.Phase.GAME_OVER)
 	var fname: String = Domain.FACTION_NAMES.get(winner, "PAREGGIO")
 	_log("═══ FINE PARTITA — Vincitore: %s ═══" % fname)

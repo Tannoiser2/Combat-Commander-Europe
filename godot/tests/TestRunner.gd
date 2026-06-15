@@ -37,6 +37,10 @@ func _ready() -> void:
 	_test_ai_best_fire()
 	_test_ai_best_advance()
 	_test_ai_choose_play()
+	_test_fate_draw_and_reshuffle()
+	_test_fate_time()
+	_test_fate_sniper()
+	_test_fate_jam()
 	_report()
 
 
@@ -86,12 +90,12 @@ func _test_fire_break_then_eliminate() -> void:
 	s.units[atk.id] = atk
 	s.units[tgt.id] = tgt
 
-	var r1 := Combat.resolve_fire(atk, 0, 1, s, _rng)
+	var r1 := Combat.resolve_fire(atk, 0, 1, s, Vector2i(1, 1))
 	_check(r1.broken.has("rus"), "unità efficiente colpita si rompe")
 	_check(s.units.has("rus"), "unità rotta resta in gioco")
 	_check(s.units.has("rus") and not s.units["rus"].efficient, "unità marcata come rotta")
 
-	var r2 := Combat.resolve_fire(atk, 0, 1, s, _rng)
+	var r2 := Combat.resolve_fire(atk, 0, 1, s, Vector2i(1, 1))
 	_check(r2.eliminated.has("rus"), "unità già rotta colpita viene eliminata")
 	_check(not s.units.has("rus"), "unità eliminata rimossa dallo stato")
 
@@ -103,7 +107,7 @@ func _test_fire_no_effect() -> void:
 	var tgt := _mk("rus", RUS, SQUAD, RIFLE, 0, 1, 5, 99)  # morale irraggiungibile
 	s.units[atk.id] = atk
 	s.units[tgt.id] = tgt
-	var r := Combat.resolve_fire(atk, 0, 1, s, _rng)
+	var r := Combat.resolve_fire(atk, 0, 1, s, Vector2i(6, 6))
 	_check(r.broken.is_empty() and r.eliminated.is_empty(), "punteggio < morale → nessun effetto")
 	_check(s.units["rus"].efficient, "bersaglio resta efficiente")
 
@@ -127,13 +131,13 @@ func _test_recover() -> void:
 	var u := _mk("rus", RUS, SQUAD, RIFLE, 2, 2, 5, 12)  # morale 12 → 2d6 sempre ≤ 12
 	u.break_unit()
 	s.units[u.id] = u
-	var r := Rules.try_recover(s, u, _rng)
+	var r := Rules.try_recover(s, u, Vector2i(6, 6))  # 12 ≤ 12 → riuscito
 	_check(r["success"] and u.efficient, "morale 12 → recupero sempre riuscito")
 
-	var u2 := _mk("rus2", RUS, SQUAD, RIFLE, 4, 4, 5, 1)  # morale 1 → 2d6 mai ≤ 1
+	var u2 := _mk("rus2", RUS, SQUAD, RIFLE, 4, 4, 5, 1)  # morale 1
 	u2.break_unit()
 	s.units[u2.id] = u2
-	var r2 := Rules.try_recover(s, u2, _rng)
+	var r2 := Rules.try_recover(s, u2, Vector2i(1, 1))  # 2 > 1 → fallito
 	_check(not r2["success"] and not u2.efficient, "morale 1 → recupero sempre fallito")
 
 
@@ -148,7 +152,7 @@ func _test_melee_winner_and_losses() -> void:
 	s.units[d2.id] = d2
 	var attackers: Array[Unit] = [a]
 	var defenders: Array[Unit] = [d1, d2]
-	var mr := Rules.resolve_melee(s, attackers, defenders, RUS, _rng)
+	var mr := Rules.resolve_melee(s, attackers, defenders, RUS, Vector2i(1, 1), Vector2i(6, 6))
 	_check(mr.winner == GER, "vince il lato con totale più alto")
 	_check(mr.eliminated.has("rus-1") and mr.eliminated.has("rus-2"), "il lato perdente perde TUTTE le unità")
 	_check(not s.units.has("rus-1") and not s.units.has("rus-2"), "perdenti rimossi dallo stato")
@@ -161,7 +165,7 @@ func _test_rout_retreat() -> void:
 	var u := _mk("ger", GER, SQUAD, RIFLE, 1, 2, 5, 0)  # morale 0 → passi = tiro > 0
 	u.break_unit()
 	s.units[u.id] = u
-	var r := Rules.rout_unit(s, u, _rng)
+	var r := Rules.rout_unit(s, u, Vector2i(3, 3))  # passi = 6 - 0 = 6 > 0
 	_check(not r["eliminated"], "non eliminata se ha via di fuga")
 	_check(u.q > 1, "si ritira verso est (bordo tedesco, q cresce)")
 
@@ -174,7 +178,7 @@ func _test_rout_trapped() -> void:
 	var e := _mk("rus", RUS, SQUAD, RIFLE, 3, 2, 5, 7)   # nemico adiacente
 	s.units[u.id] = u
 	s.units[e.id] = e
-	var r := Rules.rout_unit(s, u, _rng)
+	var r := Rules.rout_unit(s, u, Vector2i(6, 6))  # passi = 12 - 12 = 0 → bloccata
 	_check(r["eliminated"], "intrappolata + nemico adiacente → eliminata")
 	_check(not s.units.has("ger"), "unità intrappolata rimossa")
 
@@ -225,6 +229,58 @@ func _test_ai_choose_play() -> void:
 	_check(not play.is_empty(), "IA sceglie un ordine")
 	_check(int(play.get("order", -1)) == Domain.OrderType.FIRE, "IA preferisce il Fuoco al Movimento se può colpire")
 	_check(int(play.get("card_index", -1)) == 1, "IA punta alla carta Fuoco in mano")
+
+
+func _fate_card(white: int, red: int, consequence: String = "") -> Card:
+	var c := Card.new()
+	c.dice_white = white
+	c.dice_red = red
+	c.consequence = consequence
+	return c
+
+
+func _test_fate_draw_and_reshuffle() -> void:
+	print("· Fato: pescata e rimescolo")
+	var s := _new_state()
+	s.russian_deck.append(_fate_card(1, 2))
+	s.russian_deck.append(_fate_card(3, 4))
+	var d1 := Fate.draw(s, RUS)
+	var d2 := Fate.draw(s, RUS)
+	_check(d1 != null and d2 != null, "Fate.draw restituisce le carte")
+	_check(s.russian_deck.is_empty(), "il mazzo si svuota dopo le pescate")
+	_check(s.russian_discard.size() == 2, "le carte pescate vanno negli scarti")
+	var d3 := Fate.draw(s, RUS)
+	_check(d3 != null, "Fate.draw rimescola gli scarti quando il mazzo è vuoto")
+
+
+func _test_fate_time() -> void:
+	print("· Fato: conseguenza TEMPO")
+	var s := _new_state()
+	s.time_marker = 2
+	s.sudden_death_space = 7
+	var lines := Fate.apply_consequence(s, _fate_card(1, 1, "time"), RUS)
+	_check(s.time_marker == 3, "TEMPO! avanza la traccia del tempo")
+	_check(lines.size() > 0, "la conseguenza produce un messaggio di log")
+
+
+func _test_fate_sniper() -> void:
+	print("· Fato: conseguenza CECCHINO")
+	var s := _new_state()
+	var foe := _mk("ger", GER, SQUAD, RIFLE, 1, 1, 5, 7)  # B2 = (1,1)
+	s.units[foe.id] = foe
+	var card := _fate_card(6, 6, "sniper")
+	card.random_hex_label = "B2"
+	Fate.apply_consequence(s, card, RUS)  # cecchino russo colpisce il tedesco
+	_check(not foe.efficient, "il cecchino rompe il nemico nell'esagono indicato")
+
+
+func _test_fate_jam() -> void:
+	print("· Fato: conseguenza INCEPPAMENTO")
+	var s := _new_state()
+	var mg := _mk("mg", RUS, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 2, 2, 4, 7)
+	s.units[mg.id] = mg
+	Fate.apply_consequence(s, _fate_card(1, 1, "jam"), RUS, { "kind": "fire", "weapons": ["mg"] })
+	_check(not mg.efficient, "l'inceppamento mette l'arma fuori uso")
 
 
 func _report() -> void:

@@ -34,20 +34,17 @@ static func fire_group(attacker: Unit, tq: int, tr: int, state: GameState) -> Ar
 
 
 ## Effettua un attacco di fuoco. attacker = unità sparante (capofila del gruppo).
-## state viene modificato in-place (rottura/eliminazione). rng opzionale.
+## `dice` sono i due dadi del Fato (pescati dal mazzo dal chiamante).
+## state viene modificato in-place (rottura/eliminazione).
 static func resolve_fire(
 	attacker: Unit, tq: int, tr: int,
 	state: GameState,
-	rng: RandomNumberGenerator = null
+	dice: Vector2i
 ) -> FireResult:
 	var res := FireResult.new()
 	res.attacker_id = attacker.id
 	res.target_q = tq
 	res.target_r = tr
-
-	if rng == null:
-		rng = RandomNumberGenerator.new()
-		rng.randomize()
 
 	var dist := HexGrid.distance(attacker.q, attacker.r, tq, tr)
 	if dist == 0:
@@ -75,8 +72,7 @@ static func resolve_fire(
 	fp = maxi(1, fp - cover)
 	res.fp_total = fp
 
-	# ─── Tiro (2d6) ──────────────────────────────────────────────────────────
-	var dice := Rules.roll_dice(rng)
+	# ─── Tiro (dadi del Fato) ────────────────────────────────────────────────
 	res.dice_roll = dice.x + dice.y
 	res.final_score = fp + res.dice_roll
 

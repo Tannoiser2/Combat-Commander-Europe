@@ -42,11 +42,10 @@ static func has_command_at(state: GameState, q: int, r: int, faction: int) -> bo
 # ─── Recupero (O22) ────────────────────────────────────────────────────────────
 
 ## Tiro di Morale per recuperare un'unità rotta: successo se 2d6 ≤ Morale
-## (+ bonus di Comando di un leader nello stesso esagono). Modifica l'unità.
+## (+ bonus di Comando di un leader nello stesso esagono). `dice` dal Fato.
 static func try_recover(
-	state: GameState, u: Unit, rng: RandomNumberGenerator
+	state: GameState, u: Unit, dice: Vector2i
 ) -> Dictionary:
-	var dice := roll_dice(rng)
 	var roll := dice.x + dice.y
 	var target := u.morale + command_bonus_at(state, u.q, u.r, u.faction)
 	var success := roll <= target
@@ -89,7 +88,7 @@ static func resolve_melee(
 	state: GameState,
 	attackers: Array, defenders: Array,
 	initiative_faction: int,
-	rng: RandomNumberGenerator
+	atk_dice: Vector2i, def_dice: Vector2i
 ) -> MeleeResult:
 	var res := MeleeResult.new()
 	if attackers.is_empty() or defenders.is_empty():
@@ -99,8 +98,8 @@ static func resolve_melee(
 	var atk_faction: int = attackers[0].faction
 	var def_faction: int = defenders[0].faction
 
-	res.atk_dice = roll_dice(rng)
-	res.def_dice = roll_dice(rng)
+	res.atk_dice = atk_dice
+	res.def_dice = def_dice
 	res.atk_total = _melee_strength(attackers) + res.atk_dice.x + res.atk_dice.y
 	res.def_total = _melee_strength(defenders) + res.def_dice.x + res.def_dice.y
 
@@ -151,9 +150,8 @@ static func _nearest_enemy_dist(state: GameState, q: int, r: int, faction: int) 
 ## amico, lontano dai nemici. Se non può muovere ed è adiacente a un nemico viene
 ## eliminata. Modifica posizione/stato dell'unità.
 static func rout_unit(
-	state: GameState, u: Unit, rng: RandomNumberGenerator
+	state: GameState, u: Unit, dice: Vector2i
 ) -> Dictionary:
-	var dice := roll_dice(rng)
 	var roll := dice.x + dice.y
 	var steps := roll - u.morale
 	var moved := 0

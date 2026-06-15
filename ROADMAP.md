@@ -39,8 +39,9 @@ la logica regola per regola. Stato del motore Godot:
 | 🟢 Fatto | Avanzata + Corpo a corpo (O21) | Avanzata di 1 esagono; in esagono nemico → melee: ΣFP + riquadri + Comando + 2d6; pareggio a chi **non** ha l'iniziativa; il perdente perde **tutte** le unità. (`Rules.resolve_melee`, `Game._execute_advance`) |
 | 🟢 Fatto | Rotta (O23) | N = (2d6 − Morale) esagoni verso il bordo amico, lontano dai nemici; intrappolata + nemico adiacente → eliminata. (`Rules.rout_unit`, `Game._execute_rout`) |
 | 🟢 Fatto | Ordini giocabili dalla mappa | MOVE/FIRE/ADVANCE con selezione bersaglio + evidenziazione; ROUT/RECOVER immediati. (`Game.play_card`, `HexMap._on_click`, `GameState.current_order`) |
-| 🟢 Fatto | Test motore headless | `godot/tests/TestRunner.tscn` + workflow CI `tests.yml` (Godot 4.6.3): controlli su fuoco/comando/recupero/melee/rotta. |
-| 🟡 Da fare | Conseguenze carta | jam/sniper/time/event non gestite alla pescata; il fuoco usa 2d6 RNG, non i dadi del Fato della carta. |
+| 🟢 Fatto | Test motore headless | `godot/tests/TestRunner.tscn` + workflow CI `tests.yml` (Godot 4.6.3): controlli su fuoco/comando/recupero/melee/rotta/IA/Fato. |
+| 🟢 Fatto | Mazzo del Fato (dadi+conseguenze) | I tiri pescano i dadi dalla carta in cima al mazzo (`Fate.gd`); conseguenze Tempo!/Cecchino/Inceppamento applicate; il tempo avanza solo con Tempo!. (`Fate.gd`, `Game._draw_fate/_apply_fate`) |
+| 🟡 Da fare | Eventi (carte E) | Le carte Evento sono pescate e loggate ma gli handler dei singoli eventi (E43-E77) non sono ancora portati. |
 | 🟡 Da fare | Artiglieria | Ordini ARTY/ARTY_DENIED ancora scartati: mancano Targeting Roll, spotter/LOS, scatter. |
 | 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
 | 🟢 Fatto | IA che gioca la mano | `AI.gd`: l'IA sceglie e risolve fino a `ai_max_orders` ordini dalla propria mano (Fuoco col bersaglio migliore, Avanzata in melee vantaggiosa, Recupero/Rotta delle unità rotte, Mossa verso l'obiettivo più vicino). (`AI.choose_play`, `Game._ai_execute`) |
