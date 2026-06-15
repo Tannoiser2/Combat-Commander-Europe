@@ -11,7 +11,9 @@ class HexData:
 	var terrain: int        # Domain.TerrainType
 	var elevation: int = 0
 	var objective_id: int = -1  # -1 = nessun obiettivo
-	var has_road: bool = false  # sovrapposizione strada
+	var has_road: bool = false     # sovrapposizione strada
+	var has_foxhole: bool = false  # buca/trincea (Trincerarsi): +2 copertura
+	var has_smoke: bool = false    # fumo (Granate Fumogene): hindrance
 
 	func _init(p_terrain: int, p_elev: int = 0) -> void:
 		terrain = p_terrain
@@ -56,6 +58,7 @@ var human_faction: int = Domain.Faction.GERMAN
 var turn_number: int = 1
 var order_count: int = 0
 var max_orders: int = 2
+var ai_max_orders: int = 2  ## Ordini giocati dall'IA nel suo turno
 
 
 # ─── Traccia del tempo ────────────────────────────────────────────────────────
@@ -79,6 +82,13 @@ var initiative_holder: int = Domain.Faction.GERMAN
 var selected_unit_id: String = ""
 var selected_card_index: int = -1
 var highlighted_hexes: Array[String] = []
+
+
+# ─── Ordine in corso ─────────────────────────────────────────────────────────
+
+## Domain.OrderType dell'ordine attualmente in esecuzione (-1 = nessuno).
+## Determina come la mappa interpreta i click (movimento / fuoco / avanzata).
+var current_order: int = -1
 
 
 # ─── Movimento passo per passo ───────────────────────────────────────────────
@@ -128,6 +138,15 @@ func units_of(faction: int) -> Array[Unit]:
 	return result
 
 
+## Uomini rotti (lato rovesciato) di una fazione — bersagli di Recupero e Rotta.
+func broken_men_of(faction: int) -> Array[Unit]:
+	var result: Array[Unit] = []
+	for u in units.values():
+		if u.faction == faction and u.is_man() and not u.efficient:
+			result.append(u)
+	return result
+
+
 func hand_of(faction: int) -> Array[Card]:
 	return german_hand if faction == Domain.Faction.GERMAN else russian_hand
 
@@ -137,6 +156,35 @@ func objective_at(q: int, r: int) -> Objective:
 		if o.q == q and o.r == r:
 			return o
 	return null
+
+
+# ─── Lati di esagono (indice per query veloci) ────────────────────────────────
+
+var _side_index: Dictionary = {}
+var _side_index_built: bool = false
+
+
+## Caratteristica del lato condiviso tra gli esagoni a e b (Domain.HexsideFeature).
+## NONE se non c'è nulla. L'indice viene costruito pigramente al primo accesso.
+func side_feature_between(a: Vector2i, b: Vector2i) -> int:
+	if not _side_index_built:
+		_build_side_index()
+	return int(_side_index.get(_side_key(a, b), Domain.HexsideFeature.NONE))
+
+
+func _side_key(a: Vector2i, b: Vector2i) -> String:
+	if a.x < b.x or (a.x == b.x and a.y <= b.y):
+		return "%d,%d|%d,%d" % [a.x, a.y, b.x, b.y]
+	return "%d,%d|%d,%d" % [b.x, b.y, a.x, a.y]
+
+
+func _build_side_index() -> void:
+	_side_index.clear()
+	for sf in side_features:
+		var a: Vector2i = sf["a"]
+		var b: Vector2i = sf["b"]
+		_side_index[_side_key(a, b)] = int(sf["feature"])
+	_side_index_built = true
 
 
 func add_log(msg: String) -> void:

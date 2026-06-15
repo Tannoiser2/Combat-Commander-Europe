@@ -199,4 +199,5 @@ static func setup(state: GameState) -> void:
 	state.sudden_death_space = SETUP["sudden_death"]
 	state.initiative_holder = SETUP["initiative_holder"]
 	state.max_orders        = SETUP["german_orders"]
+	state.ai_max_orders     = SETUP["russian_orders"]
 	state.active_faction    = Domain.Faction.GERMAN

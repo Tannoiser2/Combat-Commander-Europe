@@ -49,8 +49,50 @@ static func _from_cube(cube: Vector3i) -> Vector2i:
 
 # ─── Linea di vista (LOS) ────────────────────────────────────────────────────
 
-## Restituisce true se non vi sono ostacoli tra (q1,r1) e (q2,r2).
-## Usa interpolazione lineare sulle coordinate cubiche.
+## Arrotondamento cubico corretto (mantiene x+y+z=0): dà una vera linea di
+## esagoni con celle consecutive adiacenti.
+static func _cube_round(x: float, y: float, z: float) -> Vector3i:
+	var rx := roundf(x)
+	var ry := roundf(y)
+	var rz := roundf(z)
+	var dx := absf(rx - x)
+	var dy := absf(ry - y)
+	var dz := absf(rz - z)
+	if dx > dy and dx > dz:
+		rx = -ry - rz
+	elif dy > dz:
+		ry = -rx - rz
+	else:
+		rz = -rx - ry
+	return Vector3i(int(rx), int(ry), int(rz))
+
+
+## Elevazione di un esagono (0 se fuori mappa).
+static func _elev(state: GameState, q: int, r: int) -> int:
+	var hd: GameState.HexData = state.hex_at(q, r)
+	return hd.elevation if hd != null else 0
+
+
+## Sequenza di esagoni (adiacenti) sulla linea da (q1,r1) a (q2,r2), estremi inclusi.
+static func line(q1: int, r1: int, q2: int, r2: int) -> Array[Vector2i]:
+	var dist := distance(q1, r1, q2, r2)
+	var result: Array[Vector2i] = []
+	if dist == 0:
+		result.append(Vector2i(q1, r1))
+		return result
+	var c1 := Vector3(_to_cube(q1, r1))
+	var c2 := Vector3(_to_cube(q2, r2))
+	for i in range(0, dist + 1):
+		var t := float(i) / float(dist)
+		var cube := _cube_round(
+			lerp(c1.x, c2.x, t), lerp(c1.y, c2.y, t), lerp(c1.z, c2.z, t))
+		result.append(_from_cube(cube))
+	return result
+
+
+## Linea di vista da (q1,r1) a (q2,r2). Bloccata da terreno opaco o elevazione
+## più alta degli estremi negli esagoni intermedi, e da lati BOCAGE (sempre) o
+## MURO/SIEPE su un lato NON di estremità. Un lato LOS_CLEAR è un varco libero.
 static func has_los(
 	q1: int, r1: int, q2: int, r2: int,
 	state: GameState
@@ -58,22 +100,72 @@ static func has_los(
 	var dist := distance(q1, r1, q2, r2)
 	if dist == 0:
 		return true
-	var c1 := Vector3(_to_cube(q1, r1))
-	var c2 := Vector3(_to_cube(q2, r2))
-	# Controlla solo le celle intermedie (non sorgente né destinazione)
+	var path := line(q1, r1, q2, r2)
+	var max_end_elev := maxi(_elev(state, q1, r1), _elev(state, q2, r2))
+
+	# Esagoni intermedi: terreno opaco o collina più alta degli estremi.
 	for i in range(1, dist):
-		var t := float(i) / float(dist)
-		var cx := int(round(lerp(c1.x, c2.x, t)))
-		var cy := int(round(lerp(c1.y, c2.y, t)))
-		var cz := int(round(lerp(c1.z, c2.z, t)))
-		var off := _from_cube(Vector3i(cx, cy, cz))
-		var hd: GameState.HexData = state.hex_at(off.x, off.y)
-		if hd and Domain.TERRAIN_BLOCKS_LOS.get(hd.terrain, false):
+		var hd: GameState.HexData = state.hex_at(path[i].x, path[i].y)
+		if hd == null:
+			continue
+		if Domain.TERRAIN_BLOCKS_LOS.get(hd.terrain, false):
+			return false
+		if hd.elevation > max_end_elev:
+			return false
+
+	# Lati di esagono attraversati.
+	for i in range(0, dist):
+		var feat := state.side_feature_between(path[i], path[i + 1])
+		if feat == Domain.HexsideFeature.LOS_CLEAR:
+			continue
+		if feat == Domain.HexsideFeature.BOCAGE:
+			return false
+		var is_endpoint := i == 0 or i == dist - 1
+		if not is_endpoint and (feat == Domain.HexsideFeature.WALL or feat == Domain.HexsideFeature.HEDGE):
 			return false
 	return true
 
 
+## Ostacolo cumulativo (hindrance) lungo la LOS: somma degli hindrance del
+## terreno negli esagoni intermedi. Riduce la potenza di fuoco.
+static func los_hindrance(q1: int, r1: int, q2: int, r2: int, state: GameState) -> int:
+	var dist := distance(q1, r1, q2, r2)
+	if dist <= 1:
+		return 0
+	var path := line(q1, r1, q2, r2)
+	var total := 0
+	for i in range(1, dist):
+		var hd: GameState.HexData = state.hex_at(path[i].x, path[i].y)
+		if hd != null:
+			total += int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0))
+			if hd.has_smoke:
+				total += 1
+	return total
+
+
 # ─── BFS — esagoni raggiungibili ─────────────────────────────────────────────
+
+## Costo per entrare in (tq,tr) venendo da (fq,fr): terreno + attraversamento
+## del lato (muro/siepe/bocage/torrente = +1, dirupo = impassabile) e tariffa
+## strada (1 PM se entrambi gli esagoni sono su strada). -1 se impraticabile.
+static func step_cost(state: GameState, fq: int, fr: int, tq: int, tr: int) -> int:
+	var hd: GameState.HexData = state.hex_at(tq, tr)
+	if hd == null:
+		return -1
+	var base: int = Domain.TERRAIN_MOVE_COST.get(hd.terrain, 1)
+	if base >= 99:
+		return -1
+	var fhd: GameState.HexData = state.hex_at(fq, fr)
+	if hd.has_road and fhd != null and fhd.has_road:
+		base = 1  # movimento lungo la strada
+	var feat := state.side_feature_between(Vector2i(fq, fr), Vector2i(tq, tr))
+	if feat == Domain.HexsideFeature.CLIFF:
+		return -1
+	if feat == Domain.HexsideFeature.WALL or feat == Domain.HexsideFeature.BOCAGE \
+			or feat == Domain.HexsideFeature.HEDGE or feat == Domain.HexsideFeature.STREAM_SIDE:
+		base += 1
+	return base
+
 
 ## Restituisce tutti gli esagoni raggiungibili dall'unità u in questo stato.
 ## Rispetta i costi di movimento e i confini della mappa.
@@ -96,10 +188,9 @@ static func reachable(u: Unit, state: GameState) -> Array[Vector2i]:
 		for nb in neighbors(cq, cr):
 			if nb.x < 0 or nb.x >= state.map_cols or nb.y < 0 or nb.y >= state.map_rows:
 				continue
-			var hd: GameState.HexData = state.hex_at(nb.x, nb.y)
-			if hd == null:
+			var cost := step_cost(state, cq, cr, nb.x, nb.y)
+			if cost < 0:
 				continue
-			var cost: int = Domain.TERRAIN_MOVE_COST.get(hd.terrain, 1)
 			var total := spent + cost
 			if total > budget:
 				continue
@@ -132,11 +223,8 @@ static func reachable(u: Unit, state: GameState) -> Array[Vector2i]:
 static func move_cost(
 	u: Unit, tq: int, tr: int, remaining_mp: int, state: GameState
 ) -> int:
-	var hd: GameState.HexData = state.hex_at(tq, tr)
-	if hd == null:
-		return -1
-	var cost: int = Domain.TERRAIN_MOVE_COST.get(hd.terrain, 1)
-	if cost > remaining_mp:
+	var cost := step_cost(state, u.q, u.r, tq, tr)
+	if cost < 0 or cost > remaining_mp:
 		return -1
 	return cost
 

@@ -24,6 +24,34 @@
 | 🟢 Fatto | Catalogo scenari | Tutti i 24 scenari con dati ufficiali estratti dal manuale (fazioni, ordini, hand size, sudden death, VP, posture, iniziativa, humanSide). |
 | 🟢 Fatto | Ordini di battaglia | OB completo per tutti i 24 scenari in `scenarioOBs.ts` con resa, leader, squadre, weapon team, fortificazioni. |
 
+## Port Godot 4.x — stato del motore (aggiornato 2026-06-15)
+
+Il **prodotto attuale è il port in Godot** (`godot/`, vedi `README.md`). La ROADMAP
+sopra descrive l'app **React** di riferimento (`_recupero_react/`), da cui si porta
+la logica regola per regola. Stato del motore Godot:
+
+| Stato | Area | Note Godot (file) |
+| --- | --- | --- |
+| 🟢 Fatto | Scenario 1 | Mappa, obiettivi, mazzi German/Russian, turni, traccia Tempo, fine partita. |
+| 🟢 Fatto | Modello rottura (break) | `Unit.efficient` = lato pedina. Fuoco ≥ Morale **rompe** un'unità efficiente; un secondo colpo la **elimina**. `effective_fp()` dimezza il lato rotto. (`Unit.gd`, `Combat.gd`) — sostituisce il vecchio «≥ morale+4 = morto». |
+| 🟢 Fatto | Gruppo di fuoco + Comando | FP = Σ unità co-locate in gittata + Comando del miglior leader nell'esagono. (`Combat.fire_group`, `Rules.command_bonus_at`) |
+| 🟢 Fatto | Recupero (O22) | Tiro 2d6 ≤ Morale (+Comando) **per unità**, non più azzeramento globale. (`Rules.try_recover`, `Game._execute_recover`) |
+| 🟢 Fatto | Avanzata + Corpo a corpo (O21) | Avanzata di 1 esagono; in esagono nemico → melee: ΣFP + riquadri + Comando + 2d6; pareggio a chi **non** ha l'iniziativa; il perdente perde **tutte** le unità. (`Rules.resolve_melee`, `Game._execute_advance`) |
+| 🟢 Fatto | Rotta (O23) | N = (2d6 − Morale) esagoni verso il bordo amico, lontano dai nemici; intrappolata + nemico adiacente → eliminata. (`Rules.rout_unit`, `Game._execute_rout`) |
+| 🟢 Fatto | Ordini giocabili dalla mappa | MOVE/FIRE/ADVANCE con selezione bersaglio + evidenziazione; ROUT/RECOVER immediati. (`Game.play_card`, `HexMap._on_click`, `GameState.current_order`) |
+| 🟢 Fatto | Test motore headless | `godot/tests/TestRunner.tscn` + workflow CI `tests.yml` (Godot 4.6.3): controlli su fuoco/comando/recupero/melee/rotta/IA/Fato. |
+| 🟢 Fatto | Mazzo del Fato (dadi+conseguenze) | I tiri pescano i dadi dalla carta in cima al mazzo (`Fate.gd`); conseguenze Tempo!/Cecchino/Inceppamento applicate; il tempo avanza solo con Tempo!. (`Fate.gd`, `Game._draw_fate/_apply_fate`) |
+| 🟡 In corso | Eventi (carte E) | Dispatcher `Events.gd`: implementati Supporto aereo (E43), Macerie (E69), Shock (E72), Ucciso in azione (E62), Infiltrazione (E59), Fuoco di soppressione (E75), Acquattarsi (E51), Temprati (E44), Zappatori (no-op). Restano quelli con marker/Casualty Track/chit (loggati come non simulati). |
+| 🟡 In corso | Azioni (carte A) | `Actions.gd` + `Game.play_action` (click destro sulla carta): Ferite leggere, Trincerarsi (buca/+copertura), Mimetizzazione (+morale), Granate fumogene (fumo/hindrance), Bombe a mano (attacco ravvicinato). Modificatori di fuoco e marker nascosti ancora da fare. |
+| 🟢 Fatto | Fuoco di Opportunità (A33) | Durante il movimento il difensore reagisce col miglior tiratore idoneo (no mortai/cannoni, in gittata/LOS); può interrompere il movimento. (`OpFire.gd`, `Game._op_fire`) Tiratore scelto in automatico (scelta interattiva da fare). |
+| 🟢 Fatto | Obiettivi/VP live | Controllo obiettivi e bilancia VP aggiornati dopo ogni azione; vittoria automatica controllando tutti gli obiettivi. (`Game._update_objectives`, `_check_end_conditions`) |
+| 🟢 Fatto | LOS/terreno avanzati | Linea di esagoni corretta (`HexGrid.line`/`_cube_round`); LOS bloccata da lati muro/siepe (intermedi) e bocage, varco LOS_CLEAR, hindrance cumulativo ed elevazione; movimento con costo dei lati + tariffa strada (`HexGrid.step_cost`). |
+| 🟡 Da fare | Artiglieria | Ordini ARTY/ARTY_DENIED ancora scartati: mancano Targeting Roll, spotter/LOS, scatter. |
+| 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
+| 🟢 Fatto | IA che gioca la mano | `AI.gd`: l'IA sceglie e risolve fino a `ai_max_orders` ordini dalla propria mano (Fuoco col bersaglio migliore, Avanzata in melee vantaggiosa, Recupero/Rotta delle unità rotte, Mossa verso l'obiettivo più vicino). (`AI.choose_play`, `Game._ai_execute`) |
+| 🟡 Da fare | IA avanzata | Valutazioni più fini: copertura, rischio di fuoco reattivo, difesa degli obiettivi propri, scelta del gruppo di fuoco multi-esagono. |
+| 🟡 Da fare | Scenari 2-24 (Godot) | In Godot esiste solo lo Scenario 1; dati scenario/OB e terreno mappe da portare (mappe in digitalizzazione). |
+
 ## Milestone 0: Base Tecnica
 
 | Stato | Voce | Note |
