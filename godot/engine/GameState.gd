@@ -156,6 +156,35 @@ func objective_at(q: int, r: int) -> Objective:
 	return null
 
 
+# ─── Lati di esagono (indice per query veloci) ────────────────────────────────
+
+var _side_index: Dictionary = {}
+var _side_index_built: bool = false
+
+
+## Caratteristica del lato condiviso tra gli esagoni a e b (Domain.HexsideFeature).
+## NONE se non c'è nulla. L'indice viene costruito pigramente al primo accesso.
+func side_feature_between(a: Vector2i, b: Vector2i) -> int:
+	if not _side_index_built:
+		_build_side_index()
+	return int(_side_index.get(_side_key(a, b), Domain.HexsideFeature.NONE))
+
+
+func _side_key(a: Vector2i, b: Vector2i) -> String:
+	if a.x < b.x or (a.x == b.x and a.y <= b.y):
+		return "%d,%d|%d,%d" % [a.x, a.y, b.x, b.y]
+	return "%d,%d|%d,%d" % [b.x, b.y, a.x, a.y]
+
+
+func _build_side_index() -> void:
+	_side_index.clear()
+	for sf in side_features:
+		var a: Vector2i = sf["a"]
+		var b: Vector2i = sf["b"]
+		_side_index[_side_key(a, b)] = int(sf["feature"])
+	_side_index_built = true
+
+
 func add_log(msg: String) -> void:
 	log.push_front(msg)
 	if log.size() > 50:

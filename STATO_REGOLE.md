@@ -33,8 +33,8 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 | Azioni (carte A) | ❌ | `ActionType` definito ma inutilizzato. Niente Fuoco d'Assalto, Bombe a mano, Op Fire, Mimetizzazione, Trincerarsi, Fumogene… |
 | Eventi (carte E) | ❌ | Nessuno (React: 35+). |
 | Comando/Leadership | 🟡 | Bonus nello stesso esagono ✅; raggio di Comando multi-esagono ❌ (`Rules.has_command_at` esiste, non usato). |
-| Linea di vista (LOS) | 🟡 | Blocco da terreno + interpolazione ✅. Manca hindrance cumulativo, lati (muro/siepe/dirupo), cresta/elevazione (T88.1), gully (T86), blind hex (T88.4), fumo. `side_features` caricato/disegnato ma non consultato dalla LOS. |
-| Terreno & movimento | 🟡 | Tabella costi + acqua impassabile ✅; strada/trail/lati/elevazione/double-time/malus armi non applicati. |
+| Linea di vista (LOS) | ✅🟡 | Linea di esagoni corretta (cube_round) + blocco da terreno opaco, **lati muro/siepe (intermedi) e bocage**, **varco LOS_CLEAR**, **hindrance cumulativo** (frutteto/campo/macchia) ed **elevazione** base. Restano cresta collina (T88.1), gully (T86), blind hex (T88.4), grazing, fumo. |
+| Terreno & movimento | ✅🟡 | Costi terreno + acqua impassabile ✅; **attraversamento lati** (muro/siepe/bocage/torrente +1, dirupo impassabile) e **tariffa strada** (1 PM lungo strada) ✅. Restano trail, double-time, malus PM armi. |
 | Armi | 🟡 | Sparano come unità. Manca trasporto/pairing 1↔1 (8.1.1), ordnance+minRange, FP radio, cattura/recupero, armi rotte/inceppate. |
 | Impilamento (8.1) | 🟡 | Max **8 uomini**/hex; il regolamento è **7 figure** (squad 4/team 2/leader 1). |
 | Traccia Tempo & Morte Subitanea | ✅🟡 | Il tempo ora avanza **solo** con un Tempo! pescato dal Fato (corretto); Tempo! dà +1 VP al difensore e rimescola i mazzi. Restano gli altri effetti della traccia (dig-in, rinforzi, rimozione fumo, auto-vittoria su 5 obiettivi). |
@@ -53,6 +53,6 @@ quindi azioni/eventi/conseguenze non scattano). Stima copertura motore: ~35-40%.
 
 1. ~~Mazzo del Fato come motore di dadi + conseguenze~~ ✅ **fatto** (resta da implementare gli handler dei singoli **Eventi**).
 2. **Aggiornamento continuo controllo obiettivi + VP** (oggi solo a fine partita).
-3. **LOS/terreno completi** (lati esagono già caricati: siepe/muro/dirupo + hindrance + elevazione).
+3. ~~LOS/terreno: lati esagono + hindrance + elevazione~~ ✅ **fatto** (restano cresta/gully/blind hex/grazing/fumo).
 4. **Op Fire (A33)** durante il movimento.
 5. **Azioni base (carte A)**, poi **Eventi (carte E)** completi.

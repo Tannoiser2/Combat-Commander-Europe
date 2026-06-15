@@ -41,6 +41,9 @@ func _ready() -> void:
 	_test_fate_time()
 	_test_fate_sniper()
 	_test_fate_jam()
+	_test_los_hexside()
+	_test_los_hindrance()
+	_test_step_cost()
 	_report()
 
 
@@ -281,6 +284,56 @@ func _test_fate_jam() -> void:
 	s.units[mg.id] = mg
 	Fate.apply_consequence(s, _fate_card(1, 1, "jam"), RUS, { "kind": "fire", "weapons": ["mg"] })
 	_check(not mg.efficient, "l'inceppamento mette l'arma fuori uso")
+
+
+func _side(a: Vector2i, b: Vector2i, feat: int) -> Dictionary:
+	return { "a": a, "b": b, "feature": feat }
+
+
+func _test_los_hexside() -> void:
+	print("· LOS: lati di esagono (muro/varco)")
+	# Sulla linea (0,0)→(3,0) il lato intermedio è tra (1,0) e (2,0).
+	_check(HexGrid.has_los(0, 0, 3, 0, _new_state()), "LOS libera senza ostacoli")
+
+	var sw := _new_state()
+	sw.side_features.append(_side(Vector2i(1, 0), Vector2i(2, 0), Domain.HexsideFeature.WALL))
+	_check(not HexGrid.has_los(0, 0, 3, 0, sw), "un muro su un lato intermedio blocca la LOS")
+
+	var sg := _new_state()
+	sg.side_features.append(_side(Vector2i(1, 0), Vector2i(2, 0), Domain.HexsideFeature.LOS_CLEAR))
+	_check(HexGrid.has_los(0, 0, 3, 0, sg), "un varco (LOS_CLEAR) lascia libera la LOS")
+
+	var se := _new_state()
+	se.side_features.append(_side(Vector2i(0, 0), Vector2i(1, 0), Domain.HexsideFeature.WALL))
+	_check(HexGrid.has_los(0, 0, 3, 0, se), "un muro sul lato di estremità non blocca")
+
+
+func _test_los_hindrance() -> void:
+	print("· LOS: hindrance (frutteto)")
+	var s := _new_state()
+	_check(HexGrid.los_hindrance(0, 0, 3, 0, s) == 0, "nessun hindrance su terreno aperto")
+	s.hexes["1,0"].terrain = Domain.TerrainType.ORCHARD
+	s.hexes["2,0"].terrain = Domain.TerrainType.ORCHARD
+	_check(HexGrid.los_hindrance(0, 0, 3, 0, s) == 2, "due frutteti intermedi danno hindrance 2")
+
+
+func _test_step_cost() -> void:
+	print("· Movimento: costo dei lati e tariffa strada")
+	_check(HexGrid.step_cost(_new_state(), 0, 0, 1, 0) == 1, "terreno aperto costa 1")
+
+	var sw := _new_state()
+	sw.side_features.append(_side(Vector2i(0, 0), Vector2i(1, 0), Domain.HexsideFeature.WALL))
+	_check(HexGrid.step_cost(sw, 0, 0, 1, 0) == 2, "attraversare un muro costa +1")
+
+	var sc := _new_state()
+	sc.side_features.append(_side(Vector2i(0, 0), Vector2i(1, 0), Domain.HexsideFeature.CLIFF))
+	_check(HexGrid.step_cost(sc, 0, 0, 1, 0) == -1, "un dirupo è impassabile")
+
+	var sr := _new_state()
+	sr.hexes["0,0"].has_road = true
+	sr.hexes["1,0"].has_road = true
+	sr.hexes["1,0"].terrain = Domain.TerrainType.WOODS
+	_check(HexGrid.step_cost(sr, 0, 0, 1, 0) == 1, "lungo la strada anche il bosco costa 1")
 
 
 func _report() -> void:

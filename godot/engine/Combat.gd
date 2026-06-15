@@ -65,11 +65,13 @@ static func resolve_fire(
 	var cmd_bonus := Rules.command_bonus_at(state, attacker.q, attacker.r, attacker.faction)
 	fp += cmd_bonus
 
-	# Copertura del terreno del bersaglio (sottratta alla potenza di fuoco).
+	# Copertura del bersaglio + ostacolo (hindrance) lungo la LOS, entrambi
+	# sottratti alla potenza di fuoco.
 	var hd: GameState.HexData = state.hex_at(tq, tr)
 	var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0
+	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state)
 	var fp_before := fp
-	fp = maxi(1, fp - cover)
+	fp = maxi(1, fp - cover - hind)
 	res.fp_total = fp
 
 	# ─── Tiro (dadi del Fato) ────────────────────────────────────────────────
@@ -89,9 +91,9 @@ static func resolve_fire(
 
 	# ─── Log ─────────────────────────────────────────────────────────────────
 	var cmd_str := " +cmd%d" % cmd_bonus if cmd_bonus > 0 else ""
-	res.log_line = "%s (×%d%s) spara su (%d,%d): FP%d − cop.%d + dadi(%d+%d)=%d → tot %d" % [
+	res.log_line = "%s (×%d%s) spara su (%d,%d): FP%d − cop.%d − hind.%d + dadi(%d+%d)=%d → tot %d" % [
 		attacker.unit_name, group.size(), cmd_str, tq, tr,
-		fp_before, cover, dice.x, dice.y, res.dice_roll, res.final_score
+		fp_before, cover, hind, dice.x, dice.y, res.dice_roll, res.final_score
 	]
 	if res.eliminated.size() > 0:
 		res.log_line += " ⇒ ELIMINATE: %s" % ", ".join(res.eliminated)
