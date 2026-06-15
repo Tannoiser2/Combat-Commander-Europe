@@ -1,0 +1,480 @@
+{
+	"_calib": {
+		"hex": 59.2,
+		"ox": 129.0,
+		"oy": 69.0
+	},
+	"cols": 15,
+	"default": "open",
+	"elevationGroups": [],
+	"featureGroups": {
+		"railway": [],
+		"road": [
+			"A1",
+			"B1",
+			"C1",
+			"D1",
+			"E2",
+			"F2",
+			"G3",
+			"G4",
+			"H4",
+			"H5",
+			"I6",
+			"I7",
+			"J7",
+			"J8",
+			"I9",
+			"K1",
+			"L1",
+			"M1",
+			"N1",
+			"O2",
+			"O3",
+			"O4",
+			"O5",
+			"O6",
+			"O7",
+			"O8",
+			"O9",
+			"O10"
+		],
+		"trail": []
+	},
+	"id": "map22",
+	"objectives": [
+		{
+			"hex": "K2",
+			"vp": 5
+		},
+		{
+			"hex": "K1",
+			"vp": 1
+		},
+		{
+			"hex": "K9",
+			"vp": 3
+		},
+		{
+			"hex": "M9",
+			"vp": 2
+		},
+		{
+			"hex": "O9",
+			"vp": 4
+		}
+	],
+	"rows": 10,
+	"sideFeatures": [
+		{
+			"feature": "fence",
+			"from": "G2",
+			"to": "G3"
+		},
+		{
+			"feature": "fence",
+			"from": "G3",
+			"to": "H2"
+		},
+		{
+			"feature": "fence",
+			"from": "H2",
+			"to": "H3"
+		},
+		{
+			"feature": "fence",
+			"from": "H3",
+			"to": "I3"
+		},
+		{
+			"feature": "fence",
+			"from": "I3",
+			"to": "I4"
+		},
+		{
+			"feature": "fence",
+			"from": "I4",
+			"to": "J3"
+		},
+		{
+			"feature": "fence",
+			"from": "J3",
+			"to": "J4"
+		},
+		{
+			"feature": "fence",
+			"from": "J4",
+			"to": "K4"
+		},
+		{
+			"feature": "fence",
+			"from": "K4",
+			"to": "K5"
+		},
+		{
+			"feature": "fence",
+			"from": "K5",
+			"to": "L4"
+		},
+		{
+			"feature": "fence",
+			"from": "L4",
+			"to": "L5"
+		},
+		{
+			"feature": "fence",
+			"from": "L5",
+			"to": "M5"
+		},
+		{
+			"feature": "fence",
+			"from": "M5",
+			"to": "M6"
+		},
+		{
+			"feature": "fence",
+			"from": "M6",
+			"to": "N5"
+		},
+		{
+			"feature": "fence",
+			"from": "N5",
+			"to": "N6"
+		},
+		{
+			"feature": "fence",
+			"from": "N6",
+			"to": "O6"
+		},
+		{
+			"feature": "fence",
+			"from": "N3",
+			"to": "O4"
+		},
+		{
+			"feature": "fence",
+			"from": "N3",
+			"to": "N4"
+		},
+		{
+			"feature": "fence",
+			"from": "M4",
+			"to": "N3"
+		},
+		{
+			"feature": "fence",
+			"from": "M3",
+			"to": "M4"
+		},
+		{
+			"feature": "fence",
+			"from": "L3",
+			"to": "M3"
+		},
+		{
+			"feature": "fence",
+			"from": "L2",
+			"to": "L3"
+		},
+		{
+			"feature": "fence",
+			"from": "K3",
+			"to": "L2"
+		},
+		{
+			"feature": "fence",
+			"from": "K2",
+			"to": "K3"
+		},
+		{
+			"feature": "fence",
+			"from": "J2",
+			"to": "K2"
+		},
+		{
+			"feature": "fence",
+			"from": "J1",
+			"to": "K2"
+		},
+		{
+			"feature": "fence",
+			"from": "J1",
+			"to": "K1"
+		},
+		{
+			"feature": "fence",
+			"from": "F2",
+			"to": "F3"
+		},
+		{
+			"feature": "fence",
+			"from": "E3",
+			"to": "F3"
+		},
+		{
+			"feature": "fence",
+			"from": "E4",
+			"to": "F3"
+		},
+		{
+			"feature": "fence",
+			"from": "E4",
+			"to": "F4"
+		},
+		{
+			"feature": "fence",
+			"from": "E5",
+			"to": "F4"
+		},
+		{
+			"feature": "fence",
+			"from": "E5",
+			"to": "F5"
+		},
+		{
+			"feature": "fence",
+			"from": "E6",
+			"to": "F5"
+		},
+		{
+			"feature": "fence",
+			"from": "E6",
+			"to": "F6"
+		},
+		{
+			"feature": "fence",
+			"from": "E7",
+			"to": "F6"
+		},
+		{
+			"feature": "fence",
+			"from": "E7",
+			"to": "F7"
+		},
+		{
+			"feature": "fence",
+			"from": "E8",
+			"to": "F7"
+		},
+		{
+			"feature": "fence",
+			"from": "E8",
+			"to": "F8"
+		},
+		{
+			"feature": "fence",
+			"from": "E9",
+			"to": "F8"
+		},
+		{
+			"feature": "fence",
+			"from": "E9",
+			"to": "F9"
+		},
+		{
+			"feature": "fence",
+			"from": "E10",
+			"to": "F9"
+		},
+		{
+			"feature": "fence",
+			"from": "E10",
+			"to": "F10"
+		},
+		{
+			"feature": "fence",
+			"from": "J6",
+			"to": "J7"
+		},
+		{
+			"feature": "fence",
+			"from": "J7",
+			"to": "K7"
+		},
+		{
+			"feature": "fence",
+			"from": "K7",
+			"to": "K8"
+		},
+		{
+			"feature": "fence",
+			"from": "K8",
+			"to": "L7"
+		},
+		{
+			"feature": "fence",
+			"from": "L7",
+			"to": "L8"
+		},
+		{
+			"feature": "fence",
+			"from": "L8",
+			"to": "M8"
+		},
+		{
+			"feature": "fence",
+			"from": "M8",
+			"to": "M9"
+		},
+		{
+			"feature": "fence",
+			"from": "M8",
+			"to": "N8"
+		},
+		{
+			"feature": "fence",
+			"from": "N7",
+			"to": "N8"
+		},
+		{
+			"feature": "fence",
+			"from": "N8",
+			"to": "O8"
+		},
+		{
+			"feature": "wall",
+			"from": "N8",
+			"to": "N9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "J9",
+			"to": "K9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "K9",
+			"to": "L9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "K9",
+			"to": "L8"
+		},
+		{
+			"feature": "los_clear",
+			"from": "L8",
+			"to": "M9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "L9",
+			"to": "M9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "K10",
+			"to": "L9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "D10",
+			"to": "E10"
+		},
+		{
+			"feature": "los_clear",
+			"from": "N10",
+			"to": "O10"
+		}
+	],
+	"terrainGroups": {
+		"building": [
+			"K1",
+			"K2",
+			"L9",
+			"L8",
+			"K9",
+			"J9",
+			"I9",
+			"K10",
+			"M9",
+			"O9"
+		],
+		"field": [
+			"A2",
+			"B2",
+			"C3",
+			"D3",
+			"E4",
+			"E5",
+			"E6",
+			"E7",
+			"E8",
+			"E9",
+			"D9",
+			"C9",
+			"B8",
+			"B9",
+			"A9",
+			"A8",
+			"A7",
+			"A6",
+			"A5",
+			"A4",
+			"A3",
+			"B3",
+			"C4",
+			"D4",
+			"D5",
+			"D6",
+			"D7",
+			"D8",
+			"C8",
+			"B7",
+			"B6",
+			"B5",
+			"B4",
+			"C5",
+			"C6",
+			"C7",
+			"G1",
+			"G2",
+			"H2",
+			"H1",
+			"I2",
+			"J1",
+			"I1",
+			"I3",
+			"J2",
+			"K3",
+			"L3",
+			"M4",
+			"M5",
+			"N4",
+			"N5",
+			"L4",
+			"K4"
+		],
+		"orchard": [
+			"H8",
+			"G9",
+			"G10",
+			"H10",
+			"I10",
+			"H9",
+			"N8",
+			"J7",
+			"I7",
+			"I6",
+			"H5",
+			"H4",
+			"G4",
+			"G3",
+			"F2",
+			"E2",
+			"D1",
+			"C1",
+			"B1",
+			"A1"
+		],
+		"woods": [
+			"E10",
+			"D10",
+			"C10",
+			"B10",
+			"A10",
+			"N10",
+			"O10"
+		]
+	}
+}

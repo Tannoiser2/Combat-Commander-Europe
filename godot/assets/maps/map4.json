@@ -1,0 +1,488 @@
+{
+	"_calib": {
+		"hex": 59.2,
+		"ox": 129.0,
+		"oy": 69.0
+	},
+	"cols": 15,
+	"default": "open",
+	"elevationGroups": [],
+	"featureGroups": {
+		"railway": [],
+		"road": [
+			"L1",
+			"L2",
+			"L3",
+			"L4",
+			"M4",
+			"L5",
+			"L6",
+			"L7",
+			"L8",
+			"L9",
+			"L10",
+			"J8",
+			"J7",
+			"J6",
+			"J5",
+			"J4",
+			"J3",
+			"J2",
+			"K2",
+			"I6",
+			"H5",
+			"G6",
+			"F5",
+			"E6",
+			"D5",
+			"D6",
+			"C7",
+			"B6",
+			"D7",
+			"D8",
+			"E8",
+			"F8",
+			"F9",
+			"G8",
+			"H8",
+			"I8"
+		],
+		"trail": []
+	},
+	"id": "map4",
+	"objectives": [
+		{
+			"hex": "N9",
+			"vp": 3
+		},
+		{
+			"hex": "N3",
+			"vp": 4
+		},
+		{
+			"hex": "I2",
+			"vp": 2
+		},
+		{
+			"hex": "B7",
+			"vp": 1
+		},
+		{
+			"hex": "I7",
+			"vp": 5
+		}
+	],
+	"rows": 10,
+	"sideFeatures": [
+		{
+			"feature": "wall",
+			"from": "D10",
+			"to": "E10"
+		},
+		{
+			"feature": "wall",
+			"from": "D10",
+			"to": "D9"
+		},
+		{
+			"feature": "wall",
+			"from": "C10",
+			"to": "D9"
+		},
+		{
+			"feature": "wall",
+			"from": "C10",
+			"to": "C9"
+		},
+		{
+			"feature": "wall",
+			"from": "B9",
+			"to": "C9"
+		},
+		{
+			"feature": "wall",
+			"from": "B8",
+			"to": "B9"
+		},
+		{
+			"feature": "wall",
+			"from": "A9",
+			"to": "B8"
+		},
+		{
+			"feature": "wall",
+			"from": "A8",
+			"to": "B8"
+		},
+		{
+			"feature": "wall",
+			"from": "A8",
+			"to": "B7"
+		},
+		{
+			"feature": "wall",
+			"from": "A7",
+			"to": "A8"
+		},
+		{
+			"feature": "wall",
+			"from": "I10",
+			"to": "J10"
+		},
+		{
+			"feature": "wall",
+			"from": "J10",
+			"to": "J9"
+		},
+		{
+			"feature": "wall",
+			"from": "J9",
+			"to": "K10"
+		},
+		{
+			"feature": "wall",
+			"from": "J9",
+			"to": "K9"
+		},
+		{
+			"feature": "wall",
+			"from": "J8",
+			"to": "K9"
+		},
+		{
+			"feature": "wall",
+			"from": "J8",
+			"to": "K8"
+		},
+		{
+			"feature": "wall",
+			"from": "J7",
+			"to": "K8"
+		},
+		{
+			"feature": "wall",
+			"from": "J7",
+			"to": "K7"
+		},
+		{
+			"feature": "wall",
+			"from": "J6",
+			"to": "K7"
+		},
+		{
+			"feature": "wall",
+			"from": "J6",
+			"to": "K6"
+		},
+		{
+			"feature": "wall",
+			"from": "J5",
+			"to": "K6"
+		},
+		{
+			"feature": "wall",
+			"from": "J5",
+			"to": "K5"
+		},
+		{
+			"feature": "wall",
+			"from": "J4",
+			"to": "K5"
+		},
+		{
+			"feature": "wall",
+			"from": "J4",
+			"to": "K4"
+		},
+		{
+			"feature": "wall",
+			"from": "J3",
+			"to": "K4"
+		},
+		{
+			"feature": "wall",
+			"from": "J3",
+			"to": "K3"
+		},
+		{
+			"feature": "wall",
+			"from": "J2",
+			"to": "K3"
+		},
+		{
+			"feature": "wall",
+			"from": "J1",
+			"to": "J2"
+		},
+		{
+			"feature": "wall",
+			"from": "I2",
+			"to": "J1"
+		},
+		{
+			"feature": "wall",
+			"from": "I1",
+			"to": "I2"
+		},
+		{
+			"feature": "wall",
+			"from": "H1",
+			"to": "I2"
+		},
+		{
+			"feature": "wall",
+			"from": "H1",
+			"to": "H2"
+		},
+		{
+			"feature": "wall",
+			"from": "G2",
+			"to": "H1"
+		},
+		{
+			"feature": "wall",
+			"from": "G1",
+			"to": "G2"
+		},
+		{
+			"feature": "wall",
+			"from": "F1",
+			"to": "G2"
+		},
+		{
+			"feature": "wall",
+			"from": "F1",
+			"to": "F2"
+		},
+		{
+			"feature": "wall",
+			"from": "E2",
+			"to": "F1"
+		},
+		{
+			"feature": "wall",
+			"from": "E1",
+			"to": "E2"
+		},
+		{
+			"feature": "wall",
+			"from": "D1",
+			"to": "E2"
+		},
+		{
+			"feature": "wall",
+			"from": "D1",
+			"to": "D2"
+		},
+		{
+			"feature": "wall",
+			"from": "C2",
+			"to": "D1"
+		},
+		{
+			"feature": "wall",
+			"from": "C1",
+			"to": "C2"
+		},
+		{
+			"feature": "wall",
+			"from": "B1",
+			"to": "C2"
+		},
+		{
+			"feature": "wall",
+			"from": "B1",
+			"to": "B2"
+		},
+		{
+			"feature": "wall",
+			"from": "A2",
+			"to": "B1"
+		},
+		{
+			"feature": "wall",
+			"from": "A1",
+			"to": "A2"
+		},
+		{
+			"feature": "fence",
+			"from": "O2",
+			"to": "O3"
+		},
+		{
+			"feature": "fence",
+			"from": "N2",
+			"to": "O3"
+		},
+		{
+			"feature": "fence",
+			"from": "N2",
+			"to": "N3"
+		},
+		{
+			"feature": "fence",
+			"from": "M3",
+			"to": "N2"
+		},
+		{
+			"feature": "fence",
+			"from": "M2",
+			"to": "M3"
+		},
+		{
+			"feature": "fence",
+			"from": "L2",
+			"to": "M3"
+		},
+		{
+			"feature": "fence",
+			"from": "L3",
+			"to": "M3"
+		},
+		{
+			"feature": "fence",
+			"from": "L3",
+			"to": "M4"
+		},
+		{
+			"feature": "fence",
+			"from": "L4",
+			"to": "M5"
+		},
+		{
+			"feature": "fence",
+			"from": "L5",
+			"to": "M5"
+		},
+		{
+			"feature": "fence",
+			"from": "M6",
+			"to": "N5"
+		},
+		{
+			"feature": "fence",
+			"from": "M5",
+			"to": "M6"
+		},
+		{
+			"feature": "fence",
+			"from": "M6",
+			"to": "N6"
+		},
+		{
+			"feature": "fence",
+			"from": "M7",
+			"to": "N6"
+		},
+		{
+			"feature": "fence",
+			"from": "M7",
+			"to": "N7"
+		},
+		{
+			"feature": "fence",
+			"from": "M8",
+			"to": "N7"
+		},
+		{
+			"feature": "fence",
+			"from": "M8",
+			"to": "N8"
+		},
+		{
+			"feature": "fence",
+			"from": "M9",
+			"to": "N8"
+		},
+		{
+			"feature": "fence",
+			"from": "M9",
+			"to": "N9"
+		},
+		{
+			"feature": "fence",
+			"from": "M10",
+			"to": "N9"
+		},
+		{
+			"feature": "fence",
+			"from": "M10",
+			"to": "N10"
+		}
+	],
+	"terrainGroups": {
+		"building": [
+			"M3",
+			"N3",
+			"M4",
+			"N9",
+			"J9",
+			"H9",
+			"F10",
+			"F7",
+			"F6",
+			"E7",
+			"G7",
+			"H7",
+			"H6",
+			"I7",
+			"B7",
+			"A7",
+			"I2"
+		],
+		"gully": [
+			"M6",
+			"M7",
+			"M8",
+			"M9",
+			"M10"
+		],
+		"orchard": [
+			"O4",
+			"O5",
+			"N4",
+			"N5",
+			"N6",
+			"N7",
+			"O6",
+			"O7",
+			"O8",
+			"O9",
+			"O10",
+			"G9",
+			"G10"
+		],
+		"woods": [
+			"A1",
+			"B1",
+			"C1",
+			"D1",
+			"E1",
+			"A3",
+			"A5",
+			"C5",
+			"C3",
+			"E3",
+			"G3",
+			"I3",
+			"I5",
+			"G5",
+			"E5",
+			"K3",
+			"K4",
+			"K5",
+			"K6",
+			"K7",
+			"K8",
+			"K9",
+			"K10",
+			"J10",
+			"D10",
+			"C10",
+			"B10",
+			"A10",
+			"A9",
+			"A8"
+		]
+	}
+}

@@ -1,0 +1,59 @@
+{
+	"_calib": {
+		"hex": 59.2,
+		"ox": 129.0,
+		"oy": 69.0
+	},
+	"cols": 15,
+	"default": "open",
+	"elevationGroups": [],
+	"featureGroups": {
+		"railway": [],
+		"road": [
+			"A2",
+			"B2",
+			"C3",
+			"D3",
+			"E4",
+			"F4",
+			"G5",
+			"H5",
+			"I6",
+			"J6",
+			"K7",
+			"L7",
+			"M8",
+			"N8",
+			"O9"
+		],
+		"trail": []
+	},
+	"id": "map23",
+	"objectives": [
+		{
+			"hex": "E4",
+			"vp": 1
+		},
+		{
+			"hex": "K7",
+			"vp": 2
+		},
+		{
+			"hex": "O9",
+			"vp": 3
+		},
+		{
+			"hex": "A2",
+			"vp": 4
+		},
+		{
+			"hex": "H5",
+			"vp": 5
+		}
+	],
+	"rows": 10,
+	"sideFeatures": [],
+	"terrainGroups": {
+
+	}
+}

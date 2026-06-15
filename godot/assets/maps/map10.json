@@ -1,0 +1,550 @@
+{
+	"_calib": {
+		"hex": 59.2,
+		"ox": 129.0,
+		"oy": 69.0
+	},
+	"cols": 15,
+	"default": "open",
+	"elevationGroups": [],
+	"featureGroups": {
+		"railway": [],
+		"road": [
+			"A3",
+			"B3",
+			"C4",
+			"D4",
+			"D5",
+			"E6",
+			"F6",
+			"C6",
+			"B6",
+			"A7",
+			"A8",
+			"A9",
+			"A10",
+			"B9",
+			"C9",
+			"D9",
+			"E9",
+			"F9",
+			"G9",
+			"G10",
+			"H8",
+			"I9",
+			"J9",
+			"K10",
+			"L9",
+			"N8",
+			"O8",
+			"M9",
+			"L4",
+			"L5",
+			"L6",
+			"L7",
+			"L8",
+			"N7",
+			"M7",
+			"K6",
+			"J5",
+			"I5",
+			"H4",
+			"G4",
+			"F3",
+			"E3",
+			"D2",
+			"C2",
+			"C1",
+			"D3",
+			"F2",
+			"G2",
+			"H1",
+			"I1",
+			"J1",
+			"K2",
+			"L2",
+			"M2",
+			"N1",
+			"O2",
+			"N2",
+			"N3",
+			"M4",
+			"K4",
+			"K3",
+			"J3",
+			"I3",
+			"H2",
+			"N5",
+			"M6"
+		],
+		"trail": []
+	},
+	"id": "map10",
+	"objectives": [
+		{
+			"hex": "E4",
+			"vp": 3
+		},
+		{
+			"hex": "N6",
+			"vp": 2
+		},
+		{
+			"hex": "M8",
+			"vp": 4
+		},
+		{
+			"hex": "G7",
+			"vp": 1
+		},
+		{
+			"hex": "H5",
+			"vp": 5
+		}
+	],
+	"rows": 10,
+	"sideFeatures": [
+		{
+			"feature": "hedge",
+			"from": "I4",
+			"to": "J3"
+		},
+		{
+			"feature": "hedge",
+			"from": "I3",
+			"to": "I4"
+		},
+		{
+			"feature": "hedge",
+			"from": "H4",
+			"to": "I4"
+		},
+		{
+			"feature": "hedge",
+			"from": "I4",
+			"to": "I5"
+		},
+		{
+			"feature": "hedge",
+			"from": "I5",
+			"to": "J4"
+		},
+		{
+			"feature": "hedge",
+			"from": "J4",
+			"to": "J5"
+		},
+		{
+			"feature": "hedge",
+			"from": "J3",
+			"to": "J4"
+		},
+		{
+			"feature": "hedge",
+			"from": "J4",
+			"to": "K4"
+		},
+		{
+			"feature": "hedge",
+			"from": "K2",
+			"to": "K3"
+		},
+		{
+			"feature": "hedge",
+			"from": "J2",
+			"to": "K2"
+		},
+		{
+			"feature": "hedge",
+			"from": "K1",
+			"to": "K2"
+		},
+		{
+			"feature": "hedge",
+			"from": "J1",
+			"to": "K1"
+		},
+		{
+			"feature": "hedge",
+			"from": "I2",
+			"to": "J1"
+		},
+		{
+			"feature": "hedge",
+			"from": "I1",
+			"to": "I2"
+		},
+		{
+			"feature": "hedge",
+			"from": "H1",
+			"to": "I2"
+		},
+		{
+			"feature": "hedge",
+			"from": "H1",
+			"to": "H2"
+		},
+		{
+			"feature": "hedge",
+			"from": "D1",
+			"to": "D2"
+		},
+		{
+			"feature": "hedge",
+			"from": "C2",
+			"to": "D1"
+		},
+		{
+			"feature": "hedge",
+			"from": "C1",
+			"to": "D1"
+		},
+		{
+			"feature": "hedge",
+			"from": "N4",
+			"to": "N5"
+		},
+		{
+			"feature": "hedge",
+			"from": "M5",
+			"to": "N5"
+		},
+		{
+			"feature": "hedge",
+			"from": "M5",
+			"to": "M6"
+		},
+		{
+			"feature": "hedge",
+			"from": "L5",
+			"to": "M6"
+		},
+		{
+			"feature": "hedge",
+			"from": "M6",
+			"to": "M7"
+		},
+		{
+			"feature": "hedge",
+			"from": "M7",
+			"to": "N6"
+		},
+		{
+			"feature": "hedge",
+			"from": "N6",
+			"to": "N7"
+		},
+		{
+			"feature": "hedge",
+			"from": "D6",
+			"to": "E6"
+		},
+		{
+			"feature": "hedge",
+			"from": "D5",
+			"to": "D6"
+		},
+		{
+			"feature": "hedge",
+			"from": "C6",
+			"to": "D6"
+		},
+		{
+			"feature": "hedge",
+			"from": "C6",
+			"to": "C7"
+		},
+		{
+			"feature": "hedge",
+			"from": "B6",
+			"to": "C7"
+		},
+		{
+			"feature": "hedge",
+			"from": "B6",
+			"to": "B7"
+		},
+		{
+			"feature": "hedge",
+			"from": "B8",
+			"to": "C9"
+		},
+		{
+			"feature": "hedge",
+			"from": "C8",
+			"to": "C9"
+		},
+		{
+			"feature": "hedge",
+			"from": "C9",
+			"to": "D8"
+		},
+		{
+			"feature": "hedge",
+			"from": "D8",
+			"to": "D9"
+		},
+		{
+			"feature": "hedge",
+			"from": "D8",
+			"to": "E9"
+		},
+		{
+			"feature": "hedge",
+			"from": "B8",
+			"to": "B9"
+		},
+		{
+			"feature": "hedge",
+			"from": "K7",
+			"to": "L6"
+		},
+		{
+			"feature": "hedge",
+			"from": "K7",
+			"to": "L7"
+		},
+		{
+			"feature": "hedge",
+			"from": "M5",
+			"to": "N4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "E1",
+			"to": "F1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "E2",
+			"to": "F1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "D1",
+			"to": "E1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "K1",
+			"to": "L1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "L1",
+			"to": "M1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "N1",
+			"to": "O1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I2",
+			"to": "J2"
+		},
+		{
+			"feature": "los_clear",
+			"from": "N6",
+			"to": "O6"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H5",
+			"to": "I6"
+		},
+		{
+			"feature": "los_clear",
+			"from": "E4",
+			"to": "F4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "E4",
+			"to": "E5"
+		},
+		{
+			"feature": "los_clear",
+			"from": "D7",
+			"to": "D8"
+		},
+		{
+			"feature": "los_clear",
+			"from": "D6",
+			"to": "D7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "C8",
+			"to": "D7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "B7",
+			"to": "C8"
+		},
+		{
+			"feature": "los_clear",
+			"from": "C8",
+			"to": "D8"
+		},
+		{
+			"feature": "los_clear",
+			"from": "J6",
+			"to": "K7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "N6",
+			"to": "O7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "O6",
+			"to": "O7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "N9",
+			"to": "O9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "N9",
+			"to": "O10"
+		},
+		{
+			"feature": "los_clear",
+			"from": "N10",
+			"to": "O10"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H10",
+			"to": "H9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "B5",
+			"to": "C5"
+		},
+		{
+			"feature": "los_clear",
+			"from": "A5",
+			"to": "B5"
+		},
+		{
+			"feature": "los_clear",
+			"from": "B4",
+			"to": "B5"
+		},
+		{
+			"feature": "los_clear",
+			"from": "A6",
+			"to": "B5"
+		},
+		{
+			"feature": "los_clear",
+			"from": "A1",
+			"to": "A2"
+		},
+		{
+			"feature": "los_clear",
+			"from": "L3",
+			"to": "M3"
+		}
+	],
+	"terrainGroups": {
+		"bridge": [
+			"F6"
+		],
+		"building": [
+			"E1",
+			"D1",
+			"E2",
+			"F1",
+			"G1",
+			"I2",
+			"J2",
+			"K1",
+			"L1",
+			"M1",
+			"N1",
+			"O1",
+			"O3",
+			"O4",
+			"O5",
+			"O6",
+			"N6",
+			"E5",
+			"F4",
+			"G5",
+			"H5",
+			"I6",
+			"J6",
+			"E4",
+			"C3",
+			"B2",
+			"A2",
+			"A1",
+			"B5",
+			"B7",
+			"B8",
+			"C8",
+			"D8",
+			"D7",
+			"D6",
+			"K7",
+			"M8",
+			"O7",
+			"O9",
+			"G3",
+			"H3",
+			"K5",
+			"L3",
+			"M3",
+			"M5"
+		],
+		"water_barrier": [
+			"F5",
+			"G6",
+			"H6",
+			"H7",
+			"I7",
+			"I8",
+			"J7",
+			"J8",
+			"K8",
+			"K9",
+			"G8",
+			"F8",
+			"F7",
+			"E7",
+			"E8"
+		],
+		"woods": [
+			"G7",
+			"I4",
+			"J4",
+			"H9",
+			"H10",
+			"I10",
+			"J10",
+			"L10",
+			"M10",
+			"N9",
+			"N10",
+			"O10",
+			"F10",
+			"E10",
+			"C10",
+			"B10",
+			"C5",
+			"B4",
+			"A4",
+			"A5",
+			"A6"
+		]
+	}
+}

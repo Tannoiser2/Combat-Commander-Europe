@@ -1,0 +1,230 @@
+{
+	"_calib": {
+		"hex": 59.2,
+		"ox": 129.0,
+		"oy": 69.0
+	},
+	"cols": 15,
+	"default": "open",
+	"elevationGroups": [
+		{
+			"elevation": 1,
+			"hexes": [
+				"A9",
+				"A8",
+				"B7",
+				"C7",
+				"C6",
+				"B6",
+				"A7",
+				"A2",
+				"B1",
+				"A1",
+				"G5",
+				"H5",
+				"H4",
+				"I5",
+				"J5",
+				"K5",
+				"L5",
+				"L4",
+				"K3",
+				"J2",
+				"K2",
+				"L1",
+				"O8",
+				"O7",
+				"N7",
+				"N8",
+				"M8",
+				"L7",
+				"K8",
+				"J7",
+				"J8",
+				"I8"
+			]
+		}
+	],
+	"featureGroups": {
+		"railway": [],
+		"road": [
+			"G10",
+			"H10",
+			"I10",
+			"I9"
+		],
+		"trail": []
+	},
+	"id": "map8",
+	"objectives": [
+		{
+			"hex": "J2",
+			"vp": 5
+		},
+		{
+			"hex": "O7",
+			"vp": 3
+		},
+		{
+			"hex": "J9",
+			"vp": 2
+		},
+		{
+			"hex": "F9",
+			"vp": 1
+		},
+		{
+			"hex": "D5",
+			"vp": 4
+		}
+	],
+	"rows": 10,
+	"sideFeatures": [
+		{
+			"feature": "hedge",
+			"from": "G9",
+			"to": "H9"
+		},
+		{
+			"feature": "hedge",
+			"from": "G9",
+			"to": "H8"
+		},
+		{
+			"feature": "hedge",
+			"from": "G8",
+			"to": "G9"
+		},
+		{
+			"feature": "hedge",
+			"from": "F8",
+			"to": "G8"
+		},
+		{
+			"feature": "hedge",
+			"from": "F7",
+			"to": "F8"
+		},
+		{
+			"feature": "hedge",
+			"from": "E8",
+			"to": "F7"
+		},
+		{
+			"feature": "hedge",
+			"from": "E7",
+			"to": "E8"
+		},
+		{
+			"feature": "hedge",
+			"from": "D7",
+			"to": "E8"
+		},
+		{
+			"feature": "hedge",
+			"from": "D7",
+			"to": "D8"
+		},
+		{
+			"feature": "hedge",
+			"from": "C8",
+			"to": "D8"
+		},
+		{
+			"feature": "hedge",
+			"from": "C8",
+			"to": "C9"
+		},
+		{
+			"feature": "hedge",
+			"from": "B8",
+			"to": "C9"
+		},
+		{
+			"feature": "hedge",
+			"from": "I10",
+			"to": "J9"
+		},
+		{
+			"feature": "hedge",
+			"from": "J10",
+			"to": "J9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "C2",
+			"to": "C3"
+		},
+		{
+			"feature": "los_clear",
+			"from": "F5",
+			"to": "F6"
+		}
+	],
+	"terrainGroups": {
+		"brush": [
+			"G2",
+			"H1",
+			"H2",
+			"G3",
+			"G4",
+			"E6",
+			"I7",
+			"J6",
+			"K7",
+			"L6"
+		],
+		"building": [
+			"J9",
+			"F9"
+		],
+		"field": [
+			"C9",
+			"D9",
+			"E10",
+			"F10",
+			"E9",
+			"D8",
+			"E8",
+			"F8",
+			"G9",
+			"K10",
+			"K9",
+			"L8",
+			"L9",
+			"L10",
+			"M10",
+			"M9"
+		],
+		"gully": [
+			"E5",
+			"D4",
+			"C4",
+			"D3",
+			"E3",
+			"F3",
+			"B3",
+			"A4",
+			"A5"
+		],
+		"woods": [
+			"C1",
+			"C2",
+			"C3",
+			"E1",
+			"G1",
+			"J2",
+			"M1",
+			"M2",
+			"N3",
+			"M5",
+			"O7",
+			"A10",
+			"D5",
+			"F6",
+			"F5",
+			"G6",
+			"H7"
+		]
+	}
+}

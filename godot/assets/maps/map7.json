@@ -1,0 +1,359 @@
+{
+	"_calib": {
+		"hex": 59.2,
+		"ox": 129.0,
+		"oy": 69.0
+	},
+	"cols": 15,
+	"default": "open",
+	"elevationGroups": [],
+	"featureGroups": {
+		"railway": [
+			"O2",
+			"N2",
+			"M3",
+			"L3",
+			"K4",
+			"J4",
+			"I5",
+			"H5",
+			"G6",
+			"F6",
+			"E7",
+			"D7",
+			"C8",
+			"B8",
+			"A9"
+		],
+		"road": [],
+		"trail": [
+			"D1",
+			"D2",
+			"E3",
+			"C2",
+			"C3",
+			"A7",
+			"B7",
+			"C9",
+			"D9",
+			"D10",
+			"L7",
+			"L6",
+			"M7",
+			"N7",
+			"N8",
+			"O9",
+			"O10",
+			"M6",
+			"M5",
+			"F4",
+			"E5"
+		]
+	},
+	"id": "map7",
+	"objectives": [
+		{
+			"hex": "D2",
+			"vp": 1
+		},
+		{
+			"hex": "M6",
+			"vp": 2
+		},
+		{
+			"hex": "O2",
+			"vp": 3
+		},
+		{
+			"hex": "A9",
+			"vp": 4
+		},
+		{
+			"hex": "F6",
+			"vp": 5
+		}
+	],
+	"rows": 10,
+	"sideFeatures": [
+		{
+			"feature": "los_clear",
+			"from": "A2",
+			"to": "B1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "A3",
+			"to": "A4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "A4",
+			"to": "B3"
+		},
+		{
+			"feature": "los_clear",
+			"from": "B3",
+			"to": "B4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "E10",
+			"to": "F9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "E9",
+			"to": "F9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H6",
+			"to": "H7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H7",
+			"to": "I8"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I8",
+			"to": "J7"
+		},
+		{
+			"feature": "los_clear",
+			"from": "K10",
+			"to": "L9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "L8",
+			"to": "M8"
+		},
+		{
+			"feature": "los_clear",
+			"from": "M2",
+			"to": "N1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "M1",
+			"to": "M2"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I2",
+			"to": "J2"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I2",
+			"to": "I3"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H2",
+			"to": "I3"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I3",
+			"to": "J2"
+		},
+		{
+			"feature": "los_clear",
+			"from": "J3",
+			"to": "K3"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I4",
+			"to": "J3"
+		},
+		{
+			"feature": "los_clear",
+			"from": "G4",
+			"to": "H4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "G4",
+			"to": "H3"
+		},
+		{
+			"feature": "los_clear",
+			"from": "O3",
+			"to": "O4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I6",
+			"to": "J5"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H6",
+			"to": "I6"
+		},
+		{
+			"feature": "los_clear",
+			"from": "G7",
+			"to": "H6"
+		},
+		{
+			"feature": "los_clear",
+			"from": "H9",
+			"to": "I9"
+		},
+		{
+			"feature": "los_clear",
+			"from": "G5",
+			"to": "H4"
+		},
+		{
+			"feature": "los_clear",
+			"from": "C3",
+			"to": "D3"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I2",
+			"to": "J1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "I1",
+			"to": "J1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "J1",
+			"to": "K1"
+		},
+		{
+			"feature": "los_clear",
+			"from": "D8",
+			"to": "E9"
+		}
+	],
+	"terrainGroups": {
+		"woods": [
+			"A1",
+			"B1",
+			"C1",
+			"C2",
+			"B2",
+			"B3",
+			"A3",
+			"A2",
+			"A4",
+			"B4",
+			"B5",
+			"C6",
+			"C7",
+			"D6",
+			"B6",
+			"A7",
+			"A8",
+			"B7",
+			"C3",
+			"D1",
+			"E1",
+			"E2",
+			"F1",
+			"F2",
+			"E3",
+			"D2",
+			"D3",
+			"E4",
+			"D4",
+			"E5",
+			"F4",
+			"F5",
+			"G5",
+			"G4",
+			"G3",
+			"G2",
+			"H2",
+			"I2",
+			"I1",
+			"J1",
+			"K1",
+			"L1",
+			"M1",
+			"N1",
+			"M2",
+			"J3",
+			"J2",
+			"K3",
+			"I3",
+			"H3",
+			"H4",
+			"I4",
+			"O3",
+			"O4",
+			"N4",
+			"M5",
+			"L4",
+			"K5",
+			"J5",
+			"I6",
+			"H6",
+			"G7",
+			"F7",
+			"D8",
+			"C9",
+			"B9",
+			"A10",
+			"B10",
+			"C10",
+			"D10",
+			"E10",
+			"F10",
+			"G10",
+			"H10",
+			"I10",
+			"J9",
+			"K10",
+			"J10",
+			"J8",
+			"I9",
+			"I8",
+			"H8",
+			"H7",
+			"G8",
+			"G9",
+			"H9",
+			"F9",
+			"E9",
+			"D9",
+			"L10",
+			"M10",
+			"N10",
+			"N9",
+			"O10",
+			"O9",
+			"O8",
+			"O7",
+			"O6",
+			"O5",
+			"N5",
+			"N6",
+			"N7",
+			"N8",
+			"M9",
+			"M8",
+			"M7",
+			"M6",
+			"L6",
+			"K6",
+			"J6",
+			"J7",
+			"K7",
+			"L7",
+			"L8",
+			"L9",
+			"L5"
+		]
+	}
+}
