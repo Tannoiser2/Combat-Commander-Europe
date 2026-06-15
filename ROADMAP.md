@@ -30,9 +30,52 @@ Il **prodotto attuale è il port in Godot** (`godot/`, vedi `README.md`). La ROA
 sopra descrive l'app **React** di riferimento (`_recupero_react/`), da cui si porta
 la logica regola per regola. Stato del motore Godot:
 
+### Resoconto sessione 15 giu 2026 (PR #3–#7, tutte in `main`)
+- **PR #3** — Rifiniture fedeltà: gruppo di fuoco (FP migliore +1/pezzo), melee,
+  impilamento, foxhole, evento Tempo!, Cecchino.
+- **PR #4** — **Fire Defense Roll (O20)**: tira anche il difensore; stati
+  distinti **Suppress** vs **Break** (pareggio → rotta se in movimento, altrimenti
+  soppressa).
+- **PR #5** — Tutte le **24 mappe** in `assets/maps/mapN.json` + loader esteso
+  (`trail`, `railway`, `elevationGroups`); tariffa strada su strada/sentiero/ferrovia.
+- **PR #6** — **Scenari 1-24 giocabili** (data-driven): `assets/scenarios/
+  catalog.json` + `UnitChart.gd` (stat stand-in) + `ScenarioLoader.gd`.
+  Fazioni stand-in: Axis→Tedeschi, Allied→Russi.
+- **PR #7** — La `HexMap` usa l'**immagine giusta** (`maps_img/mapN.jpg`) e il
+  **`_calib`** del JSON con la geometria dell'editor → griglia/esagoni/click/pedine
+  allineati (verificato a video dall'utente: **funziona**).
+
+### TODO prioritario (prossima sessione)
+1. **Fedeltà scenario "facile"** (solo dati/motore): collegare hand size per
+   qualità truppe (`mano_axis/allies`), time-track iniziale per scenario,
+   soglie di **resa** (`resa_axis/allies`) + Sudden Death + VP da obiettivi.
+   Valori mancanti estraibili da `Scenari.pdf` (materiali).
+2. **Statistiche unità esatte**: rivedere `UnitChart.gd` sulle schede Unit &
+   Weapon ufficiali (oggi sono valori standard approssimati).
+3. **Fazioni reali**: mazzi + artwork counter delle nazioni mancanti
+   (americani, inglesi, italiani, francesi, polacchi, ecc.); mappare
+   `fazione_axis/allies` → deck + cartella counter. Aggiungere `Russi_Half`
+   (unità russe rotte ora usano il rettangolo di ripiego).
+4. **Armi/equipaggiamenti non modellati**: mortai come fuoco indiretto;
+   artiglieria via Radio (Targeting Roll); poi lanciafiamme/cariche/molotov;
+   fortificazioni filo/mine/bunker (oggi ignorati; buche/trincee → foxhole).
+5. **Regole speciali (SSR)** per scenario: framework a hook + caso per caso.
+6. **Setup fedele**: disposizioni esatte dalle schede o editor di piazzamento.
+7. **Polish**: audio (`materiali/Combat Commander/sounds/`), UI, salvataggio.
+
+### File chiave del sistema scenari/mappe
+- `engine/ScenarioLoader.gd` — scenario → stato (mappa+parametri+forze).
+- `engine/UnitChart.gd` — etichetta OB → statistiche + arte (stand-in).
+- `assets/scenarios/catalog.json` — 24 scenari + ordini di battaglia.
+- `engine/MapLoader.gd` — mappa JSON → stato (terreno/lati/strade/quote/`_calib`).
+- `scenes/HexMap.gd` — rendering (immagine + `_calib`); `scenes/MapEditor.gd` —
+  sorgente di `mapN.json`.
+
 | Stato | Area | Note Godot (file) |
 | --- | --- | --- |
-| 🟢 Fatto | Scenario 1 | Mappa, obiettivi, mazzi German/Russian, turni, traccia Tempo, fine partita. |
+| 🟢 Fatto | Scenari 1-24 | Tutti avviabili dal menu. Scenario 1 curato a mano; 2-24 via loader data-driven (`ScenarioLoader`/`catalog.json`/`UnitChart`) con fazioni stand-in (Axis→Tedeschi, Allied→Russi). |
+| 🟢 Fatto | Mappe + allineamento | 24 mappe (`assets/maps/mapN.json`) con terreno/lati/strade/sentieri/ferrovie/quote/obiettivi; in gioco la `HexMap` usa immagine `maps_img/mapN.jpg` + `_calib` come l'editor. |
+| 🟢 Fatto | Fire Defense Roll (O20) | Anche il difensore tira; Suppress vs Break distinti; pareggio → rotta se in movimento, altrimenti soppressa. (`Combat.gd`) |
 | 🟢 Fatto | Modello rottura (break) | `Unit.efficient` = lato pedina. Fuoco ≥ Morale **rompe** un'unità efficiente; un secondo colpo la **elimina**. `effective_fp()` dimezza il lato rotto. (`Unit.gd`, `Combat.gd`) — sostituisce il vecchio «≥ morale+4 = morto». |
 | 🟢 Fatto | Gruppo di fuoco + Comando | FP = Σ unità co-locate in gittata + Comando del miglior leader nell'esagono. (`Combat.fire_group`, `Rules.command_bonus_at`) |
 | 🟢 Fatto | Recupero (O22) | Tiro 2d6 ≤ Morale (+Comando) **per unità**, non più azzeramento globale. (`Rules.try_recover`, `Game._execute_recover`) |
@@ -50,7 +93,7 @@ la logica regola per regola. Stato del motore Godot:
 | 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
 | 🟢 Fatto | IA che gioca la mano | `AI.gd`: l'IA sceglie e risolve fino a `ai_max_orders` ordini dalla propria mano (Fuoco col bersaglio migliore, Avanzata in melee vantaggiosa, Recupero/Rotta delle unità rotte, Mossa verso l'obiettivo più vicino). (`AI.choose_play`, `Game._ai_execute`) |
 | 🟡 Da fare | IA avanzata | Valutazioni più fini: copertura, rischio di fuoco reattivo, difesa degli obiettivi propri, scelta del gruppo di fuoco multi-esagono. |
-| 🟡 Da fare | Scenari 2-24 (Godot) | In Godot esiste solo lo Scenario 1; dati scenario/OB e terreno mappe da portare (mappe in digitalizzazione). |
+| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; mancano hand size, time-track, soglie di resa, statistiche unità esatte, fazioni/artwork reali, armi speciali, SSR (vedi TODO sopra). |
 
 ## Milestone 0: Base Tecnica
 
