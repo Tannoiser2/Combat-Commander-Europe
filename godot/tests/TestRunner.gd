@@ -62,6 +62,7 @@ func _ready() -> void:
 	_test_scenario_fidelity()
 	_test_surrender()
 	_test_sudden_death_roll()
+	_test_ordnance()
 	_report()
 
 
@@ -716,6 +717,32 @@ func _test_sudden_death_roll() -> void:
 	_check(ScenarioLoader.setup(s3, 2), "scenario 2 caricato")
 	_check(s3.time_marker == 0, "segnalino Tempo iniziale = 0 (default rulebook)")
 	Game.state = null
+
+
+func _test_ordnance() -> void:
+	print("· Ordnance: Targeting Roll, gittata minima, fuori dal gruppo (O20.2)")
+	var s := _new_state(8, 3)
+	var mortar := _mk("m", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MORTAR, 0, 0, 8, 0, 14, 0)
+	mortar.ordnance = true
+	mortar.min_range = 2
+	var tgt := _mk("t", RUS, SQUAD, RIFLE, 5, 0, 5, 7)
+	s.units[mortar.id] = mortar
+	s.units[tgt.id] = tgt
+	# Targeting MANCATO: 1×2 = 2 ≤ gittata → nessun effetto.
+	var miss := Combat.resolve_fire(mortar, 5, 0, s, Vector2i(1, 2), Vector2i(3, 3))
+	_check(miss.fp_total == 0 and s.units["t"].efficient, "targeting mancato (prodotto basso) → nessun effetto")
+	# Targeting COLPITO: 6×6 = 36 > gittata → l'attacco procede e rompe il bersaglio.
+	var hit := Combat.resolve_fire(mortar, 5, 0, s, Vector2i(6, 6), Vector2i(1, 1))
+	_check(hit.fp_total > 0 and hit.broken.has("t"), "targeting colpito (prodotto alto) → l'attacco procede")
+	# Gittata minima: non può sparare a un esagono adiacente.
+	_check(not Combat.can_fire(mortar, 1, 0, s), "ordnance non spara sotto la gittata minima")
+	# Ordnance spara da solo; e non entra nel gruppo di un'altra unità.
+	var buddy := _mk("b", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	s.units[buddy.id] = buddy
+	var grp := Combat.fire_group(mortar, 5, 0, s)
+	_check(grp.size() == 1 and grp[0].id == "m", "l'ordnance spara da solo (no gruppo)")
+	var grp2 := Combat.fire_group(buddy, 5, 0, s)
+	_check(not grp2.any(func(u: Unit) -> bool: return u.id == "m"), "il mortaio non entra nel gruppo altrui")
 
 
 func _report() -> void:

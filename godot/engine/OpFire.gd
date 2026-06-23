@@ -14,8 +14,8 @@ static func eligible_shooters(state: GameState, mover: Unit, defender: int) -> A
 	for u in state.units_of(defender):
 		if not u.efficient or u.suppressed or u.fp <= 0:
 			continue
-		if u.unit_class == Domain.UnitClass.MORTAR or u.unit_class == Domain.UnitClass.AT:
-			continue
+		if u.ordnance or u.unit_class == Domain.UnitClass.MORTAR or u.unit_class == Domain.UnitClass.AT:
+			continue  # ordnance escluso dal Fuoco di Opportunità (11.5/A33.3)
 		var dist := HexGrid.distance(u.q, u.r, mover.q, mover.r)
 		if dist < 1 or dist > u.range:
 			continue

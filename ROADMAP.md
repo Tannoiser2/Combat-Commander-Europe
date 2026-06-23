@@ -101,8 +101,12 @@ la logica regola per regola. Stato del motore Godot:
    (americani, inglesi, italiani, francesi, polacchi, ecc.); mappare
    `fazione_axis/allies` → deck + cartella counter. Aggiungere `Russi_Half`
    (unità russe rotte ora usano il rettangolo di ripiego).
-4. **Armi/equipaggiamenti non modellati**: mortai come fuoco indiretto;
-   artiglieria via Radio (Targeting Roll); poi lanciafiamme/cariche/molotov;
+4. **Armi/equipaggiamenti non modellati**: ~~mortai come fuoco indiretto
+   (Targeting Roll + gittata minima)~~ ✅ **fatto** (ordnance generico:
+   `Unit.ordnance/min_range`, `Combat` Targeting Roll d1×d2 > gittata+hindrance,
+   esclusione dal gruppo di fuoco e dall'Op Fire). Restano: **artiglieria via
+   Radio** (oggi le radio sono saltate dal loader; servono spotter/LOS/scatter),
+   colpi **fumogeni** dell'ordnance (O20.2.1), lanciafiamme/cariche/molotov,
    fortificazioni filo/mine/bunker (oggi ignorati; buche/trincee → foxhole).
 5. **Regole speciali (SSR)** per scenario: framework a hook + caso per caso.
 6. **Setup fedele**: disposizioni esatte dalle schede o editor di piazzamento.
@@ -134,7 +138,8 @@ la logica regola per regola. Stato del motore Godot:
 | 🟢 Fatto | Fuoco di Opportunità (A33) | Durante il movimento il difensore reagisce col miglior tiratore idoneo (no mortai/cannoni, in gittata/LOS); può interrompere il movimento. (`OpFire.gd`, `Game._op_fire`) Tiratore scelto in automatico (scelta interattiva da fare). |
 | 🟢 Fatto | Obiettivi/VP live | Controllo obiettivi e bilancia VP aggiornati dopo ogni azione; vittoria automatica controllando tutti gli obiettivi. (`Game._update_objectives`, `_check_end_conditions`) |
 | 🟢 Fatto | LOS/terreno avanzati | Linea di esagoni corretta (`HexGrid.line`/`_cube_round`); LOS bloccata da lati muro/siepe (intermedi) e bocage, varco LOS_CLEAR, hindrance cumulativo ed elevazione; movimento con costo dei lati + tariffa strada (`HexGrid.step_cost`). |
-| 🟡 Da fare | Artiglieria | Ordini ARTY/ARTY_DENIED ancora scartati: mancano Targeting Roll, spotter/LOS, scatter. |
+| 🟢 Fatto | Ordnance / mortai (O20.2) | Mortai e cannoni hanno `ordnance`+`min_range`; spari soggetti a **Targeting Roll** (d1×d2 > gittata+hindrance, mancato → nessun effetto), gittata minima, niente Comando/hindrance sull'FP, esclusi da gruppo di fuoco e Op Fire. (`Unit`, `Combat`, `UnitChart`) |
+| 🟡 Da fare | Artiglieria via Radio | Le radio (artiglieria fuori mappa) sono ancora saltate dal loader: mancano spotter/LOS, Spotting Round, scatter. (I mortai in mappa ora funzionano, vedi Ordnance.) |
 | 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
 | 🟢 Fatto | IA che gioca la mano | `AI.gd`: l'IA sceglie e risolve fino a `ai_max_orders` ordini dalla propria mano (Fuoco col bersaglio migliore, Avanzata in melee vantaggiosa, Recupero/Rotta delle unità rotte, Mossa verso l'obiettivo più vicino). (`AI.choose_play`, `Game._ai_execute`) |
 | 🟡 Da fare | IA avanzata | Valutazioni più fini: copertura, rischio di fuoco reattivo, difesa degli obiettivi propri, scelta del gruppo di fuoco multi-esagono. |

@@ -28,8 +28,12 @@ class FireResult:
 static func fire_group(attacker: Unit, tq: int, tr: int, state: GameState) -> Array[Unit]:
 	var dist := HexGrid.distance(attacker.q, attacker.r, tq, tr)
 	var group: Array[Unit] = []
+	# Ordnance (11.5): non può partecipare a un gruppo di fuoco — spara da sola.
+	if attacker.ordnance:
+		group.append(attacker)
+		return group
 	for u in state.units_at(attacker.q, attacker.r):
-		if u.faction == attacker.faction and u.efficient and u.range >= dist and u.fp > 0:
+		if u.faction == attacker.faction and u.efficient and u.range >= dist and u.fp > 0 and not u.ordnance:
 			group.append(u)
 	return group
 
@@ -65,9 +69,31 @@ static func resolve_fire(
 	if dist > attacker.range:
 		res.log_line = "Fuoco fuori gittata (%d > %d)" % [dist, attacker.range]
 		return res
+	if attacker.ordnance and dist < attacker.min_range:
+		res.log_line = "Sotto la gittata minima dell'ordnance (%d < %d)" % [dist, attacker.min_range]
+		return res
 	if not HexGrid.has_los(attacker.q, attacker.r, tq, tr, state):
 		res.log_line = "Nessuna linea di vista verso (%d,%d)" % [tq, tr]
 		return res
+
+	# Ostacolo (hindrance) lungo la LOS. Per le armi normali riduce la potenza di
+	# fuoco; per l'ordnance modifica invece il Targeting Roll (O20.2.3/10.3.1).
+	var hd: GameState.HexData = state.hex_at(tq, tr)
+	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state)
+	if hd != null and hd.has_smoke:
+		hind += 1  # fumo sul bersaglio
+
+	# ─── Ordnance: Targeting Roll (O20.2.3) ──────────────────────────────────
+	# I due dadi si MOLTIPLICANO (non si sommano): per colpire il prodotto deve
+	# superare la gittata + hindrance. Mancato → attacco annullato senza effetto.
+	if attacker.ordnance:
+		var product := atk_dice.x * atk_dice.y
+		if product <= dist + hind:
+			res.fp_total = 0
+			res.dice_roll = product
+			res.log_line = "%s targeting su (%d,%d): %d×%d=%d ≤ gittata%d+h%d ⇒ MANCATO" % [
+				attacker.unit_name, tq, tr, atk_dice.x, atk_dice.y, product, dist, hind]
+			return res
 
 	# ─── Potenza di fuoco del gruppo + Comando ───────────────────────────────
 	var group := fire_group(attacker, tq, tr, state)
@@ -78,16 +104,13 @@ static func resolve_fire(
 		fp = maxi(fp, u.fp)
 	if group.size() > 1:
 		fp += group.size() - 1
-	var cmd_bonus := Rules.command_bonus_at(state, attacker.q, attacker.r, attacker.faction)
+	# L'ordnance (barra bianca) NON è modificata dal Comando né dall'hindrance
+	# sull'FP (l'hindrance è già stato applicato al Targeting Roll).
+	var cmd_bonus := 0
+	if not attacker.ordnance:
+		cmd_bonus = Rules.command_bonus_at(state, attacker.q, attacker.r, attacker.faction)
 	fp += cmd_bonus
-
-	# Ostacolo (hindrance) lungo la LOS: riduce la potenza di fuoco. La copertura
-	# del bersaglio va invece sul tiro di difesa.
-	var hd: GameState.HexData = state.hex_at(tq, tr)
-	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state)
-	if hd != null and hd.has_smoke:
-		hind += 1  # fumo sul bersaglio
-	var attack_fp := maxi(1, fp - hind)
+	var attack_fp := maxi(1, fp) if attacker.ordnance else maxi(1, fp - hind)
 	res.fp_total = attack_fp
 	res.dice_roll = atk_dice.x + atk_dice.y
 	var attack_total := attack_fp + res.dice_roll
@@ -151,6 +174,8 @@ static func can_fire(attacker: Unit, tq: int, tr: int, state: GameState) -> bool
 	var dist := HexGrid.distance(attacker.q, attacker.r, tq, tr)
 	if dist == 0 or dist > attacker.range:
 		return false
+	if attacker.ordnance and dist < attacker.min_range:
+		return false  # mortai/cannoni: gittata minima
 	if not HexGrid.has_los(attacker.q, attacker.r, tq, tr, state):
 		return false
 	# Deve esserci almeno un'unità nemica nel bersaglio.

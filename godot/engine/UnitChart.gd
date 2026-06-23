@@ -211,6 +211,10 @@ static func _weapon(id: String, faction: int, label: String, nat: String) -> Uni
 	u.range = int(s.get("range", 8)); u.range_boxed = bool(s.get("range_boxed", false))
 	u.move = 0; u.morale = 0; u.command = 0
 	u.move_penalty = int(s.get("move_penalty", -1))
+	# Ordnance (barra bianca): Targeting Roll + gittata minima. I mortai sono
+	# sempre ordnance; per i cannoni la carta lo segna esplicitamente.
+	u.ordnance = bool(s.get("ordnance", false)) or cls == Domain.UnitClass.MORTAR or cls == Domain.UnitClass.AT
+	u.min_range = int(s.get("min_range", 0))
 	# Arte stand-in: i Tedeschi hanno solo "Light MG"; i Russi anche "Medium MG".
 	var heavy := not label.begins_with("Light")
 	if faction == Domain.Faction.RUSSIAN and heavy:
