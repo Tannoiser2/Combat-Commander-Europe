@@ -52,6 +52,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			if Game.load_game():
 				_refresh_ui()
 			get_viewport().set_input_as_handled()
+		KEY_M:
+			Game._log("Audio %s." % ("attivo" if Audio.toggle_mute() else "muto"))
+			get_viewport().set_input_as_handled()
 
 
 # ─── Aggiornamento UI ─────────────────────────────────────────────────────────

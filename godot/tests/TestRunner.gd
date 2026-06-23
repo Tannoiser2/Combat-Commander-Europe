@@ -66,6 +66,7 @@ func _ready() -> void:
 	_test_counter_art()
 	_test_decks()
 	_test_save_load()
+	_test_audio()
 	_report()
 
 
@@ -832,6 +833,13 @@ func _test_save_load() -> void:
 	var u2: Unit = s2.units.get(any_id)
 	_check(u2 != null and not u2.efficient and u2.suppressed, "stato unità (rotta+soppressa) ripristinato")
 	DirAccess.remove_absolute("user://test_save.json")
+
+
+func _test_audio() -> void:
+	print("· Audio: suoni presenti e autoload attivo")
+	for f in ["RIFLE", "MACH_GUN", "Artillery", "time", "morse", "reload", "Deck Depleted"]:
+		_check(ResourceLoader.exists("res://assets/sounds/%s.wav" % f), "suono '%s' presente e importato" % f)
+	_check(Audio != null and Audio.has_method("play"), "autoload Audio attivo")
 
 
 func _report() -> void:
