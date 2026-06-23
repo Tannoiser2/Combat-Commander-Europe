@@ -73,13 +73,30 @@ la logica regola per regola. Stato del motore Godot:
 - Dati verificati dal rulebook + Esempio di Gioco: Time Track numerato 0,1,2…;
   marker iniziale su «0», Morte Subitanea su una casella numerata.
 
+### Aggiornamento sessione 23 giu 2026 (TODO #2: statistiche unità esatte)
+- `UnitChart` ora è **data-driven** dalla carta ufficiale "Unit & Weapon"
+  (`assets/scenarios/unit_chart.json`): 65 unità (leader/squadre/team) + armi
+  per nazione, con FP/Gittata/Movimento/Comando/Morale e flag *boxed* reali,
+  estratti dal PDF per coordinate e validati su valori canonici (Eroe, Rifle).
+- Lookup per **(nazione reale, etichetta)**: `ScenarioLoader` passa la nazione
+  da `fazione_axis/allies` (minori → capofila, come il routing dei mazzi). L'arte
+  dei counter resta stand-in (Asse→Tedeschi, Alleati→Russi).
+- Fallback: MG .30cal americane (assenti dalla carta base) → profilo generico
+  per tipo; leader → profilo rappresentativo per grado.
+
 ### TODO prioritario (prossima sessione)
 1. ~~**Fedeltà scenario "facile"** (TODO #1: hand size, soglie di resa, Sudden
    Death, time-track iniziale)~~ ✅ **completato**. Resta solo il dato
    per-scenario di `tempo_iniziale`/anno (oggi default 0) da estrarre dalle
    schede scenario, se si vuole la casella di partenza esatta per ognuno.
-2. **Statistiche unità esatte**: rivedere `UnitChart.gd` sulle schede Unit &
-   Weapon ufficiali (oggi sono valori standard approssimati).
+2. ~~**Statistiche unità esatte**: rivedere `UnitChart.gd` sulle schede Unit &
+   Weapon ufficiali~~ ✅ **fatto**. `UnitChart` ora è data-driven dalla carta
+   ufficiale (`assets/scenarios/unit_chart.json`, 65 unità + armi per nazione,
+   estratta dal PDF), con lookup per **(nazione reale, etichetta)** passando
+   `fazione_axis/allies`. Restano due punti minori: le MG .30cal **americane**
+   (assenti dalla carta base → fallback generico per tipo) e i **leader**
+   (profilo rappresentativo per grado: i valori del singolo ufficiale sono sul
+   counter, non nel catalogo).
 3. **Fazioni reali**: mazzi + artwork counter delle nazioni mancanti
    (americani, inglesi, italiani, francesi, polacchi, ecc.); mappare
    `fazione_axis/allies` → deck + cartella counter. Aggiungere `Russi_Half`
@@ -124,7 +141,8 @@ la logica regola per regola. Stato del motore Godot:
 | 🟢 Fatto | Resa (Casualty Track) | Uomini eliminati contati per fazione (`GameState.eliminate_unit`); soglia `resa_axis/allies` → sconfitta immediata; doppia resa → iniziativa decide (6.3.1). (`Game._check_end_conditions`/`_resolve_loss`) |
 | 🟢 Fatto | Mano per scenario | Dimensione mano per fazione da `mano_axis/allies` (`GameState.hand_size`, `Cards.deal_initial`). |
 | 🟢 Fatto | Morte Subitanea (6.2.2) | Tiro 2d6 all'avanzamento del Tempo in/oltre la casella di Morte Subitanea: < numero casella Tempo → fine (vincitore ai VP); la probabilità cresce col Tempo. Segnalino Tempo iniziale `tempo_iniziale` (def. 0). (`Game._check_sudden_death`) |
-| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; ora con hand size, soglie di resa, Morte Subitanea e casella Tempo iniziale per scenario. Mancano statistiche unità esatte, fazioni/artwork reali, armi speciali, SSR (vedi TODO sopra). |
+| 🟢 Fatto | Statistiche unità esatte | `UnitChart` data-driven dalla carta ufficiale (`assets/scenarios/unit_chart.json`): FP/Gittata/Movimento/Comando/Morale + boxed reali per **(nazione, etichetta)**; armi per nazione (FP/gittata/malus PM). Nazione reale passata da `ScenarioLoader`. Fallback per MG .30cal US e leader per grado. |
+| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; ora con hand size, soglie di resa, Morte Subitanea, casella Tempo iniziale e **statistiche unità esatte per nazione**. Restano: fazioni/artwork reali dei counter, armi speciali (mortai indiretti/artiglieria/lanciafiamme), SSR (vedi TODO sopra). |
 
 ## Milestone 0: Base Tecnica
 

@@ -90,6 +90,8 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 	var hexes := _setup_hexes(state, e, side)
 	if hexes.is_empty():
 		hexes.append(Vector2i(0, 0))
+	# Nazione reale del lato → statistiche esatte (l'arte resta stand-in).
+	var nat := UnitChart.nation_code(String(e.get("fazione_%s" % side, "")))
 	var forces: Array = e.get("forze_%s" % side, [])
 	var idx := 0
 	var fox := 0
@@ -111,7 +113,7 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 			idx += 1
 			var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
 			seq += 1
-			state.units[id] = UnitChart.build_unit(id, faction, label, pos.x, pos.y)
+			state.units[id] = UnitChart.build_unit(id, faction, label, pos.x, pos.y, nat)
 
 
 ## Caselle di setup di un lato: ancore (in/adiacenti) o bordo+profondità.

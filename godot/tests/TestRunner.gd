@@ -584,18 +584,28 @@ func _test_maps_load() -> void:
 
 
 func _test_unit_chart() -> void:
-	print("· UnitChart: categorie e statistiche")
+	print("· UnitChart: categorie e statistiche esatte (carta ufficiale)")
 	_check(UnitChart.category("Lt. Schrader") == UnitChart.Cat.LEADER, "Lt. → leader")
 	_check(UnitChart.category("Heavy MG") == UnitChart.Cat.WEAPON, "Heavy MG → arma")
-	_check(UnitChart.category("Rifle") == UnitChart.Cat.SQUAD, "Rifle → squadra")
-	_check(UnitChart.category("Foxholes") == UnitChart.Cat.FOXHOLE, "Foxholes → buca")
+	_check(UnitChart.category("Weapon Team") == UnitChart.Cat.SQUAD, "Weapon Team → squadra")
 	_check(UnitChart.category("Radio 105mm") == UnitChart.Cat.SKIP, "Radio → ignorata")
-	var ldr := UnitChart.build_unit("x", GER, "Cpt. Wehling", 0, 0)
-	_check(ldr.command >= 2 and ldr.is_leader(), "il capitano ha comando ≥2")
-	var mg := UnitChart.build_unit("y", RUS, "Medium MG", 1, 1)
-	_check(mg.is_weapon() and mg.range >= 10, "MMG è un'arma a lunga gittata")
-	var sq := UnitChart.build_unit("z", GER, "Elite Rifle", 2, 2)
-	_check(sq.morale >= 8 and sq.fp >= 6, "squadra élite: morale e FP alti")
+	# nation_code (incluse le nazioni minori)
+	_check(UnitChart.nation_code("american") == "US", "american → US")
+	_check(UnitChart.nation_code("canadian") == "GB", "canadian → GB")
+	_check(UnitChart.nation_code("romanian") == "IT", "romanian → IT")
+	# Statistiche ESATTE per (nazione, etichetta).
+	var de_rifle := UnitChart.build_unit("a", GER, "Rifle", 0, 0, "DE")
+	_check(de_rifle.fp == 5 and de_rifle.range == 5 and de_rifle.morale == 7, "Rifle tedesco: FP5/R5/Mor7")
+	var ru_rifle := UnitChart.build_unit("b", RUS, "Rifle", 0, 0, "RU")
+	_check(ru_rifle.fp == 5 and ru_rifle.range == 3 and ru_rifle.morale == 8, "Rifle russo: FP5/R3/Mor8")
+	var us_line := UnitChart.build_unit("c", RUS, "Line", 0, 0, "US")
+	_check(us_line.fp == 6 and us_line.morale == 6, "Line americano: FP6/Mor6")
+	var cpt := UnitChart.build_unit("d", GER, "Cpt. Wehling", 0, 0, "DE")
+	_check(cpt.command == 2 and cpt.morale == 10 and cpt.is_leader(), "Capitano: comando2/morale10")
+	var lmg := UnitChart.build_unit("e", GER, "Light MG", 0, 0, "DE")
+	_check(lmg.is_weapon() and lmg.fp == 4 and lmg.range == 8, "Light MG tedesca: FP4/R8")
+	var hero := UnitChart.build_unit("h", RUS, "Smith, King's Hero", 0, 0, "GB")
+	_check(hero.fp == 2 and hero.range == 4 and hero.morale == 9, "Eroe: FP2/R4/Mor9")
 
 
 func _test_scenarios_load() -> void:

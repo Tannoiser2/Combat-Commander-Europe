@@ -1,0 +1,952 @@
+{
+ "units": {
+  "US": {
+   "Engineer": {
+    "type": "squad",
+    "fp": 7,
+    "fp_boxed": true,
+    "range": 3,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Paratroop": {
+    "type": "squad",
+    "fp": 6,
+    "fp_boxed": true,
+    "range": 4,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Elite": {
+    "type": "squad",
+    "fp": 6,
+    "fp_boxed": true,
+    "range": 6,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 7
+   },
+   "Line": {
+    "type": "squad",
+    "fp": 6,
+    "fp_boxed": true,
+    "range": 6,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 6
+   },
+   "Green": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": true,
+    "range": 4,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 5
+   },
+   "Team Weapon": {
+    "type": "team",
+    "fp": 2,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Elite": {
+    "type": "team",
+    "fp": 4,
+    "fp_boxed": true,
+    "range": 4,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Line": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": true,
+    "range": 4,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 6
+   },
+   "Team Green": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": true,
+    "range": 3,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 5
+   }
+  },
+  "GB": {
+   "Engineer": {
+    "type": "squad",
+    "fp": 7,
+    "fp_boxed": true,
+    "range": 3,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Airborne": {
+    "type": "squad",
+    "fp": 6,
+    "fp_boxed": true,
+    "range": 4,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Guards": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 5,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 7
+   },
+   "Line": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 5,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Territorial": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 4,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Weapon": {
+    "type": "team",
+    "fp": 2,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 8
+   },
+   "Team Elite": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Line": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Green": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 7
+   }
+  },
+  "FR": {
+   "BAR": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": true,
+    "range": 5,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Legionnaire": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 5,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Chasseur": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 4,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Reservist": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 6
+   },
+   "Team Weapon": {
+    "type": "team",
+    "fp": 2,
+    "fp_boxed": false,
+    "range": 1,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 8
+   },
+   "Team Elite": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 4,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Team Line": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Green": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 6
+   }
+  },
+  "DE": {
+   "Pionier": {
+    "type": "squad",
+    "fp": 7,
+    "fp_boxed": true,
+    "range": 3,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "SS": {
+    "type": "squad",
+    "fp": 6,
+    "fp_boxed": true,
+    "range": 5,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Elite Rifle": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 6,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Parachute": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": true,
+    "range": 4,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Rifle": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 5,
+    "range_boxed": true,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Volksgrenadier": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 4,
+    "range_boxed": true,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Conscript": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": true,
+    "move": 3,
+    "command": 0,
+    "morale": 6
+   },
+   "Team Weapon": {
+    "type": "team",
+    "fp": 2,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 8
+   },
+   "Team Elite": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Team Line": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": true,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Green": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": true,
+    "move": 3,
+    "command": 0,
+    "morale": 6
+   }
+  },
+  "IT": {
+   "Guastatori": {
+    "type": "squad",
+    "fp": 6,
+    "fp_boxed": true,
+    "range": 2,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Sissi": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": true,
+    "range": 4,
+    "range_boxed": true,
+    "move": 6,
+    "command": 0,
+    "morale": 8
+   },
+   "Bersaglieri": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 4,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Fucilieri": {
+    "type": "squad",
+    "fp": 4,
+    "fp_boxed": false,
+    "range": 4,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Blackshirt": {
+    "type": "squad",
+    "fp": 4,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 6
+   },
+   "Team Weapon": {
+    "type": "team",
+    "fp": 1,
+    "fp_boxed": false,
+    "range": 1,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 8
+   },
+   "Team Elite": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 4,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Line": {
+    "type": "team",
+    "fp": 2,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 6
+   },
+   "Team Green": {
+    "type": "team",
+    "fp": 2,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 5
+   }
+  },
+  "RU": {
+   "Assault": {
+    "type": "squad",
+    "fp": 7,
+    "fp_boxed": true,
+    "range": 2,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 9
+   },
+   "Guards SMG": {
+    "type": "squad",
+    "fp": 6,
+    "fp_boxed": true,
+    "range": 3,
+    "range_boxed": true,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Guards Rifle": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 5,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "SMG": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": true,
+    "range": 2,
+    "range_boxed": true,
+    "move": 4,
+    "command": 0,
+    "morale": 8
+   },
+   "Rifle": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 3,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 8
+   },
+   "Militia": {
+    "type": "squad",
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Weapon": {
+    "type": "team",
+    "fp": 2,
+    "fp_boxed": false,
+    "range": 1,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 9
+   },
+   "Team Elite": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 5,
+    "command": 0,
+    "morale": 8
+   },
+   "Team Line": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 4,
+    "command": 0,
+    "morale": 7
+   },
+   "Team Green": {
+    "type": "team",
+    "fp": 3,
+    "fp_boxed": false,
+    "range": 2,
+    "range_boxed": false,
+    "move": 3,
+    "command": 0,
+    "morale": 6
+   }
+  }
+ },
+ "leaders": {
+  "Hero": {
+   "type": "leader",
+   "fp": 2,
+   "fp_boxed": false,
+   "range": 4,
+   "range_boxed": false,
+   "move": 7,
+   "command": 0,
+   "morale": 9
+  },
+  "Private": {
+   "type": "leader",
+   "fp": 2,
+   "fp_boxed": false,
+   "range": 1,
+   "range_boxed": false,
+   "move": 6,
+   "command": 2,
+   "morale": 6
+  },
+  "Corporal X": {
+   "type": "leader",
+   "fp": 1,
+   "fp_boxed": false,
+   "range": 1,
+   "range_boxed": false,
+   "move": 6,
+   "command": 1,
+   "morale": 6
+  },
+  "Corporal Y": {
+   "type": "leader",
+   "fp": 1,
+   "fp_boxed": false,
+   "range": 1,
+   "range_boxed": false,
+   "move": 6,
+   "command": 1,
+   "morale": 7
+  },
+  "Sergeant X": {
+   "type": "leader",
+   "fp": 1,
+   "fp_boxed": false,
+   "range": 1,
+   "range_boxed": false,
+   "move": 6,
+   "command": 1,
+   "morale": 8
+  },
+  "Sergeant Y": {
+   "type": "leader",
+   "fp": 2,
+   "fp_boxed": false,
+   "range": 1,
+   "range_boxed": false,
+   "move": 6,
+   "command": 2,
+   "morale": 8
+  },
+  "Lieutenant X": {
+   "type": "leader",
+   "fp": 1,
+   "fp_boxed": false,
+   "range": 1,
+   "range_boxed": false,
+   "move": 6,
+   "command": 1,
+   "morale": 9
+  },
+  "Lieutenant Y": {
+   "type": "leader",
+   "fp": 2,
+   "fp_boxed": false,
+   "range": 1,
+   "range_boxed": false,
+   "move": 6,
+   "command": 2,
+   "morale": 9
+  },
+  "Captain": {
+   "type": "leader",
+   "fp": 2,
+   "fp_boxed": false,
+   "range": 1,
+   "range_boxed": false,
+   "move": 6,
+   "command": 2,
+   "morale": 10
+  }
+ },
+ "weapons": {
+  "US": {
+   ".50cal MG": {
+    "fp": 9,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": -2,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Light Mortar": {
+    "fp": 7,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 2,
+    "range_boxed": false,
+    "move_penalty": -2,
+    "ordnance": true,
+    "smoke": false
+   },
+   "Medium Mortar": {
+    "fp": 9,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 3,
+    "range_boxed": false,
+    "move_penalty": -3,
+    "ordnance": true,
+    "smoke": true
+   },
+   "Pack Howitzer": {
+    "fp": 10,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 0,
+    "range_boxed": false,
+    "move_penalty": -3,
+    "ordnance": true,
+    "smoke": true
+   }
+  },
+  "GB": {
+   "Light MG": {
+    "fp": 3,
+    "fp_boxed": true,
+    "range": 7,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": 0,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Heavy MG": {
+    "fp": 7,
+    "fp_boxed": false,
+    "range": 14,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": -2,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Light Mortar": {
+    "fp": 5,
+    "fp_boxed": false,
+    "range": 11,
+    "min_range": 2,
+    "range_boxed": false,
+    "move_penalty": -1,
+    "ordnance": true,
+    "smoke": true
+   },
+   "Medium Mortar": {
+    "fp": 7,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 3,
+    "range_boxed": false,
+    "move_penalty": -3,
+    "ordnance": true,
+    "smoke": true
+   }
+  },
+  "FR": {
+   "Light MG": {
+    "fp": 3,
+    "fp_boxed": true,
+    "range": 6,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": 0,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Heavy MG": {
+    "fp": 7,
+    "fp_boxed": false,
+    "range": 12,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": -2,
+    "ordnance": false,
+    "smoke": false
+   },
+   "50mm Mortar": {
+    "fp": 6,
+    "fp_boxed": false,
+    "range": 14,
+    "min_range": 3,
+    "range_boxed": false,
+    "move_penalty": -1,
+    "ordnance": true,
+    "smoke": false
+   },
+   "60mm Mortar": {
+    "fp": 7,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 2,
+    "range_boxed": false,
+    "move_penalty": -2,
+    "ordnance": true,
+    "smoke": false
+   }
+  },
+  "DE": {
+   "Light MG": {
+    "fp": 4,
+    "fp_boxed": true,
+    "range": 8,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": 0,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Heavy MG": {
+    "fp": 8,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": -1,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Light Mortar": {
+    "fp": 6,
+    "fp_boxed": false,
+    "range": 13,
+    "min_range": 2,
+    "range_boxed": false,
+    "move_penalty": -2,
+    "ordnance": true,
+    "smoke": false
+   },
+   "IG 18 Gun": {
+    "fp": 10,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 0,
+    "range_boxed": false,
+    "move_penalty": -3,
+    "ordnance": true,
+    "smoke": false
+   },
+   "IG 33 Gun": {
+    "fp": 12,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 0,
+    "range_boxed": false,
+    "move_penalty": -4,
+    "ordnance": true,
+    "smoke": true
+   }
+  },
+  "IT": {
+   "Light MG": {
+    "fp": 3,
+    "fp_boxed": true,
+    "range": 6,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": 0,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Heavy MG": {
+    "fp": 8,
+    "fp_boxed": false,
+    "range": 12,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": -2,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Brixia Mortar": {
+    "fp": 4,
+    "fp_boxed": false,
+    "range": 12,
+    "min_range": 2,
+    "range_boxed": false,
+    "move_penalty": -1,
+    "ordnance": true,
+    "smoke": false
+   },
+   "Brandt Mortar": {
+    "fp": 7,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 2,
+    "range_boxed": false,
+    "move_penalty": -2,
+    "ordnance": true,
+    "smoke": false
+   }
+  },
+  "RU": {
+   "Light MG": {
+    "fp": 3,
+    "fp_boxed": true,
+    "range": 6,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": 0,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Medium MG": {
+    "fp": 6,
+    "fp_boxed": false,
+    "range": 10,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": -2,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Heavy MG": {
+    "fp": 8,
+    "fp_boxed": false,
+    "range": 12,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": -2,
+    "ordnance": false,
+    "smoke": false
+   },
+   ".50cal MG": {
+    "fp": 9,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 0,
+    "range_boxed": true,
+    "move_penalty": -2,
+    "ordnance": false,
+    "smoke": false
+   },
+   "Light Mortar": {
+    "fp": 6,
+    "fp_boxed": false,
+    "range": 14,
+    "min_range": 2,
+    "range_boxed": false,
+    "move_penalty": -1,
+    "ordnance": true,
+    "smoke": false
+   },
+   "Medium Mortar": {
+    "fp": 9,
+    "fp_boxed": false,
+    "range": 16,
+    "min_range": 3,
+    "range_boxed": false,
+    "move_penalty": -3,
+    "ordnance": true,
+    "smoke": true
+   }
+  }
+ }
+}
