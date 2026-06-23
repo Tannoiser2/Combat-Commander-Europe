@@ -13,11 +13,13 @@ _Aggiornato: 2026-06-15._
 Il **ciclo di combattimento** gira sul **Mazzo del Fato** (dadi pescati dalle
 carte + conseguenze Tempo!/Cecchino/Inceppamento/Evento): ordini completi
 (mossa/fuoco/avanzata-melee/recupero/rotta), IA che gioca la mano, LOS e terreno
-avanzati, obiettivi/VP live con auto-vittoria, Fuoco di Opportunità e azioni
-base. Restano soprattutto: **Artiglieria**, **chit obiettivo segreti**, **resa/
-Casualty Track**, **modificatori di fuoco/melee** e gli **eventi/azioni** che
-richiedono marker non ancora modellati, **altre 4 fazioni/mazzi** e gli
-**scenari 2-24**. Stima copertura motore: ~65-70%.
+avanzati, obiettivi/VP live con auto-vittoria, Fuoco di Opportunità, azioni base
+e **resa per Casualty Track** + **mano per qualità truppe** per scenario.
+Restano soprattutto: **Artiglieria**, **chit obiettivo segreti**, i **marcatori
+del Casualty Track** veri e propri (rinforzi/recupero armi), **modificatori di
+fuoco/melee** e gli **eventi/azioni** che richiedono marker non ancora
+modellati, **altre 4 fazioni/mazzi** e la fedeltà piena degli **scenari 2-24**.
+Stima copertura motore: ~70%.
 
 ## Punto per punto
 
@@ -26,7 +28,7 @@ richiedono marker non ancora modellati, **altre 4 fazioni/mazzi** e gli
 | Mazzo del Fato (dadi) | ✅ | I tiri (fuoco/melee/recupero/rotta) pescano i dadi dalla carta in cima al mazzo (`Fate.gd`); fallback RNG solo se mazzo+scarti vuoti. |
 | Conseguenze carta | ✅🟡 | Tempo! (avanza tempo + rimuove un fumo + reshuffle + 1 VP difensore), Cecchino (rompe **una** unità in/adiacente all'hex), Inceppamento (arma fuori uso nel fuoco) ed **Evento** (dispatcher `Events.gd`). |
 | Sequenza di gioco | 🟡 | Turni a blocchi (umano → IA). Manca alternanza carta-per-carta + finestra di reazione. |
-| Mano e scarti | 🟡 | Pesca/scarto/rimescolo OK; mano **fissa a 4** (non per Postura: Att 6/Recon 5/Dif 4); nessun limite di scarto per nazione. |
+| Mano e scarti | ✅🟡 | Pesca/scarto/rimescolo OK; **dimensione mano per fazione** dallo scenario (qualità truppe `mano_axis/allies`, scartata e ripescata 1↔1 a mantenere la mano). Resta il limite di scarto per nazione. |
 | Ordine Mossa | 🟡 | Costo terreno + stacking. Manca bonus strada (ignorato in `move_cost`), lati esagono, malus PM armi, uscita mappa, attivazione multi-unità via leader. |
 | Ordine Fuoco (O20) | ✅🟡 | Gruppo (FP pezzo migliore **+1/aggiuntivo**) + Comando − hindrance, **Attacco vs Fire Defense Roll** (Morale+copertura+dadi del difensore): difesa< → rotta/eliminata; pareggio → rotta se in movimento, altrimenti **soppressa**; difesa> → nessun effetto. Suppress e Break sono ora stati distinti. Manca ordnance/Targeting Roll, tiro di difesa per-unità (ora per-esagono), gruppo multi-esagono. |
 | Corpo a corpo (O16.4) | ✅ | Adiacenza, ΣFP (no Comando) + riquadri + 2d6; lato più debole eliminato, **pareggio → entrambi eliminati** (salvo Bunker/Pillbox). |
@@ -43,7 +45,7 @@ richiedono marker non ancora modellati, **altre 4 fazioni/mazzi** e gli
 | Impilamento (8.1) | ✅ | Max **7 soldier icons**/hex (squad 4, leader 1, armi 0); applicato a movimento/avanzata/IA. (`Unit.soldier_icons`, `GameState.soldier_icons_at`) |
 | Traccia Tempo & Morte Subitanea | ✅🟡 | Il tempo ora avanza **solo** con un Tempo! pescato dal Fato (corretto); Tempo! dà +1 VP al difensore e rimescola i mazzi. Restano gli altri effetti della traccia (dig-in, rinforzi, rimozione fumo, auto-vittoria su 5 obiettivi). |
 | Obiettivi / VP / Chit (7.3) | ✅🟡 | Controllo (più uomini nell'hex) e bilancia VP **aggiornati a ogni azione**; **vittoria automatica** controllando tutti gli obiettivi (`Game._update_objectives`/`_check_end_conditions`). Restano i chit (segreti/aperti, 22), VP da eliminazione/uscita. |
-| Resa / Casualty Track | ❌ | Valori di resa inutilizzati; nessuna traccia perdite/resa/rinforzi. |
+| Resa / Casualty Track | ✅🟡 | **Resa implementata** (6.3/6.3.1): ogni uomo eliminato (no armi) conta come perdita della sua fazione; al raggiungimento della soglia di resa dello scenario (`resa_axis/allies`) la fazione perde, a prescindere dai VP; doppia resa simultanea → vince chi ha l'iniziativa. Restano i **marcatori** del track per rinforzi/recupero armi. |
 | Fortificazioni & marker | 🟡 | Buca/trincea (Trincerarsi → `HexData.has_foxhole`, +2 copertura) e fumo (Granate fumogene → `HexData.has_smoke`, hindrance) implementati. Restano mine, filo spinato, casamatta, incendio. |
 | Fuoco di Opportunità (A33) | ✅🟡 | Durante il movimento, il difensore reagisce col miglior tiratore idoneo (efficiente, in gittata/LOS, no mortai/cannoni); può interrompere il movimento se rompe il mover (`OpFire.gd`, `Game._op_fire`). Per ora il tiratore è scelto automaticamente (manca la scelta interattiva del giocatore). |
 | Fazioni & mazzi | 🟡 | Solo Germania+Russia (2/6); dati carta completi ma si usa solo l'ordine. No routing fazione→mazzo. |

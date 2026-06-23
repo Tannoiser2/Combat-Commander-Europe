@@ -48,6 +48,8 @@ const SETUP := {
 	"sudden_death":       7,
 	"german_surrender":   5,
 	"russian_surrender":  7,
+	"german_hand":        5,
+	"russian_hand":       5,
 	"initiative_holder":  Domain.Faction.GERMAN,
 	"german_orders":      2,
 	"russian_orders":     3,
@@ -200,4 +202,8 @@ static func setup(state: GameState) -> void:
 	state.initiative_holder = SETUP["initiative_holder"]
 	state.max_orders        = SETUP["german_orders"]
 	state.ai_max_orders     = SETUP["russian_orders"]
+	state.hand_size[Domain.Faction.GERMAN]  = SETUP["german_hand"]
+	state.hand_size[Domain.Faction.RUSSIAN] = SETUP["russian_hand"]
+	state.surrender_threshold[Domain.Faction.GERMAN]  = SETUP["german_surrender"]
+	state.surrender_threshold[Domain.Faction.RUSSIAN] = SETUP["russian_surrender"]
 	state.active_faction    = Domain.Faction.GERMAN

@@ -644,20 +644,45 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 
 # ─── Fine partita ─────────────────────────────────────────────────────────────
 
-## Da chiamare dopo ogni azione: aggiorna obiettivi/VP, controlla la vittoria
-## automatica (tutti gli obiettivi) e l'eliminazione totale di una fazione.
+## Da chiamare dopo ogni azione: aggiorna obiettivi/VP, controlla la resa
+## (Casualty Track), la vittoria automatica (tutti gli obiettivi) e
+## l'eliminazione totale di una fazione.
 func _check_end_conditions() -> void:
+	# Resa (6.3.1): le perdite di una fazione hanno raggiunto la sua soglia →
+	# sconfitta immediata, a prescindere dai VP. Ha la precedenza su obiettivi/VP.
+	var ger_surr := state.has_surrendered(Domain.Faction.GERMAN)
+	var rus_surr := state.has_surrendered(Domain.Faction.RUSSIAN)
+	if ger_surr or rus_surr:
+		_resolve_loss(ger_surr, rus_surr, "resa")
+		return
+
 	var sweep := _update_objectives()
 	if sweep != -1:
 		_log("%s controlla tutti gli obiettivi — vittoria automatica!" % Domain.FACTION_NAMES.get(sweep, "?"))
 		_end_game(sweep)
 		return
+
+	# Ultima unità sulla mappa eliminata (6.3, situazione 2).
 	var ger_units := state.units_of(Domain.Faction.GERMAN).size()
 	var rus_units := state.units_of(Domain.Faction.RUSSIAN).size()
-	if ger_units == 0:
-		_end_game(Domain.Faction.RUSSIAN)
-	elif rus_units == 0:
-		_end_game(Domain.Faction.GERMAN)
+	if ger_units == 0 or rus_units == 0:
+		_resolve_loss(ger_units == 0, rus_units == 0, "annientamento")
+
+
+## Conclude la partita quando una o entrambe le fazioni hanno perso (6.3.1):
+## in caso di doppia sconfitta simultanea vince chi detiene l'iniziativa.
+func _resolve_loss(ger_lost: bool, rus_lost: bool, reason: String) -> void:
+	var winner: int
+	if ger_lost and rus_lost:
+		winner = state.initiative_holder
+		_log("Doppia sconfitta (%s) — l'iniziativa decide il vincitore." % reason)
+	elif ger_lost:
+		winner = Domain.Faction.RUSSIAN
+		_log("%s si arrende (%s)." % [Domain.FACTION_NAMES.get(Domain.Faction.GERMAN, "?"), reason])
+	else:
+		winner = Domain.Faction.GERMAN
+		_log("%s si arrende (%s)." % [Domain.FACTION_NAMES.get(Domain.Faction.RUSSIAN, "?"), reason])
+	_end_game(winner)
 
 
 func _check_sudden_death() -> void:

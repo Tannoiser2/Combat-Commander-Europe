@@ -40,7 +40,7 @@ static func _hit(state: GameState, u: Unit, lines: Array[String], label: String)
 		u.break_unit()
 		lines.append("%s: %s rotta" % [label, u.unit_name])
 	else:
-		state.units.erase(u.id)
+		state.eliminate_unit(u.id)
 		lines.append("%s: %s eliminata" % [label, u.unit_name])
 
 
@@ -95,7 +95,7 @@ static func _kia(state: GameState, faction: int, lines: Array[String]) -> void:
 	if target == null:
 		target = _find_broken(state, faction, false)
 	if target != null:
-		state.units.erase(target.id)
+		state.eliminate_unit(target.id)
 		lines.append("Ucciso in azione: %s eliminata." % target.unit_name)
 	else:
 		lines.append("Ucciso in azione: nessuna unità rotta in campo.")

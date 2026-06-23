@@ -45,11 +45,28 @@ la logica regola per regola. Stato del motore Godot:
   **`_calib`** del JSON con la geometria dell'editor → griglia/esagoni/click/pedine
   allineati (verificato a video dall'utente: **funziona**).
 
+### Resoconto sessione 23 giu 2026 (TODO #1, parte "dati/motore")
+- **Mano per scenario**: la dimensione della mano è ora **per fazione**
+  (`mano_axis/allies` dal catalogo → `GameState.hand_size`), distribuita da
+  `Cards.deal_initial` e mantenuta dal refill 1↔1. Scenario 1 (curato) usa i
+  suoi valori da `Scenario1.SETUP`.
+- **Resa / Casualty Track (6.3/6.3.1)**: `GameState.eliminate_unit()` è ora
+  l'unico punto da cui le unità lasciano lo stato e conta come **perdita** ogni
+  uomo eliminato (le armi vanno nella scatola centrale e non contano). Al
+  raggiungimento della soglia di resa dello scenario (`resa_axis/allies`) la
+  fazione perde a prescindere dai VP; **doppia resa simultanea → vince chi ha
+  l'iniziativa**. Wiring in `ScenarioLoader`/`Scenario1`, check in
+  `Game._check_end_conditions`/`_resolve_loss`. Test motore aggiunti.
+- Nota di regola verificata dal rulebook: la *resa* dipende dal **Casualty
+  Track** (numero di uomini persi), **non** dal totale VP né da `vpStart`
+  (che resta l'adeguamento VP iniziale a favore del difensore).
+
 ### TODO prioritario (prossima sessione)
-1. **Fedeltà scenario "facile"** (solo dati/motore): collegare hand size per
-   qualità truppe (`mano_axis/allies`), time-track iniziale per scenario,
-   soglie di **resa** (`resa_axis/allies`) + Sudden Death + VP da obiettivi.
-   Valori mancanti estraibili da `Scenari.pdf` (materiali).
+1. **Fedeltà scenario "facile"** (resto di TODO #1): ~~hand size~~ ✅ e
+   ~~soglie di resa~~ ✅ fatti. Restano: **time-track iniziale per scenario**
+   (oggi 1 nel loader, 2 in Scenario1; il rulebook dice «di solito 0» — manca
+   il dato per scenario) e il **Sudden Death come tiro** vero (6.2.2: tira un
+   dado del Fato vs il numero della casella del Tempo, oggi fine immediata).
 2. **Statistiche unità esatte**: rivedere `UnitChart.gd` sulle schede Unit &
    Weapon ufficiali (oggi sono valori standard approssimati).
 3. **Fazioni reali**: mazzi + artwork counter delle nazioni mancanti
@@ -93,7 +110,9 @@ la logica regola per regola. Stato del motore Godot:
 | 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
 | 🟢 Fatto | IA che gioca la mano | `AI.gd`: l'IA sceglie e risolve fino a `ai_max_orders` ordini dalla propria mano (Fuoco col bersaglio migliore, Avanzata in melee vantaggiosa, Recupero/Rotta delle unità rotte, Mossa verso l'obiettivo più vicino). (`AI.choose_play`, `Game._ai_execute`) |
 | 🟡 Da fare | IA avanzata | Valutazioni più fini: copertura, rischio di fuoco reattivo, difesa degli obiettivi propri, scelta del gruppo di fuoco multi-esagono. |
-| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; mancano hand size, time-track, soglie di resa, statistiche unità esatte, fazioni/artwork reali, armi speciali, SSR (vedi TODO sopra). |
+| 🟢 Fatto | Resa (Casualty Track) | Uomini eliminati contati per fazione (`GameState.eliminate_unit`); soglia `resa_axis/allies` → sconfitta immediata; doppia resa → iniziativa decide (6.3.1). (`Game._check_end_conditions`/`_resolve_loss`) |
+| 🟢 Fatto | Mano per scenario | Dimensione mano per fazione da `mano_axis/allies` (`GameState.hand_size`, `Cards.deal_initial`). |
+| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; ora con hand size e soglie di resa per scenario. Mancano time-track iniziale, statistiche unità esatte, fazioni/artwork reali, armi speciali, SSR (vedi TODO sopra). |
 
 ## Milestone 0: Base Tecnica
 

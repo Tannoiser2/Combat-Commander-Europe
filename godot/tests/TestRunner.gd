@@ -59,6 +59,8 @@ func _ready() -> void:
 	_test_maps_load()
 	_test_unit_chart()
 	_test_scenarios_load()
+	_test_scenario_fidelity()
+	_test_surrender()
 	_report()
 
 
@@ -614,6 +616,67 @@ func _test_scenarios_load() -> void:
 			else: rus += 1
 		_check(in_bounds, "scenario %d: unità tutte dentro la mappa" % n)
 		_check(ger > 0 and rus > 0, "scenario %d: entrambe le fazioni schierate" % n)
+
+
+func _test_scenario_fidelity() -> void:
+	print("· Fedeltà scenario: mano e soglie di resa dal catalogo")
+	var st := GameState.new()
+	st.human_faction = GER
+	_check(ScenarioLoader.setup(st, 2), "scenario 2 caricato")
+	# Catalogo scenario 2: mano_axis 4 / mano_allies 5, resa_axis 8 / resa_allies 9.
+	_check(st.hand_size_of(GER) == 4, "mano Axis (scen.2) = 4")
+	_check(st.hand_size_of(RUS) == 5, "mano Allies (scen.2) = 5")
+	_check(int(st.surrender_threshold[GER]) == 8, "soglia resa Axis (scen.2) = 8")
+	_check(int(st.surrender_threshold[RUS]) == 9, "soglia resa Allies (scen.2) = 9")
+
+
+func _test_surrender() -> void:
+	print("· Resa: Casualty Track, soglie e tie-break iniziativa")
+	var s := _new_state()
+	s.surrender_threshold[RUS] = 2
+	var r1 := _mk("RUS-0", RUS, SQUAD, RIFLE, 0, 0)
+	var r2 := _mk("RUS-1", RUS, SQUAD, RIFLE, 1, 0)
+	var w := _mk("RUS-2", RUS, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 2, 0)
+	var g := _mk("GER-0", GER, SQUAD, RIFLE, 4, 4)
+	s.units[r1.id] = r1
+	s.units[r2.id] = r2
+	s.units[w.id] = w
+	s.units[g.id] = g
+
+	s.eliminate_unit(w.id)
+	_check(int(s.casualties[RUS]) == 0, "l'arma eliminata non conta sul Casualty Track")
+	s.eliminate_unit(r1.id)
+	_check(int(s.casualties[RUS]) == 1, "uomo eliminato = 1 perdita")
+	_check(not s.has_surrendered(RUS), "1 perdita < soglia 2 → nessuna resa")
+	s.eliminate_unit(r2.id)
+	_check(int(s.casualties[RUS]) == 2, "secondo uomo eliminato = 2 perdite")
+	_check(s.has_surrendered(RUS), "perdite ≥ soglia → resa")
+
+	# _check_end_conditions deve concludere con vittoria tedesca (RUS si arrende).
+	var winner := { "f": -99 }
+	var cb := func(w2: int) -> void: winner["f"] = w2
+	Game.state = s
+	Game.game_over.connect(cb)
+	Game._check_end_conditions()
+	_check(s.phase == Domain.Phase.GAME_OVER, "la resa termina la partita")
+	_check(int(winner["f"]) == GER, "la resa russa fa vincere i Tedeschi")
+	Game.game_over.disconnect(cb)
+
+	# Doppia resa simultanea → vince chi detiene l'iniziativa (6.3.1).
+	var s2 := _new_state()
+	s2.surrender_threshold[GER] = 1
+	s2.surrender_threshold[RUS] = 1
+	s2.casualties[GER] = 1
+	s2.casualties[RUS] = 1
+	s2.initiative_holder = RUS
+	var winner2 := { "f": -99 }
+	var cb2 := func(w2: int) -> void: winner2["f"] = w2
+	Game.state = s2
+	Game.game_over.connect(cb2)
+	Game._check_end_conditions()
+	_check(int(winner2["f"]) == RUS, "doppia resa: vince chi ha l'iniziativa")
+	Game.game_over.disconnect(cb2)
+	Game.state = null
 
 
 func _report() -> void:

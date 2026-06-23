@@ -133,9 +133,9 @@ static func resolve_fire(
 	if res.eliminated.is_empty() and res.broken.is_empty() and res.suppressed.is_empty():
 		res.log_line += " ⇒ nessun effetto"
 
-	# Rimuove dallo stato le unità eliminate.
+	# Rimuove dallo stato le unità eliminate (contandole sul Casualty Track).
 	for uid in res.eliminated:
-		state.units.erase(uid)
+		state.eliminate_unit(uid)
 
 	return res
 

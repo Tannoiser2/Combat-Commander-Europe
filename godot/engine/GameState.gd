@@ -43,6 +43,23 @@ var side_features: Array[Dictionary] = []
 var units: Dictionary = {}
 
 
+# ─── Resa / Casualty Track (regolamento 4.2 / 6.3) ────────────────────────────
+
+## Uomini eliminati per fazione (squadre/team/leader; le armi vanno nella
+## scatola centrale del Casualty Track e NON contano). Quando le perdite di una
+## fazione raggiungono la sua soglia di resa, quella fazione perde la partita.
+var casualties: Dictionary = {
+	Domain.Faction.GERMAN: 0,
+	Domain.Faction.RUSSIAN: 0,
+}
+
+## Soglia di resa per fazione (resa_axis/allies dello scenario). 0 = disattivata.
+var surrender_threshold: Dictionary = {
+	Domain.Faction.GERMAN: 0,
+	Domain.Faction.RUSSIAN: 0,
+}
+
+
 # ─── Obiettivi ───────────────────────────────────────────────────────────────
 
 var objectives: Array[Objective] = []
@@ -57,6 +74,12 @@ var german_hand: Array[Card] = []
 var russian_deck: Array[Card] = []
 var russian_discard: Array[Card] = []
 var russian_hand: Array[Card] = []
+
+## Carte in mano per fazione (qualità truppe: mano_axis/allies dello scenario).
+var hand_size: Dictionary = {
+	Domain.Faction.GERMAN: 4,
+	Domain.Faction.RUSSIAN: 4,
+}
 
 
 # ─── Turno e fase ────────────────────────────────────────────────────────────
@@ -176,6 +199,27 @@ func broken_men_of(faction: int) -> Array[Unit]:
 
 func hand_of(faction: int) -> Array[Card]:
 	return german_hand if faction == Domain.Faction.GERMAN else russian_hand
+
+
+## Numero di carte che la fazione tiene in mano (default 4 se non impostato).
+func hand_size_of(faction: int) -> int:
+	return int(hand_size.get(faction, 4))
+
+
+## Elimina un'unità dallo stato registrandola sul Casualty Track (4.2): se è un
+## uomo (non un'arma) incrementa le perdite della sua fazione. Unico punto da cui
+## le unità lasciano `units`, così il conteggio resa resta sempre coerente.
+func eliminate_unit(uid: String) -> void:
+	var u: Unit = units.get(uid)
+	if u != null and u.is_man():
+		casualties[u.faction] = int(casualties.get(u.faction, 0)) + 1
+	units.erase(uid)
+
+
+## Vero se le perdite della fazione hanno raggiunto la sua soglia di resa (6.3).
+func has_surrendered(faction: int) -> bool:
+	var thr := int(surrender_threshold.get(faction, 0))
+	return thr > 0 and int(casualties.get(faction, 0)) >= thr
 
 
 func objective_at(q: int, r: int) -> Objective:

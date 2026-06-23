@@ -59,6 +59,13 @@ static func setup(state: GameState, num: int) -> bool:
 	state.initiative_holder = Domain.Faction.GERMAN if init_axis else Domain.Faction.RUSSIAN
 	state.active_faction = state.initiative_holder
 
+	# Mano per fazione (qualità truppe) e soglie di resa (Casualty Track).
+	# Stand-in: axis → Tedeschi (GERMAN), allies → Russi (RUSSIAN).
+	state.hand_size[Domain.Faction.GERMAN] = int(e.get("mano_axis", Cards.HAND_SIZE))
+	state.hand_size[Domain.Faction.RUSSIAN] = int(e.get("mano_allies", Cards.HAND_SIZE))
+	state.surrender_threshold[Domain.Faction.GERMAN] = int(e.get("resa_axis", 0))
+	state.surrender_threshold[Domain.Faction.RUSSIAN] = int(e.get("resa_allies", 0))
+
 	# Ordini: max_orders è dell'umano, ai_max_orders dell'IA.
 	var ord_axis := int(e.get("ordini_axis", 2))
 	var ord_allies := int(e.get("ordini_allies", 2))
