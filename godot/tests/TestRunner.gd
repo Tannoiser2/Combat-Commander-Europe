@@ -61,6 +61,7 @@ func _ready() -> void:
 	_test_unit_chart()
 	_test_scenarios_load()
 	_test_scenario_fidelity()
+	_test_setup_depth()
 	_test_surrender()
 	_test_sudden_death_roll()
 	_test_ordnance()
@@ -664,6 +665,22 @@ func _test_scenario_fidelity() -> void:
 	_check(st.hand_size_of(RUS) == 5, "mano Allies (scen.2) = 5")
 	_check(int(st.surrender_threshold[GER]) == 8, "soglia resa Axis (scen.2) = 8")
 	_check(int(st.surrender_threshold[RUS]) == 9, "soglia resa Allies (scen.2) = 9")
+
+
+func _test_setup_depth() -> void:
+	print("· Setup: profondità di schieramento per scenario (dalle schede)")
+	var e := ScenarioLoader.entry(2)
+	_check(int(e.get("setup_axis_depth", 0)) == 12 and int(e.get("setup_allies_depth", 0)) == 3,
+		"scenario 2: profondità Axis 12 / Allies 3 dal catalogo")
+	var st := GameState.new()
+	st.human_faction = GER
+	_check(ScenarioLoader.setup(st, 2), "scenario 2 caricato")
+	# Il difensore (Axis, 12 prof.) ha una zona di schieramento più ampia
+	# dell'attaccante (Allies, 3 prof.).
+	var axis_zone := ScenarioLoader._setup_hexes(st, e, "axis")
+	var allies_zone := ScenarioLoader._setup_hexes(st, e, "allies")
+	_check(axis_zone.size() > allies_zone.size(),
+		"zona Axis (difensore, prof. 12) più ampia della Allied (attaccante, prof. 3)")
 
 
 func _test_surrender() -> void:

@@ -113,7 +113,11 @@ la logica regola per regola. Stato del motore Godot:
    colpi **fumogeni** dell'ordnance (O20.2.1), lanciafiamme/cariche/molotov,
    fortificazioni filo/mine/bunker (oggi ignorati; buche/trincee → foxhole).
 5. **Regole speciali (SSR)** per scenario: framework a hook + caso per caso.
-6. **Setup fedele**: disposizioni esatte dalle schede o editor di piazzamento.
+6. **Setup fedele**: ~~profondità di schieramento per scenario~~ ✅ estratte dal
+   `Scenari.pdf` (`setup_axis/allies_depth` nel catalogo; il difensore ora si
+   schiera in profondità invece del default 3). Restano le **ancore esatte**
+   per i restanti scenari (oggi solo lo scenario 1; altri usano bordo+profondità)
+   e i piazzamenti puntuali da SSR (es. "Cpt. Egorov in N5").
 7. **Polish**: ~~salvataggio~~ ✅ (`SaveGame.gd`, F5/F9) · ~~audio~~ ✅
    (autoload `Audio.gd`: fuoco fucile/MG/artiglieria, Tempo!/Morte Subitanea,
    cecchino, fine partita; `assets/sounds/`; M per mutare). Restano rifiniture
