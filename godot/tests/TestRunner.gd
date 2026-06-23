@@ -61,6 +61,7 @@ func _ready() -> void:
 	_test_scenarios_load()
 	_test_scenario_fidelity()
 	_test_surrender()
+	_test_sudden_death_roll()
 	_report()
 
 
@@ -676,6 +677,34 @@ func _test_surrender() -> void:
 	Game._check_end_conditions()
 	_check(int(winner2["f"]) == RUS, "doppia resa: vince chi ha l'iniziativa")
 	Game.game_over.disconnect(cb2)
+	Game.state = null
+
+
+func _test_sudden_death_roll() -> void:
+	print("· Morte Subitanea: tiro 2d6 vs casella Tempo (6.2.2)")
+	# Tiro 2 < casella 8 → la partita finisce.
+	var s := _new_state()
+	s.time_marker = 8
+	s.sudden_death_space = 7
+	s.german_deck.append(_fate_card(1, 1))  # 2d6 = 2
+	Game.state = s
+	Game._check_sudden_death(GER)
+	_check(s.phase == Domain.Phase.GAME_OVER, "tiro < casella Tempo → fine partita")
+
+	# Tiro 12 ≥ casella 7 → la partita continua.
+	var s2 := _new_state()
+	s2.time_marker = 7
+	s2.sudden_death_space = 7
+	s2.german_deck.append(_fate_card(6, 6))  # 2d6 = 12
+	Game.state = s2
+	Game._check_sudden_death(GER)
+	_check(s2.phase != Domain.Phase.GAME_OVER, "tiro ≥ casella Tempo → la partita continua")
+
+	# tempo_iniziale: il loader parte dalla casella 0 (6.1.1, «di solito 0»).
+	var s3 := GameState.new()
+	s3.human_faction = GER
+	_check(ScenarioLoader.setup(s3, 2), "scenario 2 caricato")
+	_check(s3.time_marker == 0, "segnalino Tempo iniziale = 0 (default rulebook)")
 	Game.state = null
 
 

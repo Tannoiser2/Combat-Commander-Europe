@@ -61,12 +61,23 @@ la logica regola per regola. Stato del motore Godot:
   Track** (numero di uomini persi), **non** dal totale VP né da `vpStart`
   (che resta l'adeguamento VP iniziale a favore del difensore).
 
+### Aggiornamento sessione 23 giu 2026 (TODO #1 completato)
+- **Morte Subitanea come tiro (6.2.2)**: quando un Tempo! porta il segnalino
+  Tempo in/oltre la casella di Morte Subitanea, il giocatore che lo ha innescato
+  pesca una carta del Fato (2d6); se il risultato è **< numero della casella
+  Tempo** la partita finisce subito (vincitore ai VP, 6.3.2), altrimenti
+  prosegue. Il numero cresce con l'avanzare del Tempo, quindi la fine è garantita
+  (a casella 13 il 2d6 è sempre minore). (`Game._check_sudden_death`/`_apply_fate`)
+- **Segnalino Tempo iniziale**: il loader parte dalla casella `tempo_iniziale`
+  (default **0**, «di solito 0» da 6.1.1; Scenario 1 mantiene la sua casella 2).
+- Dati verificati dal rulebook + Esempio di Gioco: Time Track numerato 0,1,2…;
+  marker iniziale su «0», Morte Subitanea su una casella numerata.
+
 ### TODO prioritario (prossima sessione)
-1. **Fedeltà scenario "facile"** (resto di TODO #1): ~~hand size~~ ✅ e
-   ~~soglie di resa~~ ✅ fatti. Restano: **time-track iniziale per scenario**
-   (oggi 1 nel loader, 2 in Scenario1; il rulebook dice «di solito 0» — manca
-   il dato per scenario) e il **Sudden Death come tiro** vero (6.2.2: tira un
-   dado del Fato vs il numero della casella del Tempo, oggi fine immediata).
+1. ~~**Fedeltà scenario "facile"** (TODO #1: hand size, soglie di resa, Sudden
+   Death, time-track iniziale)~~ ✅ **completato**. Resta solo il dato
+   per-scenario di `tempo_iniziale`/anno (oggi default 0) da estrarre dalle
+   schede scenario, se si vuole la casella di partenza esatta per ognuno.
 2. **Statistiche unità esatte**: rivedere `UnitChart.gd` sulle schede Unit &
    Weapon ufficiali (oggi sono valori standard approssimati).
 3. **Fazioni reali**: mazzi + artwork counter delle nazioni mancanti
@@ -112,7 +123,8 @@ la logica regola per regola. Stato del motore Godot:
 | 🟡 Da fare | IA avanzata | Valutazioni più fini: copertura, rischio di fuoco reattivo, difesa degli obiettivi propri, scelta del gruppo di fuoco multi-esagono. |
 | 🟢 Fatto | Resa (Casualty Track) | Uomini eliminati contati per fazione (`GameState.eliminate_unit`); soglia `resa_axis/allies` → sconfitta immediata; doppia resa → iniziativa decide (6.3.1). (`Game._check_end_conditions`/`_resolve_loss`) |
 | 🟢 Fatto | Mano per scenario | Dimensione mano per fazione da `mano_axis/allies` (`GameState.hand_size`, `Cards.deal_initial`). |
-| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; ora con hand size e soglie di resa per scenario. Mancano time-track iniziale, statistiche unità esatte, fazioni/artwork reali, armi speciali, SSR (vedi TODO sopra). |
+| 🟢 Fatto | Morte Subitanea (6.2.2) | Tiro 2d6 all'avanzamento del Tempo in/oltre la casella di Morte Subitanea: < numero casella Tempo → fine (vincitore ai VP); la probabilità cresce col Tempo. Segnalino Tempo iniziale `tempo_iniziale` (def. 0). (`Game._check_sudden_death`) |
+| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; ora con hand size, soglie di resa, Morte Subitanea e casella Tempo iniziale per scenario. Mancano statistiche unità esatte, fazioni/artwork reali, armi speciali, SSR (vedi TODO sopra). |
 
 ## Milestone 0: Base Tecnica
 

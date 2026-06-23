@@ -53,7 +53,9 @@ static func setup(state: GameState, num: int) -> bool:
 	state.scenario_number = num
 	state.scenario_name = String(e.get("nome", "Scenario %d" % num))
 	state.sudden_death_space = int(e.get("sudden_death", 7))
-	state.time_marker = 1
+	# Casella iniziale del segnalino Tempo (6.1.1: «di solito 0»). Campo opzionale
+	# del catalogo per scenari che partono da una casella diversa (es. anno).
+	state.time_marker = int(e.get("tempo_iniziale", 0))
 	state.vp_tracker = int(e.get("vp_iniziali", 0))  # >0 Axis(GER), <0 Allied(RUS)
 	var init_axis := String(e.get("iniziativa", "axis")) == "axis"
 	state.initiative_holder = Domain.Faction.GERMAN if init_axis else Domain.Faction.RUSSIAN
