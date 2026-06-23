@@ -131,7 +131,8 @@ static func _setup_hexes(state: GameState, e: Dictionary, side: String) -> Array
 				_add_hex(state, out, seen, qr.x + d.x, qr.y + d.y)
 		return out
 	# Bordo: Axis a Est (colonne destre), Allied a Ovest (colonne sinistre).
-	var depth := 3
+	# Profondità della zona di schieramento per lato (dalle schede scenario).
+	var depth := maxi(1, int(e.get("setup_%s_depth" % side, 3)))
 	if side == "axis":
 		for q in range(maxi(0, state.map_cols - depth), state.map_cols):
 			for r in state.map_rows:
