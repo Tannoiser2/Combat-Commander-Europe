@@ -49,7 +49,7 @@ Stima copertura motore: ~70%.
 | Resa / Casualty Track | ✅🟡 | **Resa implementata** (6.3/6.3.1): ogni uomo eliminato (no armi) conta come perdita della sua fazione; al raggiungimento della soglia di resa dello scenario (`resa_axis/allies`) la fazione perde, a prescindere dai VP; doppia resa simultanea → vince chi ha l'iniziativa. Restano i **marcatori** del track per rinforzi/recupero armi. |
 | Fortificazioni & marker | 🟡 | Buca/trincea (Trincerarsi → `HexData.has_foxhole`, +2 copertura) e fumo (Granate fumogene → `HexData.has_smoke`, hindrance) implementati. Restano mine, filo spinato, casamatta, incendio. |
 | Fuoco di Opportunità (A33) | ✅🟡 | Durante il movimento, il difensore reagisce col miglior tiratore idoneo (efficiente, in gittata/LOS, no mortai/cannoni); può interrompere il movimento se rompe il mover (`OpFire.gd`, `Game._op_fire`). Per ora il tiratore è scelto automaticamente (manca la scelta interattiva del giocatore). |
-| Fazioni & mazzi | 🟡 | Solo Germania+Russia (2/6); dati carta completi ma si usa solo l'ordine. No routing fazione→mazzo. |
+| Fazioni & mazzi | ✅🟡 | **Counter reali per tutte e 6 le nazioni** (fronte+rovescio, `assets/counters/`, mappa `(nazione,etichetta)→file`). Statistiche esatte per nazione. Restano i **mazzi** delle 4 nazioni mancanti (dati non disponibili nel repo): si usa il routing stand-in (Asse→tedesco, Alleati→russo). |
 | Iniziativa | 🟡 | Tracciata, usata per il pareggio in melee; nessuno scambio/re-roll. |
 | IA | 🟡 | Gioca la mano (fuoco/avanzata/recupero/rotta/mossa) con euristiche semplici. Manca copertura, rischio reattivo, difesa obiettivi. |
 | Scenari | 🟡 | Solo Scenario 1 giocabile in Godot (selettore lista 24; mappe in digitalizzazione). |

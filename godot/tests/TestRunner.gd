@@ -63,6 +63,7 @@ func _ready() -> void:
 	_test_surrender()
 	_test_sudden_death_roll()
 	_test_ordnance()
+	_test_counter_art()
 	_report()
 
 
@@ -743,6 +744,30 @@ func _test_ordnance() -> void:
 	_check(grp.size() == 1 and grp[0].id == "m", "l'ordnance spara da solo (no gruppo)")
 	var grp2 := Combat.fire_group(buddy, 5, 0, s)
 	_check(not grp2.any(func(u: Unit) -> bool: return u.id == "m"), "il mortaio non entra nel gruppo altrui")
+
+
+func _test_counter_art() -> void:
+	print("· Counter: arte reale per nazione (art_map + cartelle)")
+	var us := UnitChart.build_unit("a", RUS, "Line", 0, 0, "US")
+	_check(us.nation_art == "Americani" and us.art_name == "Line Squad", "Line US → Americani/Line Squad")
+	_check(ResourceLoader.exists("res://assets/counters/Americani/Line Squad.png"), "il counter US esiste")
+	var it := UnitChart.build_unit("b", GER, "Fucilieri", 0, 0, "IT")
+	_check(it.nation_art == "Italiani" and ResourceLoader.exists("res://assets/counters/Italiani/%s.png" % it.art_name), "Fucilieri IT ha il counter")
+	var ldr := UnitChart.build_unit("c", GER, "Lt. Schrader", 0, 0, "DE")
+	_check(ldr.art_name == "Lieutenant Y" and ResourceLoader.exists("res://assets/counters/Tedeschi/Lieutenant Y.png"), "leader DE → Tedeschi/Lieutenant Y")
+	# Tutte le unità dei 24 scenari hanno un counter risolvibile.
+	var unresolved := 0
+	for n in range(2, 25):
+		var st := GameState.new()
+		st.human_faction = GER
+		if not ScenarioLoader.setup(st, n):
+			continue
+		for u in st.units.values():
+			if u.art_name == "":
+				continue
+			if not ResourceLoader.exists("res://assets/counters/%s/%s.png" % [u.nation_art, u.art_name]):
+				unresolved += 1
+	_check(unresolved == 0, "ogni unità dei 24 scenari ha un counter esistente")
 
 
 func _report() -> void:

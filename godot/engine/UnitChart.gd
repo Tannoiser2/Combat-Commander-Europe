@@ -41,6 +41,51 @@ const _CONSCRIPT := {
 const CHART_PATH := "res://assets/scenarios/unit_chart.json"
 static var _chart: Dictionary = {}
 
+## Cartella dei counter (arte reale) per codice nazione.
+const COUNTER_DIR := {
+	"DE": "Tedeschi", "RU": "Russi", "US": "Americani",
+	"GB": "Britannici", "FR": "Francesi", "IT": "Italiani",
+}
+## Mappa (cartella → etichetta → nome file counter) per squadre/armi/team,
+## generata dai counter realmente disponibili (`assets/counters/art_map.json`).
+const ART_MAP_PATH := "res://assets/counters/art_map.json"
+static var _art_map: Dictionary = {}
+
+
+static func _art_data() -> Dictionary:
+	if _art_map.is_empty():
+		var f := FileAccess.open(ART_MAP_PATH, FileAccess.READ)
+		if f != null:
+			var d: Variant = JSON.parse_string(f.get_as_text())
+			f.close()
+			if d is Dictionary:
+				_art_map = d
+	return _art_map
+
+
+## Cartella arte della nazione (default Tedeschi per lo stand-in se non mappata).
+static func counter_folder(nat: String) -> String:
+	return String(COUNTER_DIR.get(nat, "Tedeschi"))
+
+
+## Nome file counter per (cartella, etichetta non-leader); fallback all'etichetta.
+static func _art_for(folder: String, label: String) -> String:
+	var byfolder: Dictionary = _art_data().get(folder, {})
+	return String(byfolder.get(label, label))
+
+
+## File counter del leader per grado (gli stessi nomi esistono in ogni nazione).
+static func _leader_art_file(label: String) -> String:
+	if label.contains("Hero"):
+		return "Hero"
+	if label.begins_with("Cpt."):
+		return "Captain"
+	if label.begins_with("Lt."):
+		return "Lieutenant Y"
+	if label.begins_with("Sgt."):
+		return "Sergeant X"
+	return "Corporal Y"
+
 
 ## Carica (una volta) la carta unità/armi.
 static func _data() -> Dictionary:
@@ -100,14 +145,19 @@ static func _is_weapon(label: String) -> bool:
 static func build_unit(id: String, faction: int, label: String, q: int, r: int, nat: String = "") -> Unit:
 	if nat == "":
 		nat = "DE" if faction == Domain.Faction.GERMAN else "RU"
+	var folder := counter_folder(nat)
 	var cat := category(label)
 	var u: Unit
 	if cat == Cat.LEADER:
 		u = _leader(id, faction, label)
+		u.art_name = _leader_art_file(label)
 	elif cat == Cat.WEAPON:
 		u = _weapon(id, faction, label, nat)
+		u.art_name = _art_for(folder, label)
 	else:
 		u = _squad(id, faction, label, nat)
+		u.art_name = _art_for(folder, label)
+	u.nation_art = folder
 	u.q = q
 	u.r = r
 	return u
