@@ -65,6 +65,7 @@ func _ready() -> void:
 	_test_ordnance()
 	_test_counter_art()
 	_test_decks()
+	_test_save_load()
 	_report()
 
 
@@ -797,6 +798,40 @@ func _test_decks() -> void:
 	st.human_faction = GER
 	if ScenarioLoader.setup(st, 2):
 		_check(st.axis_nation == "german" and st.allied_nation == "american", "scenario 2: Asse tedesco / Alleati americani")
+
+
+func _test_save_load() -> void:
+	print("· Salvataggio: round-trip dello stato")
+	var s := GameState.new()
+	s.human_faction = GER
+	if not ScenarioLoader.setup(s, 2):
+		_check(false, "scenario 2 caricato per il test")
+		return
+	s.german_deck = Cards.build_deck(s.axis_nation)
+	s.russian_deck = Cards.build_deck(s.allied_nation)
+	# Muta dello stato da verificare al ritorno.
+	s.vp_tracker = 5; s.time_marker = 3; s.turn_number = 4
+	s.casualties[GER] = 2
+	var any_id: String = s.units.keys()[0]
+	s.units[any_id].efficient = false
+	s.units[any_id].suppressed = true
+
+	var path := "user://test_save.json"
+	_check(SaveGame.save_state(s, path), "salvataggio scritto su file")
+	var s2 := SaveGame.load_state(path)
+	_check(s2 != null, "caricamento riuscito")
+	if s2 == null:
+		return
+	_check(s2.units.size() == s.units.size(), "stesso numero di unità")
+	_check(s2.vp_tracker == 5 and s2.time_marker == 3 and s2.turn_number == 4, "scalari (VP/tempo/turno) ripristinati")
+	_check(int(s2.casualties[GER]) == 2, "perdite ripristinate")
+	_check(s2.allied_nation == "american", "nazione alleata ripristinata")
+	_check(s2.german_deck.size() == 72 and s2.russian_deck.size() == 72, "mazzi ripristinati (72+72)")
+	_check(s2.objectives.size() == s.objectives.size(), "obiettivi ripristinati")
+	_check(s2.hexes.size() == s.hexes.size(), "mappa (hex) ripristinata")
+	var u2: Unit = s2.units.get(any_id)
+	_check(u2 != null and not u2.efficient and u2.suppressed, "stato unità (rotta+soppressa) ripristinato")
+	DirAccess.remove_absolute("user://test_save.json")
 
 
 func _report() -> void:
