@@ -64,6 +64,7 @@ func _ready() -> void:
 	_test_sudden_death_roll()
 	_test_ordnance()
 	_test_counter_art()
+	_test_decks()
 	_report()
 
 
@@ -768,6 +769,34 @@ func _test_counter_art() -> void:
 			if not ResourceLoader.exists("res://assets/counters/%s/%s.png" % [u.nation_art, u.art_name]):
 				unresolved += 1
 	_check(unresolved == 0, "ogni unità dei 24 scenari ha un counter esistente")
+
+
+func _test_decks() -> void:
+	print("· Mazzi: tutte e 6 le nazioni (routing + validità)")
+	for nat in ["german", "russian", "american", "british", "french", "italian"]:
+		var deck := Cards.build_deck(nat)
+		var nums := {}
+		var dice_ok := true
+		var ord_ok := true
+		var valid := [Domain.OrderType.FIRE, Domain.OrderType.MOVE, Domain.OrderType.ADVANCE,
+			Domain.OrderType.RECOVER, Domain.OrderType.ROUT, Domain.OrderType.PASS,
+			Domain.OrderType.ARTY, Domain.OrderType.ARTY_DENIED]
+		for c in deck:
+			nums[c.number] = true
+			if c.dice_white < 1 or c.dice_white > 6 or c.dice_red < 1 or c.dice_red > 6:
+				dice_ok = false
+			if not valid.has(c.order):
+				ord_ok = false
+		_check(deck.size() == 72 and nums.size() == 72, "%s: 72 carte con numeri unici" % nat)
+		_check(dice_ok and ord_ok, "%s: dadi 1-6 e ordini validi" % nat)
+	# Routing nazioni minori → capofila.
+	_check(Cards.build_deck("canadian").size() == 72, "canadian → mazzo inglese")
+	_check(Cards.build_deck("romanian").size() == 72, "romanian → mazzo italiano")
+	# Routing per scenario: lo slot Alleati prende la nazione reale.
+	var st := GameState.new()
+	st.human_faction = GER
+	if ScenarioLoader.setup(st, 2):
+		_check(st.axis_nation == "german" and st.allied_nation == "american", "scenario 2: Asse tedesco / Alleati americani")
 
 
 func _report() -> void:

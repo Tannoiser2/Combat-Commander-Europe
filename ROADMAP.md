@@ -97,13 +97,14 @@ la logica regola per regola. Stato del motore Godot:
    (assenti dalla carta base → fallback generico per tipo) e i **leader**
    (profilo rappresentativo per grado: i valori del singolo ufficiale sono sul
    counter, non nel catalogo).
-3. **Fazioni reali**: ~~artwork counter delle nazioni mancanti~~ ✅ **fatto**
-   (counter reali per tutte e 6 le nazioni, fronte+rovescio, copiati e
-   ridimensionati da `Tabelle_Materiali` in `assets/counters/`, mappati per
-   `(nazione, etichetta)` via `art_map.json`; `nation_art` su `Unit`). Resta
-   solo il lato **mazzi**: i 4 deck mancanti (americano/inglese/italiano/
-   francese) non hanno i dati nel repo, quindi si usa ancora il routing
-   stand-in (Asse→mazzo tedesco, Alleati→mazzo russo).
+3. ~~**Fazioni reali**: artwork counter + mazzi delle nazioni mancanti~~ ✅
+   **fatto**. (a) Counter reali per tutte e 6 le nazioni (fronte+rovescio,
+   `assets/counters/`, mappa `art_map.json`, `Unit.nation_art`). (b) **Tutti e
+   6 i mazzi del Fato** (`assets/cards/<naz>_deck.json`, 72 carte) ricostruiti
+   dal **Card Manifest** (ordini/dadi/hex/consequence per coordinate, nomi
+   tradotti EN→IT allineando Germania/Russia ai deck esistenti); routing
+   `fazione→mazzo` in `Cards.build_deck` (minori→capofila) e slot Asse/Alleati
+   caricati da `axis_nation/allied_nation` dello scenario.
 4. **Armi/equipaggiamenti non modellati**: ~~mortai come fuoco indiretto
    (Targeting Roll + gittata minima)~~ ✅ **fatto** (ordnance generico:
    `Unit.ordnance/min_range`, `Combat` Targeting Roll d1×d2 > gittata+hindrance,

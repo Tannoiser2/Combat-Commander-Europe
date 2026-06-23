@@ -16,6 +16,24 @@ static func build_russian_deck() -> Array[Card]:
 	return _load_deck("res://assets/cards/russian_deck.json")
 
 
+## Routing fazione → file mazzo. Le 6 nazioni hanno un mazzo proprio; le minori
+## usano la capofila (come stat e counter): rumeni→italiano, Commonwealth→
+## inglese, brasiliani→americano, polacchi/jugoslavi→francese.
+const DECK_FILE := {
+	"german": "german", "italian": "italian", "romanian": "italian",
+	"american": "american", "brazilian": "american",
+	"british": "british", "canadian": "british", "anzac": "british",
+	"french": "french", "polish": "french", "yugoslav": "french",
+	"russian": "russian",
+}
+
+
+## Carica il mazzo del Fato della nazione indicata (default tedesco).
+static func build_deck(nation: String) -> Array[Card]:
+	var file := String(DECK_FILE.get(nation, "german"))
+	return _load_deck("res://assets/cards/%s_deck.json" % file)
+
+
 static func _load_deck(path: String) -> Array[Card]:
 	var deck: Array[Card] = []
 	var f := FileAccess.open(path, FileAccess.READ)

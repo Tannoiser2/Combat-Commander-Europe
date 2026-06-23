@@ -34,7 +34,8 @@ static func _n(d: Dictionary, key: String, fallback: int = 0) -> int:
 static func from_dict(d: Dictionary) -> Card:
 	var c := Card.new()
 	c.id = _s(d, "deckCardId")
-	c.faction = Domain.Faction.GERMAN if _s(d, "faction") == "german" else Domain.Faction.RUSSIAN
+	# Le nazioni dell'Asse usano lo stile carta tedesco, le Alleate quello russo.
+	c.faction = Domain.Faction.GERMAN if _s(d, "faction") in ["german", "italian", "romanian"] else Domain.Faction.RUSSIAN
 	c.number = _n(d, "number")
 	c.order = Domain.ORDER_TYPE_FROM_STRING.get(_s(d, "orderType"), Domain.OrderType.PASS)
 	c.order_label = _s(d, "orderLabel", _s(d, "orderName"))
