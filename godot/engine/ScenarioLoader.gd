@@ -53,11 +53,20 @@ static func setup(state: GameState, num: int) -> bool:
 	state.scenario_number = num
 	state.scenario_name = String(e.get("nome", "Scenario %d" % num))
 	state.sudden_death_space = int(e.get("sudden_death", 7))
-	state.time_marker = 1
+	# Casella iniziale del segnalino Tempo (6.1.1: «di solito 0»). Campo opzionale
+	# del catalogo per scenari che partono da una casella diversa (es. anno).
+	state.time_marker = int(e.get("tempo_iniziale", 0))
 	state.vp_tracker = int(e.get("vp_iniziali", 0))  # >0 Axis(GER), <0 Allied(RUS)
 	var init_axis := String(e.get("iniziativa", "axis")) == "axis"
 	state.initiative_holder = Domain.Faction.GERMAN if init_axis else Domain.Faction.RUSSIAN
 	state.active_faction = state.initiative_holder
+
+	# Mano per fazione (qualità truppe) e soglie di resa (Casualty Track).
+	# Stand-in: axis → Tedeschi (GERMAN), allies → Russi (RUSSIAN).
+	state.hand_size[Domain.Faction.GERMAN] = int(e.get("mano_axis", Cards.HAND_SIZE))
+	state.hand_size[Domain.Faction.RUSSIAN] = int(e.get("mano_allies", Cards.HAND_SIZE))
+	state.surrender_threshold[Domain.Faction.GERMAN] = int(e.get("resa_axis", 0))
+	state.surrender_threshold[Domain.Faction.RUSSIAN] = int(e.get("resa_allies", 0))
 
 	# Ordini: max_orders è dell'umano, ai_max_orders dell'IA.
 	var ord_axis := int(e.get("ordini_axis", 2))
@@ -81,6 +90,8 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 	var hexes := _setup_hexes(state, e, side)
 	if hexes.is_empty():
 		hexes.append(Vector2i(0, 0))
+	# Nazione reale del lato → statistiche esatte (l'arte resta stand-in).
+	var nat := UnitChart.nation_code(String(e.get("fazione_%s" % side, "")))
 	var forces: Array = e.get("forze_%s" % side, [])
 	var idx := 0
 	var fox := 0
@@ -102,7 +113,7 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 			idx += 1
 			var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
 			seq += 1
-			state.units[id] = UnitChart.build_unit(id, faction, label, pos.x, pos.y)
+			state.units[id] = UnitChart.build_unit(id, faction, label, pos.x, pos.y, nat)
 
 
 ## Caselle di setup di un lato: ancore (in/adiacenti) o bordo+profondità.

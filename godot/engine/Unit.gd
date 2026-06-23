@@ -20,6 +20,8 @@ var move: int = 4
 var morale: int = 7
 var command: int = 0       # solo leader: valore in cerchio
 var move_penalty: int = 0  # solo armi: malus al PM del trasportatore
+var ordnance: bool = false # arma a barra bianca (mortaio/cannone): Targeting Roll
+var min_range: int = 0     # gittata minima (mortai: non possono sparare troppo vicino)
 
 # ─── Posizione sulla griglia ─────────────────────────────────────────────────
 var q: int = 0
@@ -113,6 +115,7 @@ func clone() -> Unit:
 	u.range = range; u.range_boxed = range_boxed
 	u.move = move; u.morale = morale
 	u.command = command; u.move_penalty = move_penalty
+	u.ordnance = ordnance; u.min_range = min_range
 	u.q = q; u.r = r
 	u.efficient = efficient; u.suppressed = suppressed
 	u.activated = activated; u.veteran = veteran

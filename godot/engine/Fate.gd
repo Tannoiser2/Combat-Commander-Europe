@@ -99,7 +99,7 @@ static func _consequence_sniper(
 		victim.break_unit()
 		lines.append("Cecchino: %s rotta (vicino a %s)." % [victim.unit_name, card.random_hex_label])
 	else:
-		state.units.erase(victim.id)
+		state.eliminate_unit(victim.id)
 		lines.append("Cecchino: %s eliminata (vicino a %s)." % [victim.unit_name, card.random_hex_label])
 
 

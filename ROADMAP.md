@@ -45,19 +45,68 @@ la logica regola per regola. Stato del motore Godot:
   **`_calib`** del JSON con la geometria dell'editor → griglia/esagoni/click/pedine
   allineati (verificato a video dall'utente: **funziona**).
 
+### Resoconto sessione 23 giu 2026 (TODO #1, parte "dati/motore")
+- **Mano per scenario**: la dimensione della mano è ora **per fazione**
+  (`mano_axis/allies` dal catalogo → `GameState.hand_size`), distribuita da
+  `Cards.deal_initial` e mantenuta dal refill 1↔1. Scenario 1 (curato) usa i
+  suoi valori da `Scenario1.SETUP`.
+- **Resa / Casualty Track (6.3/6.3.1)**: `GameState.eliminate_unit()` è ora
+  l'unico punto da cui le unità lasciano lo stato e conta come **perdita** ogni
+  uomo eliminato (le armi vanno nella scatola centrale e non contano). Al
+  raggiungimento della soglia di resa dello scenario (`resa_axis/allies`) la
+  fazione perde a prescindere dai VP; **doppia resa simultanea → vince chi ha
+  l'iniziativa**. Wiring in `ScenarioLoader`/`Scenario1`, check in
+  `Game._check_end_conditions`/`_resolve_loss`. Test motore aggiunti.
+- Nota di regola verificata dal rulebook: la *resa* dipende dal **Casualty
+  Track** (numero di uomini persi), **non** dal totale VP né da `vpStart`
+  (che resta l'adeguamento VP iniziale a favore del difensore).
+
+### Aggiornamento sessione 23 giu 2026 (TODO #1 completato)
+- **Morte Subitanea come tiro (6.2.2)**: quando un Tempo! porta il segnalino
+  Tempo in/oltre la casella di Morte Subitanea, il giocatore che lo ha innescato
+  pesca una carta del Fato (2d6); se il risultato è **< numero della casella
+  Tempo** la partita finisce subito (vincitore ai VP, 6.3.2), altrimenti
+  prosegue. Il numero cresce con l'avanzare del Tempo, quindi la fine è garantita
+  (a casella 13 il 2d6 è sempre minore). (`Game._check_sudden_death`/`_apply_fate`)
+- **Segnalino Tempo iniziale**: il loader parte dalla casella `tempo_iniziale`
+  (default **0**, «di solito 0» da 6.1.1; Scenario 1 mantiene la sua casella 2).
+- Dati verificati dal rulebook + Esempio di Gioco: Time Track numerato 0,1,2…;
+  marker iniziale su «0», Morte Subitanea su una casella numerata.
+
+### Aggiornamento sessione 23 giu 2026 (TODO #2: statistiche unità esatte)
+- `UnitChart` ora è **data-driven** dalla carta ufficiale "Unit & Weapon"
+  (`assets/scenarios/unit_chart.json`): 65 unità (leader/squadre/team) + armi
+  per nazione, con FP/Gittata/Movimento/Comando/Morale e flag *boxed* reali,
+  estratti dal PDF per coordinate e validati su valori canonici (Eroe, Rifle).
+- Lookup per **(nazione reale, etichetta)**: `ScenarioLoader` passa la nazione
+  da `fazione_axis/allies` (minori → capofila, come il routing dei mazzi). L'arte
+  dei counter resta stand-in (Asse→Tedeschi, Alleati→Russi).
+- Fallback: MG .30cal americane (assenti dalla carta base) → profilo generico
+  per tipo; leader → profilo rappresentativo per grado.
+
 ### TODO prioritario (prossima sessione)
-1. **Fedeltà scenario "facile"** (solo dati/motore): collegare hand size per
-   qualità truppe (`mano_axis/allies`), time-track iniziale per scenario,
-   soglie di **resa** (`resa_axis/allies`) + Sudden Death + VP da obiettivi.
-   Valori mancanti estraibili da `Scenari.pdf` (materiali).
-2. **Statistiche unità esatte**: rivedere `UnitChart.gd` sulle schede Unit &
-   Weapon ufficiali (oggi sono valori standard approssimati).
+1. ~~**Fedeltà scenario "facile"** (TODO #1: hand size, soglie di resa, Sudden
+   Death, time-track iniziale)~~ ✅ **completato**. Resta solo il dato
+   per-scenario di `tempo_iniziale`/anno (oggi default 0) da estrarre dalle
+   schede scenario, se si vuole la casella di partenza esatta per ognuno.
+2. ~~**Statistiche unità esatte**: rivedere `UnitChart.gd` sulle schede Unit &
+   Weapon ufficiali~~ ✅ **fatto**. `UnitChart` ora è data-driven dalla carta
+   ufficiale (`assets/scenarios/unit_chart.json`, 65 unità + armi per nazione,
+   estratta dal PDF), con lookup per **(nazione reale, etichetta)** passando
+   `fazione_axis/allies`. Restano due punti minori: le MG .30cal **americane**
+   (assenti dalla carta base → fallback generico per tipo) e i **leader**
+   (profilo rappresentativo per grado: i valori del singolo ufficiale sono sul
+   counter, non nel catalogo).
 3. **Fazioni reali**: mazzi + artwork counter delle nazioni mancanti
    (americani, inglesi, italiani, francesi, polacchi, ecc.); mappare
    `fazione_axis/allies` → deck + cartella counter. Aggiungere `Russi_Half`
    (unità russe rotte ora usano il rettangolo di ripiego).
-4. **Armi/equipaggiamenti non modellati**: mortai come fuoco indiretto;
-   artiglieria via Radio (Targeting Roll); poi lanciafiamme/cariche/molotov;
+4. **Armi/equipaggiamenti non modellati**: ~~mortai come fuoco indiretto
+   (Targeting Roll + gittata minima)~~ ✅ **fatto** (ordnance generico:
+   `Unit.ordnance/min_range`, `Combat` Targeting Roll d1×d2 > gittata+hindrance,
+   esclusione dal gruppo di fuoco e dall'Op Fire). Restano: **artiglieria via
+   Radio** (oggi le radio sono saltate dal loader; servono spotter/LOS/scatter),
+   colpi **fumogeni** dell'ordnance (O20.2.1), lanciafiamme/cariche/molotov,
    fortificazioni filo/mine/bunker (oggi ignorati; buche/trincee → foxhole).
 5. **Regole speciali (SSR)** per scenario: framework a hook + caso per caso.
 6. **Setup fedele**: disposizioni esatte dalle schede o editor di piazzamento.
@@ -89,11 +138,16 @@ la logica regola per regola. Stato del motore Godot:
 | 🟢 Fatto | Fuoco di Opportunità (A33) | Durante il movimento il difensore reagisce col miglior tiratore idoneo (no mortai/cannoni, in gittata/LOS); può interrompere il movimento. (`OpFire.gd`, `Game._op_fire`) Tiratore scelto in automatico (scelta interattiva da fare). |
 | 🟢 Fatto | Obiettivi/VP live | Controllo obiettivi e bilancia VP aggiornati dopo ogni azione; vittoria automatica controllando tutti gli obiettivi. (`Game._update_objectives`, `_check_end_conditions`) |
 | 🟢 Fatto | LOS/terreno avanzati | Linea di esagoni corretta (`HexGrid.line`/`_cube_round`); LOS bloccata da lati muro/siepe (intermedi) e bocage, varco LOS_CLEAR, hindrance cumulativo ed elevazione; movimento con costo dei lati + tariffa strada (`HexGrid.step_cost`). |
-| 🟡 Da fare | Artiglieria | Ordini ARTY/ARTY_DENIED ancora scartati: mancano Targeting Roll, spotter/LOS, scatter. |
+| 🟢 Fatto | Ordnance / mortai (O20.2) | Mortai e cannoni hanno `ordnance`+`min_range`; spari soggetti a **Targeting Roll** (d1×d2 > gittata+hindrance, mancato → nessun effetto), gittata minima, niente Comando/hindrance sull'FP, esclusi da gruppo di fuoco e Op Fire. (`Unit`, `Combat`, `UnitChart`) |
+| 🟡 Da fare | Artiglieria via Radio | Le radio (artiglieria fuori mappa) sono ancora saltate dal loader: mancano spotter/LOS, Spotting Round, scatter. (I mortai in mappa ora funzionano, vedi Ordnance.) |
 | 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
 | 🟢 Fatto | IA che gioca la mano | `AI.gd`: l'IA sceglie e risolve fino a `ai_max_orders` ordini dalla propria mano (Fuoco col bersaglio migliore, Avanzata in melee vantaggiosa, Recupero/Rotta delle unità rotte, Mossa verso l'obiettivo più vicino). (`AI.choose_play`, `Game._ai_execute`) |
 | 🟡 Da fare | IA avanzata | Valutazioni più fini: copertura, rischio di fuoco reattivo, difesa degli obiettivi propri, scelta del gruppo di fuoco multi-esagono. |
-| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; mancano hand size, time-track, soglie di resa, statistiche unità esatte, fazioni/artwork reali, armi speciali, SSR (vedi TODO sopra). |
+| 🟢 Fatto | Resa (Casualty Track) | Uomini eliminati contati per fazione (`GameState.eliminate_unit`); soglia `resa_axis/allies` → sconfitta immediata; doppia resa → iniziativa decide (6.3.1). (`Game._check_end_conditions`/`_resolve_loss`) |
+| 🟢 Fatto | Mano per scenario | Dimensione mano per fazione da `mano_axis/allies` (`GameState.hand_size`, `Cards.deal_initial`). |
+| 🟢 Fatto | Morte Subitanea (6.2.2) | Tiro 2d6 all'avanzamento del Tempo in/oltre la casella di Morte Subitanea: < numero casella Tempo → fine (vincitore ai VP); la probabilità cresce col Tempo. Segnalino Tempo iniziale `tempo_iniziale` (def. 0). (`Game._check_sudden_death`) |
+| 🟢 Fatto | Statistiche unità esatte | `UnitChart` data-driven dalla carta ufficiale (`assets/scenarios/unit_chart.json`): FP/Gittata/Movimento/Comando/Morale + boxed reali per **(nazione, etichetta)**; armi per nazione (FP/gittata/malus PM). Nazione reale passata da `ScenarioLoader`. Fallback per MG .30cal US e leader per grado. |
+| 🟡 In corso | Fedeltà scenari 2-24 | Avviabili con stand-in; ora con hand size, soglie di resa, Morte Subitanea, casella Tempo iniziale e **statistiche unità esatte per nazione**. Restano: fazioni/artwork reali dei counter, armi speciali (mortai indiretti/artiglieria/lanciafiamme), SSR (vedi TODO sopra). |
 
 ## Milestone 0: Base Tecnica
 

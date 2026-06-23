@@ -454,14 +454,18 @@ func _op_fire(mover: Unit, defender: int) -> bool:
 
 
 ## Applica la conseguenza della carta del Fato (Tempo!/Cecchino/Inceppamento/
-## Evento) e controlla l'eventuale Morte Subitanea.
+## Evento) e, se un Tempo! ha appena fatto avanzare la traccia dentro o oltre la
+## casella della Morte Subitanea, esegue il tiro di Morte Subitanea (6.2.2).
 func _apply_fate(card: Card, faction: int, context: Dictionary = {}) -> void:
 	if card == null:
 		return
+	var prev_time := state.time_marker
 	for line in Fate.apply_consequence(state, card, faction, context):
 		_log("Fato — " + line)
-	if state.time_marker >= state.sudden_death_space and state.phase != Domain.Phase.GAME_OVER:
-		_check_sudden_death()
+	if state.time_marker > prev_time \
+			and state.time_marker >= state.sudden_death_space \
+			and state.phase != Domain.Phase.GAME_OVER:
+		_check_sudden_death(faction)
 
 
 func _end_player_turn() -> void:
@@ -476,9 +480,9 @@ func _end_player_turn() -> void:
 		u.activated = false
 
 	# Il tempo NON avanza a ogni turno: in CC:E si muove solo con un "Tempo!"
-	# pescato dal Mazzo del Fato (vedi Fate._consequence_time).
-	if state.time_marker >= state.sudden_death_space:
-		_check_sudden_death()
+	# pescato dal Mazzo del Fato (vedi Fate._consequence_time). La Morte Subitanea
+	# è quindi risolta nel momento dell'avanzamento (vedi _apply_fate), non qui.
+	if state.phase == Domain.Phase.GAME_OVER:
 		return
 
 	state.turn_number += 1
@@ -644,26 +648,62 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 
 # ─── Fine partita ─────────────────────────────────────────────────────────────
 
-## Da chiamare dopo ogni azione: aggiorna obiettivi/VP, controlla la vittoria
-## automatica (tutti gli obiettivi) e l'eliminazione totale di una fazione.
+## Da chiamare dopo ogni azione: aggiorna obiettivi/VP, controlla la resa
+## (Casualty Track), la vittoria automatica (tutti gli obiettivi) e
+## l'eliminazione totale di una fazione.
 func _check_end_conditions() -> void:
+	# Resa (6.3.1): le perdite di una fazione hanno raggiunto la sua soglia →
+	# sconfitta immediata, a prescindere dai VP. Ha la precedenza su obiettivi/VP.
+	var ger_surr := state.has_surrendered(Domain.Faction.GERMAN)
+	var rus_surr := state.has_surrendered(Domain.Faction.RUSSIAN)
+	if ger_surr or rus_surr:
+		_resolve_loss(ger_surr, rus_surr, "resa")
+		return
+
 	var sweep := _update_objectives()
 	if sweep != -1:
 		_log("%s controlla tutti gli obiettivi — vittoria automatica!" % Domain.FACTION_NAMES.get(sweep, "?"))
 		_end_game(sweep)
 		return
+
+	# Ultima unità sulla mappa eliminata (6.3, situazione 2).
 	var ger_units := state.units_of(Domain.Faction.GERMAN).size()
 	var rus_units := state.units_of(Domain.Faction.RUSSIAN).size()
-	if ger_units == 0:
-		_end_game(Domain.Faction.RUSSIAN)
-	elif rus_units == 0:
-		_end_game(Domain.Faction.GERMAN)
+	if ger_units == 0 or rus_units == 0:
+		_resolve_loss(ger_units == 0, rus_units == 0, "annientamento")
 
 
-func _check_sudden_death() -> void:
-	_log("⏰ MORTE SUBITANEA — fine partita!")
-	var winner := _count_objectives()
+## Conclude la partita quando una o entrambe le fazioni hanno perso (6.3.1):
+## in caso di doppia sconfitta simultanea vince chi detiene l'iniziativa.
+func _resolve_loss(ger_lost: bool, rus_lost: bool, reason: String) -> void:
+	var winner: int
+	if ger_lost and rus_lost:
+		winner = state.initiative_holder
+		_log("Doppia sconfitta (%s) — l'iniziativa decide il vincitore." % reason)
+	elif ger_lost:
+		winner = Domain.Faction.RUSSIAN
+		_log("%s si arrende (%s)." % [Domain.FACTION_NAMES.get(Domain.Faction.GERMAN, "?"), reason])
+	else:
+		winner = Domain.Faction.GERMAN
+		_log("%s si arrende (%s)." % [Domain.FACTION_NAMES.get(Domain.Faction.RUSSIAN, "?"), reason])
 	_end_game(winner)
+
+
+## Tiro di Morte Subitanea (6.2.2): il giocatore che ha innescato l'avanzamento
+## del Tempo pesca una carta del Fato (= 2d6, dopo il rimescolo già fatto da
+## TEMPO!). Se il risultato è MINORE del numero della casella ora occupata dal
+## segnalino Tempo, la partita finisce subito e il vincitore è deciso ai VP
+## (6.3.2); altrimenti si prosegue. La carta tirata serve solo per i dadi: la sua
+## conseguenza non si applica, per evitare inneschi a catena.
+func _check_sudden_death(triggering_faction: int) -> void:
+	var dice := _dice_of(_draw_fate(triggering_faction))
+	var total := dice.x + dice.y
+	var space := state.time_marker
+	if total < space:
+		_log("⏰ MORTE SUBITANEA: tiro %d < %d (casella Tempo) — fine partita." % [total, space])
+		_end_game(_count_objectives())
+	else:
+		_log("Morte Subitanea evitata: tiro %d ≥ %d (casella Tempo)." % [total, space])
 
 
 ## Ricalcola il controllo degli obiettivi e la bilancia VP (in-place).

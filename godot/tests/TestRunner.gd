@@ -59,6 +59,10 @@ func _ready() -> void:
 	_test_maps_load()
 	_test_unit_chart()
 	_test_scenarios_load()
+	_test_scenario_fidelity()
+	_test_surrender()
+	_test_sudden_death_roll()
+	_test_ordnance()
 	_report()
 
 
@@ -581,18 +585,28 @@ func _test_maps_load() -> void:
 
 
 func _test_unit_chart() -> void:
-	print("· UnitChart: categorie e statistiche")
+	print("· UnitChart: categorie e statistiche esatte (carta ufficiale)")
 	_check(UnitChart.category("Lt. Schrader") == UnitChart.Cat.LEADER, "Lt. → leader")
 	_check(UnitChart.category("Heavy MG") == UnitChart.Cat.WEAPON, "Heavy MG → arma")
-	_check(UnitChart.category("Rifle") == UnitChart.Cat.SQUAD, "Rifle → squadra")
-	_check(UnitChart.category("Foxholes") == UnitChart.Cat.FOXHOLE, "Foxholes → buca")
+	_check(UnitChart.category("Weapon Team") == UnitChart.Cat.SQUAD, "Weapon Team → squadra")
 	_check(UnitChart.category("Radio 105mm") == UnitChart.Cat.SKIP, "Radio → ignorata")
-	var ldr := UnitChart.build_unit("x", GER, "Cpt. Wehling", 0, 0)
-	_check(ldr.command >= 2 and ldr.is_leader(), "il capitano ha comando ≥2")
-	var mg := UnitChart.build_unit("y", RUS, "Medium MG", 1, 1)
-	_check(mg.is_weapon() and mg.range >= 10, "MMG è un'arma a lunga gittata")
-	var sq := UnitChart.build_unit("z", GER, "Elite Rifle", 2, 2)
-	_check(sq.morale >= 8 and sq.fp >= 6, "squadra élite: morale e FP alti")
+	# nation_code (incluse le nazioni minori)
+	_check(UnitChart.nation_code("american") == "US", "american → US")
+	_check(UnitChart.nation_code("canadian") == "GB", "canadian → GB")
+	_check(UnitChart.nation_code("romanian") == "IT", "romanian → IT")
+	# Statistiche ESATTE per (nazione, etichetta).
+	var de_rifle := UnitChart.build_unit("a", GER, "Rifle", 0, 0, "DE")
+	_check(de_rifle.fp == 5 and de_rifle.range == 5 and de_rifle.morale == 7, "Rifle tedesco: FP5/R5/Mor7")
+	var ru_rifle := UnitChart.build_unit("b", RUS, "Rifle", 0, 0, "RU")
+	_check(ru_rifle.fp == 5 and ru_rifle.range == 3 and ru_rifle.morale == 8, "Rifle russo: FP5/R3/Mor8")
+	var us_line := UnitChart.build_unit("c", RUS, "Line", 0, 0, "US")
+	_check(us_line.fp == 6 and us_line.morale == 6, "Line americano: FP6/Mor6")
+	var cpt := UnitChart.build_unit("d", GER, "Cpt. Wehling", 0, 0, "DE")
+	_check(cpt.command == 2 and cpt.morale == 10 and cpt.is_leader(), "Capitano: comando2/morale10")
+	var lmg := UnitChart.build_unit("e", GER, "Light MG", 0, 0, "DE")
+	_check(lmg.is_weapon() and lmg.fp == 4 and lmg.range == 8, "Light MG tedesca: FP4/R8")
+	var hero := UnitChart.build_unit("h", RUS, "Smith, King's Hero", 0, 0, "GB")
+	_check(hero.fp == 2 and hero.range == 4 and hero.morale == 9, "Eroe: FP2/R4/Mor9")
 
 
 func _test_scenarios_load() -> void:
@@ -614,6 +628,121 @@ func _test_scenarios_load() -> void:
 			else: rus += 1
 		_check(in_bounds, "scenario %d: unità tutte dentro la mappa" % n)
 		_check(ger > 0 and rus > 0, "scenario %d: entrambe le fazioni schierate" % n)
+
+
+func _test_scenario_fidelity() -> void:
+	print("· Fedeltà scenario: mano e soglie di resa dal catalogo")
+	var st := GameState.new()
+	st.human_faction = GER
+	_check(ScenarioLoader.setup(st, 2), "scenario 2 caricato")
+	# Catalogo scenario 2: mano_axis 4 / mano_allies 5, resa_axis 8 / resa_allies 9.
+	_check(st.hand_size_of(GER) == 4, "mano Axis (scen.2) = 4")
+	_check(st.hand_size_of(RUS) == 5, "mano Allies (scen.2) = 5")
+	_check(int(st.surrender_threshold[GER]) == 8, "soglia resa Axis (scen.2) = 8")
+	_check(int(st.surrender_threshold[RUS]) == 9, "soglia resa Allies (scen.2) = 9")
+
+
+func _test_surrender() -> void:
+	print("· Resa: Casualty Track, soglie e tie-break iniziativa")
+	var s := _new_state()
+	s.surrender_threshold[RUS] = 2
+	var r1 := _mk("RUS-0", RUS, SQUAD, RIFLE, 0, 0)
+	var r2 := _mk("RUS-1", RUS, SQUAD, RIFLE, 1, 0)
+	var w := _mk("RUS-2", RUS, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 2, 0)
+	var g := _mk("GER-0", GER, SQUAD, RIFLE, 4, 4)
+	s.units[r1.id] = r1
+	s.units[r2.id] = r2
+	s.units[w.id] = w
+	s.units[g.id] = g
+
+	s.eliminate_unit(w.id)
+	_check(int(s.casualties[RUS]) == 0, "l'arma eliminata non conta sul Casualty Track")
+	s.eliminate_unit(r1.id)
+	_check(int(s.casualties[RUS]) == 1, "uomo eliminato = 1 perdita")
+	_check(not s.has_surrendered(RUS), "1 perdita < soglia 2 → nessuna resa")
+	s.eliminate_unit(r2.id)
+	_check(int(s.casualties[RUS]) == 2, "secondo uomo eliminato = 2 perdite")
+	_check(s.has_surrendered(RUS), "perdite ≥ soglia → resa")
+
+	# _check_end_conditions deve concludere con vittoria tedesca (RUS si arrende).
+	var winner := { "f": -99 }
+	var cb := func(w2: int) -> void: winner["f"] = w2
+	Game.state = s
+	Game.game_over.connect(cb)
+	Game._check_end_conditions()
+	_check(s.phase == Domain.Phase.GAME_OVER, "la resa termina la partita")
+	_check(int(winner["f"]) == GER, "la resa russa fa vincere i Tedeschi")
+	Game.game_over.disconnect(cb)
+
+	# Doppia resa simultanea → vince chi detiene l'iniziativa (6.3.1).
+	var s2 := _new_state()
+	s2.surrender_threshold[GER] = 1
+	s2.surrender_threshold[RUS] = 1
+	s2.casualties[GER] = 1
+	s2.casualties[RUS] = 1
+	s2.initiative_holder = RUS
+	var winner2 := { "f": -99 }
+	var cb2 := func(w2: int) -> void: winner2["f"] = w2
+	Game.state = s2
+	Game.game_over.connect(cb2)
+	Game._check_end_conditions()
+	_check(int(winner2["f"]) == RUS, "doppia resa: vince chi ha l'iniziativa")
+	Game.game_over.disconnect(cb2)
+	Game.state = null
+
+
+func _test_sudden_death_roll() -> void:
+	print("· Morte Subitanea: tiro 2d6 vs casella Tempo (6.2.2)")
+	# Tiro 2 < casella 8 → la partita finisce.
+	var s := _new_state()
+	s.time_marker = 8
+	s.sudden_death_space = 7
+	s.german_deck.append(_fate_card(1, 1))  # 2d6 = 2
+	Game.state = s
+	Game._check_sudden_death(GER)
+	_check(s.phase == Domain.Phase.GAME_OVER, "tiro < casella Tempo → fine partita")
+
+	# Tiro 12 ≥ casella 7 → la partita continua.
+	var s2 := _new_state()
+	s2.time_marker = 7
+	s2.sudden_death_space = 7
+	s2.german_deck.append(_fate_card(6, 6))  # 2d6 = 12
+	Game.state = s2
+	Game._check_sudden_death(GER)
+	_check(s2.phase != Domain.Phase.GAME_OVER, "tiro ≥ casella Tempo → la partita continua")
+
+	# tempo_iniziale: il loader parte dalla casella 0 (6.1.1, «di solito 0»).
+	var s3 := GameState.new()
+	s3.human_faction = GER
+	_check(ScenarioLoader.setup(s3, 2), "scenario 2 caricato")
+	_check(s3.time_marker == 0, "segnalino Tempo iniziale = 0 (default rulebook)")
+	Game.state = null
+
+
+func _test_ordnance() -> void:
+	print("· Ordnance: Targeting Roll, gittata minima, fuori dal gruppo (O20.2)")
+	var s := _new_state(8, 3)
+	var mortar := _mk("m", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MORTAR, 0, 0, 8, 0, 14, 0)
+	mortar.ordnance = true
+	mortar.min_range = 2
+	var tgt := _mk("t", RUS, SQUAD, RIFLE, 5, 0, 5, 7)
+	s.units[mortar.id] = mortar
+	s.units[tgt.id] = tgt
+	# Targeting MANCATO: 1×2 = 2 ≤ gittata → nessun effetto.
+	var miss := Combat.resolve_fire(mortar, 5, 0, s, Vector2i(1, 2), Vector2i(3, 3))
+	_check(miss.fp_total == 0 and s.units["t"].efficient, "targeting mancato (prodotto basso) → nessun effetto")
+	# Targeting COLPITO: 6×6 = 36 > gittata → l'attacco procede e rompe il bersaglio.
+	var hit := Combat.resolve_fire(mortar, 5, 0, s, Vector2i(6, 6), Vector2i(1, 1))
+	_check(hit.fp_total > 0 and hit.broken.has("t"), "targeting colpito (prodotto alto) → l'attacco procede")
+	# Gittata minima: non può sparare a un esagono adiacente.
+	_check(not Combat.can_fire(mortar, 1, 0, s), "ordnance non spara sotto la gittata minima")
+	# Ordnance spara da solo; e non entra nel gruppo di un'altra unità.
+	var buddy := _mk("b", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	s.units[buddy.id] = buddy
+	var grp := Combat.fire_group(mortar, 5, 0, s)
+	_check(grp.size() == 1 and grp[0].id == "m", "l'ordnance spara da solo (no gruppo)")
+	var grp2 := Combat.fire_group(buddy, 5, 0, s)
+	_check(not grp2.any(func(u: Unit) -> bool: return u.id == "m"), "il mortaio non entra nel gruppo altrui")
 
 
 func _report() -> void:

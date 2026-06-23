@@ -74,10 +74,14 @@ static func draw(
 		hand.append(deck.pop_back())
 
 
-## Distribuisce le mani iniziali per entrambe le fazioni.
+## Distribuisce le mani iniziali per entrambe le fazioni, ciascuna alla sua
+## dimensione di mano (qualità truppe). Il refill dopo ogni carta giocata
+## (scarta 1 / pesca 1) mantiene poi la mano a questa dimensione.
 static func deal_initial(state: GameState) -> void:
-	draw(state.german_deck, state.german_discard, state.german_hand, HAND_SIZE)
-	draw(state.russian_deck, state.russian_discard, state.russian_hand, HAND_SIZE)
+	draw(state.german_deck, state.german_discard, state.german_hand,
+		state.hand_size_of(Domain.Faction.GERMAN))
+	draw(state.russian_deck, state.russian_discard, state.russian_hand,
+		state.hand_size_of(Domain.Faction.RUSSIAN))
 
 
 ## Scarta la carta all'indice `idx` dalla mano della fazione.

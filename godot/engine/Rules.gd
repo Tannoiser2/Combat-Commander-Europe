@@ -113,7 +113,7 @@ static func resolve_melee(
 
 	for u in losers:
 		res.eliminated.append(u.id)
-		state.units.erase(u.id)
+		state.eliminate_unit(u.id)
 
 	var outcome := "PAREGGIO (entrambi eliminati)"
 	if res.winner != -1:
@@ -172,7 +172,7 @@ static func rout_unit(
 	if moved == 0 and _nearest_enemy_dist(state, u.q, u.r, u.faction) <= 1:
 		# Nessuna via di fuga e nemico adiacente → eliminata.
 		eliminated = true
-		state.units.erase(u.id)
+		state.eliminate_unit(u.id)
 
 	return {
 		"unit": u.id, "roll": roll, "steps": maxi(0, steps),

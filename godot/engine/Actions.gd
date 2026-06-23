@@ -95,7 +95,7 @@ static func grenade_attack(
 			else:
 				eliminated.append(t.id)
 	for id in eliminated:
-		state.units.erase(id)
+		state.eliminate_unit(id)
 	return {
 		"broken": broken,
 		"eliminated": eliminated,
