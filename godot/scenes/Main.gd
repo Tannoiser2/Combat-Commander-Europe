@@ -39,6 +39,21 @@ func _connect_signals() -> void:
 	menu_btn.pressed.connect(_on_menu)
 
 
+# ─── Salvataggio rapido (F5 salva, F9 carica) ─────────────────────────────────
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	match (event as InputEventKey).keycode:
+		KEY_F5:
+			Game.save_game()
+			get_viewport().set_input_as_handled()
+		KEY_F9:
+			if Game.load_game():
+				_refresh_ui()
+			get_viewport().set_input_as_handled()
+
+
 # ─── Aggiornamento UI ─────────────────────────────────────────────────────────
 
 func _refresh_ui() -> void:

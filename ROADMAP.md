@@ -114,7 +114,10 @@ la logica regola per regola. Stato del motore Godot:
    fortificazioni filo/mine/bunker (oggi ignorati; buche/trincee → foxhole).
 5. **Regole speciali (SSR)** per scenario: framework a hook + caso per caso.
 6. **Setup fedele**: disposizioni esatte dalle schede o editor di piazzamento.
-7. **Polish**: audio (`materiali/Combat Commander/sounds/`), UI, salvataggio.
+7. **Polish**: ~~salvataggio~~ ✅ **fatto** (`SaveGame.gd`: serializza l'intero
+   stato — mappa/unità/obiettivi/mazzi/tracce — su `user://savegame.json`;
+   `Game.save_game/load_game`; F5 salva / F9 carica). Restano audio
+   (`materiali/Combat Commander/sounds/`) e rifiniture UI.
 
 ### File chiave del sistema scenari/mappe
 - `engine/ScenarioLoader.gd` — scenario → stato (mappa+parametri+forze).

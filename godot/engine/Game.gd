@@ -57,6 +57,32 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 	_change_phase(Domain.Phase.PLAYER_TURN)
 
 
+## Salva la partita corrente sul file di salvataggio. true se riuscito.
+func save_game(path: String = SaveGame.SAVE_PATH) -> bool:
+	if state == null:
+		return false
+	var ok := SaveGame.save_state(state, path)
+	if ok:
+		_log("💾 Partita salvata.")
+	return ok
+
+
+## Ripristina la partita dal file di salvataggio. true se riuscito.
+func load_game(path: String = SaveGame.SAVE_PATH) -> bool:
+	var s := SaveGame.load_state(path)
+	if s == null:
+		return false
+	state = s
+	_log("📂 Partita caricata.")
+	emit_signal("phase_changed", state.phase)
+	emit_signal("state_changed")
+	return true
+
+
+func has_saved_game(path: String = SaveGame.SAVE_PATH) -> bool:
+	return SaveGame.has_save(path)
+
+
 # ─── Selezione unità ─────────────────────────────────────────────────────────
 
 func select_unit(unit_id: String) -> void:
