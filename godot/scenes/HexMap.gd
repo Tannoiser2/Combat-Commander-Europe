@@ -336,6 +336,14 @@ func _on_click(mouse_pos: Vector2) -> void:
 	var units_here := s.units_at(clicked_q, clicked_r)
 
 	if s.phase == Domain.Phase.PLAYER_MOVING:
+		# Click sull'esagono della propria unità selezionata = concludi/annulla.
+		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
+		if sel != null and clicked_q == sel.q and clicked_r == sel.r:
+			if s.current_order == Domain.OrderType.MOVE and s.moving_unit_id != "":
+				Game.finish_move()
+			else:
+				Game.cancel_order()
+			return
 		# Clicco su esagono amico → cambia selezione; su evidenziato → muovi
 		if s.selected_unit_id != "" and s.highlighted_hexes.has(key):
 			match s.current_order:

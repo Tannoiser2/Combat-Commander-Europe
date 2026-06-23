@@ -13,6 +13,7 @@ extends Control
 @onready var vp_label: Label = $TopBar/HBox/VPLabel
 @onready var deck_label: Label = $TopBar/HBox/DeckLabel
 @onready var menu_btn: Button = $TopBar/HBox/MenuBtn
+@onready var hint_label: Label = $Hint
 @onready var unit_info: Panel = $UnitInfo
 @onready var info_label: RichTextLabel = $UnitInfo/Margin/InfoLabel
 @onready var hand_container: HBoxContainer = $BottomBar/HBox/Cards
@@ -78,9 +79,45 @@ func _refresh_ui() -> void:
 	deck_label.text = "Mazzi  GER:%d  RUS:%d" % [
 		s.german_deck.size(), s.russian_deck.size()
 	]
-	end_turn_btn.disabled = s.phase != Domain.Phase.PLAYER_TURN
+	end_turn_btn.disabled = not _is_player_phase(s.phase)
+	hint_label.text = _guidance_text(s)
 	_refresh_hand()
 	_refresh_unit_info()
+
+
+## È un momento in cui il giocatore umano può agire/concludere il turno?
+func _is_player_phase(phase: int) -> bool:
+	return phase == Domain.Phase.PLAYER_TURN or phase == Domain.Phase.PLAYER_MOVING
+
+
+## Istruzione contestuale mostrata nel banner guida (cosa fare adesso).
+func _guidance_text(s: GameState) -> String:
+	match s.phase:
+		Domain.Phase.PLAYER_TURN:
+			if s.selected_unit_id != "":
+				return "Unità scelta — gioca una carta:  Sx = ordine · Dx = azione"
+			return "Il tuo turno — clicca un'unità, poi gioca una carta ordine"
+		Domain.Phase.PLAYER_MOVING:
+			var has_unit := s.selected_unit_id != ""
+			match s.current_order:
+				Domain.OrderType.MOVE:
+					if not has_unit:
+						return "MOSSA — clicca l'unità da muovere"
+					if s.moving_unit_id != "":
+						return "MOSSA — clicca un esagono giallo · clicca l'unità per fermarti"
+					return "MOSSA — clicca un esagono giallo · clicca l'unità per annullare"
+				Domain.OrderType.FIRE:
+					if not has_unit:
+						return "FUOCO — clicca l'unità che spara"
+					return "FUOCO — clicca un bersaglio nemico evidenziato · l'unità per annullare"
+				Domain.OrderType.ADVANCE:
+					if not has_unit:
+						return "AVANZATA — clicca l'unità che avanza"
+					return "AVANZATA — clicca un esagono adiacente · l'unità per annullare"
+				_:
+					return "Clicca un'unità sulla mappa"
+		_:
+			return Domain.PHASE_LABELS.get(s.phase, "")
 
 
 func _refresh_unit_info() -> void:
@@ -139,10 +176,19 @@ func _on_log_added(line: String) -> void:
 
 func _on_phase_changed(phase: int) -> void:
 	phase_label.text = Domain.PHASE_LABELS.get(phase, "—")
-	end_turn_btn.disabled = phase != Domain.Phase.PLAYER_TURN
+	end_turn_btn.disabled = not _is_player_phase(phase)
+	if Game.state:
+		hint_label.text = _guidance_text(Game.state)
 
 
 func _on_end_turn() -> void:
+	var s := Game.state
+	# Se è in corso un ordine non risolto, concludilo/annullalo prima di passare.
+	if s != null and s.phase == Domain.Phase.PLAYER_MOVING:
+		if s.current_order == Domain.OrderType.MOVE and s.moving_unit_id != "":
+			Game.finish_move()
+		else:
+			Game.cancel_order()
 	Game._end_player_turn()
 
 
