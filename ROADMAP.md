@@ -114,10 +114,10 @@ la logica regola per regola. Stato del motore Godot:
    fortificazioni filo/mine/bunker (oggi ignorati; buche/trincee → foxhole).
 5. **Regole speciali (SSR)** per scenario: framework a hook + caso per caso.
 6. **Setup fedele**: disposizioni esatte dalle schede o editor di piazzamento.
-7. **Polish**: ~~salvataggio~~ ✅ **fatto** (`SaveGame.gd`: serializza l'intero
-   stato — mappa/unità/obiettivi/mazzi/tracce — su `user://savegame.json`;
-   `Game.save_game/load_game`; F5 salva / F9 carica). Restano audio
-   (`materiali/Combat Commander/sounds/`) e rifiniture UI.
+7. **Polish**: ~~salvataggio~~ ✅ (`SaveGame.gd`, F5/F9) · ~~audio~~ ✅
+   (autoload `Audio.gd`: fuoco fucile/MG/artiglieria, Tempo!/Morte Subitanea,
+   cecchino, fine partita; `assets/sounds/`; M per mutare). Restano rifiniture
+   UI (pulsanti combattimento/iniziativa, conseguenze evento a schermo).
 
 ### File chiave del sistema scenari/mappe
 - `engine/ScenarioLoader.gd` — scenario → stato (mappa+parametri+forze).
@@ -147,7 +147,7 @@ la logica regola per regola. Stato del motore Godot:
 | 🟢 Fatto | LOS/terreno avanzati | Linea di esagoni corretta (`HexGrid.line`/`_cube_round`); LOS bloccata da lati muro/siepe (intermedi) e bocage, varco LOS_CLEAR, hindrance cumulativo ed elevazione; movimento con costo dei lati + tariffa strada (`HexGrid.step_cost`). |
 | 🟢 Fatto | Ordnance / mortai (O20.2) | Mortai e cannoni hanno `ordnance`+`min_range`; spari soggetti a **Targeting Roll** (d1×d2 > gittata+hindrance, mancato → nessun effetto), gittata minima, niente Comando/hindrance sull'FP, esclusi da gruppo di fuoco e Op Fire. (`Unit`, `Combat`, `UnitChart`) |
 | 🟡 Da fare | Artiglieria via Radio | Le radio (artiglieria fuori mappa) sono ancora saltate dal loader: mancano spotter/LOS, Spotting Round, scatter. (I mortai in mappa ora funzionano, vedi Ordnance.) |
-| 🟡 Da fare | Comando multi-esagono | Gruppo di fuoco solo co-locato; manca l'attivazione di unità nel raggio di Comando su esagoni diversi. |
+| 🟢 Fatto | Comando multi-esagono | Un leader efficiente nell'esagono dell'attaccante estende il gruppo di fuoco alle unità idonee (gittata+LOS dal proprio esagono) entro il suo raggio di Comando. Senza leader resta solo co-locato. (`Combat.fire_group`) |
 | 🟢 Fatto | IA che gioca la mano | `AI.gd`: l'IA sceglie e risolve fino a `ai_max_orders` ordini dalla propria mano (Fuoco col bersaglio migliore, Avanzata in melee vantaggiosa, Recupero/Rotta delle unità rotte, Mossa verso l'obiettivo più vicino). (`AI.choose_play`, `Game._ai_execute`) |
 | 🟡 Da fare | IA avanzata | Valutazioni più fini: copertura, rischio di fuoco reattivo, difesa degli obiettivi propri, scelta del gruppo di fuoco multi-esagono. |
 | 🟢 Fatto | Resa (Casualty Track) | Uomini eliminati contati per fazione (`GameState.eliminate_unit`); soglia `resa_axis/allies` → sconfitta immediata; doppia resa → iniziativa decide (6.3.1). (`Game._check_end_conditions`/`_resolve_loss`) |

@@ -30,6 +30,7 @@ func _ready() -> void:
 	_test_fire_break_then_eliminate()
 	_test_fire_no_effect()
 	_test_leadership_and_group()
+	_test_command_multihex()
 	_test_recover()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
@@ -66,6 +67,7 @@ func _ready() -> void:
 	_test_counter_art()
 	_test_decks()
 	_test_save_load()
+	_test_audio()
 	_report()
 
 
@@ -148,6 +150,25 @@ func _test_leadership_and_group() -> void:
 	_check(Rules.command_bonus_at(s, 0, 0, RUS) == 0, "nessun bonus comando per fazione assente")
 	var grp := Combat.fire_group(sq, 0, 1, s)
 	_check(grp.size() == 2, "gruppo di fuoco include le unità co-locate in gittata")
+
+
+func _test_command_multihex() -> void:
+	print("· Comando multi-esagono: gruppo di fuoco da esagoni diversi")
+	var s := _new_state(6, 3)
+	var sq1 := _mk("g1", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	var ld := _mk("gl", GER, LEADER, ELITE, 0, 0, 1, 9, 6, 2)  # comando 2
+	var sq2 := _mk("g2", GER, SQUAD, RIFLE, 1, 0, 5, 7)        # esagono adiacente
+	var tgt := _mk("r", RUS, SQUAD, RIFLE, 3, 0, 5, 7)
+	for u in [sq1, ld, sq2, tgt]:
+		s.units[u.id] = u
+	var grp := Combat.fire_group(sq1, 3, 0, s)
+	_check(grp.any(func(u: Unit) -> bool: return u.id == "g2"),
+		"con leader: unità entro il comando entra nel gruppo da un altro esagono")
+	# Senza leader: solo unità co-locate.
+	s.units.erase("gl")
+	var grp2 := Combat.fire_group(sq1, 3, 0, s)
+	_check(not grp2.any(func(u: Unit) -> bool: return u.id == "g2"),
+		"senza leader: niente gruppo multi-esagono")
 
 
 func _test_recover() -> void:
@@ -832,6 +853,13 @@ func _test_save_load() -> void:
 	var u2: Unit = s2.units.get(any_id)
 	_check(u2 != null and not u2.efficient and u2.suppressed, "stato unità (rotta+soppressa) ripristinato")
 	DirAccess.remove_absolute("user://test_save.json")
+
+
+func _test_audio() -> void:
+	print("· Audio: suoni presenti e autoload attivo")
+	for f in ["RIFLE", "MACH_GUN", "Artillery", "time", "morse", "reload", "Deck Depleted"]:
+		_check(ResourceLoader.exists("res://assets/sounds/%s.wav" % f), "suono '%s' presente e importato" % f)
+	_check(Audio != null and Audio.has_method("play"), "autoload Audio attivo")
 
 
 func _report() -> void:

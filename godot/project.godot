@@ -14,6 +14,7 @@ run/main_scene="res://scenes/Menu.tscn"
 
 Domain="*res://engine/Domain.gd"
 Game="*res://engine/Game.gd"
+Audio="*res://engine/Audio.gd"
 
 [display]
 
