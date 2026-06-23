@@ -88,6 +88,11 @@ func has_saved_game(path: String = SaveGame.SAVE_PATH) -> bool:
 func select_unit(unit_id: String) -> void:
 	if state == null:
 		return
+	# Durante una Mossa già avviata non si cambia soggetto (un'unità per ordine).
+	if state.phase == Domain.Phase.PLAYER_MOVING \
+			and state.current_order == Domain.OrderType.MOVE \
+			and state.moving_unit_id != "" and unit_id != state.moving_unit_id:
+		return
 	var u := state.unit_by_id(unit_id)
 	if u == null:
 		state.selected_unit_id = ""
@@ -147,9 +152,17 @@ func play_card(hand_index: int) -> void:
 			state.order_count += 1
 			state.current_order = card.order
 			state.selected_card_index = hand_index
-			state.selected_unit_id = ""
 			state.highlighted_hexes.clear()
 			_change_phase(Domain.Phase.PLAYER_MOVING)
+			# Se un'unità idonea è già selezionata la si mantiene, evidenziando subito
+			# i bersagli (flusso naturale: unità → carta → bersaglio). Altrimenti si
+			# attende che il giocatore clicchi un'unità sulla mappa.
+			var pre := state.unit_by_id(state.selected_unit_id)
+			if pre != null and pre.faction == state.human_faction and not pre.activated:
+				select_unit(pre.id)
+			else:
+				state.selected_unit_id = ""
+				emit_signal("state_changed")
 		Domain.OrderType.RECOVER:
 			_execute_recover(hand_index)
 		Domain.OrderType.ROUT:
@@ -272,6 +285,39 @@ func click_hex_advance(tq: int, tr: int) -> void:
 	_execute_advance(u, tq, tr)
 
 
+## Conclude l'ordine di Mossa in corso (PM esauriti o stop volontario del
+## giocatore): scarta la carta Mossa e restituisce il controllo al turno.
+func finish_move() -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
+		return
+	if state.current_order != Domain.OrderType.MOVE:
+		return
+	var card_idx := state.moving_card_index if state.moving_card_index >= 0 else state.selected_card_index
+	state.moving_unit_id = ""
+	state.moving_remaining_mp = 0
+	state.moving_card_index = -1
+	if card_idx >= 0:
+		_discard_card(card_idx)
+	_clear_order_selection()
+	_check_end_conditions()
+	if state.phase != Domain.Phase.GAME_OVER:
+		_change_phase(Domain.Phase.PLAYER_TURN)
+
+
+## Annulla un ordine non ancora avviato (la carta NON viene consumata) e torna
+## alla scelta. Una Mossa già avviata non si annulla: si conclude (finish_move).
+func cancel_order() -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
+		return
+	if state.current_order == Domain.OrderType.MOVE and state.moving_unit_id != "":
+		finish_move()
+		return
+	if state.order_count > 0:
+		state.order_count -= 1
+	_clear_order_selection()
+	_change_phase(Domain.Phase.PLAYER_TURN)
+
+
 # ─── Implementazioni interne ──────────────────────────────────────────────────
 
 func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
@@ -302,23 +348,28 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 
 	# Fuoco di Opportunità del difensore (A33): può interrompere il movimento.
 	if _op_fire(u, _ai_faction()):
-		state.moving_unit_id = ""
-		state.moving_remaining_mp = 0
-		state.current_order = -1
-		state.selected_unit_id = ""
-		state.highlighted_hexes.clear()
 		_check_end_conditions()
-		emit_signal("state_changed")
+		if state.phase != Domain.Phase.GAME_OVER:
+			finish_move()  # movimento interrotto: scarta la carta e torna al turno
+		else:
+			emit_signal("state_changed")
 		return
 
-	# Aggiorna esagoni raggiungibili
-	var reach := HexGrid.reachable(u, state)
+	# Aggiorna gli esagoni raggiungibili coi PM RIMASTI (non l'allowance pieno).
+	var reach := HexGrid.reachable(u, state, state.moving_remaining_mp)
 	state.highlighted_hexes.clear()
 	for h in reach:
 		state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 
 	_check_end_conditions()  # un movimento può conquistare un obiettivo
-	emit_signal("state_changed")
+	if state.phase == Domain.Phase.GAME_OVER:
+		emit_signal("state_changed")
+		return
+	# PM esauriti: la mossa si conclude da sola (carta scartata, ritorno al turno).
+	if reach.is_empty():
+		finish_move()
+	else:
+		emit_signal("state_changed")
 
 
 ## Avanzata (O21): l'unità entra nell'esagono adiacente. Se vi sono nemici si

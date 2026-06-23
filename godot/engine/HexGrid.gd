@@ -171,10 +171,12 @@ static func step_cost(state: GameState, fq: int, fr: int, tq: int, tr: int) -> i
 
 ## Restituisce tutti gli esagoni raggiungibili dall'unità u in questo stato.
 ## Rispetta i costi di movimento e i confini della mappa.
-static func reachable(u: Unit, state: GameState) -> Array[Vector2i]:
-	if u.move <= 0:
+## Esagoni raggiungibili dall'unità. `budget_override` >= 0 usa quei PM (per i
+## passi successivi di una mossa già avviata); altrimenti l'allowance pieno.
+static func reachable(u: Unit, state: GameState, budget_override: int = -1) -> Array[Vector2i]:
+	var budget := u.move if budget_override < 0 else budget_override
+	if budget <= 0:
 		return []
-	var budget := u.move
 	# BFS con costo: dizionario "q,r" → PM spesi fin qui
 	var visited := {}
 	var frontier := [{"q": u.q, "r": u.r, "spent": 0}]
