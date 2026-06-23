@@ -52,6 +52,8 @@ static func setup(state: GameState, num: int) -> bool:
 	# ─── Parametri ──────────────────────────────────────────────────────────
 	state.scenario_number = num
 	state.scenario_name = String(e.get("nome", "Scenario %d" % num))
+	state.axis_nation = String(e.get("fazione_axis", "german"))
+	state.allied_nation = String(e.get("fazione_allies", "russian"))
 	state.sudden_death_space = int(e.get("sudden_death", 7))
 	# Casella iniziale del segnalino Tempo (6.1.1: «di solito 0»). Campo opzionale
 	# del catalogo per scenari che partono da una casella diversa (es. anno).

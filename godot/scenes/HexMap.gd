@@ -247,13 +247,14 @@ func _draw_all_units(s: GameState) -> void:
 func _counter_texture(u: Unit) -> Texture2D:
 	if u.art_name == "":
 		return null
-	var folder: String = Domain.FACTION_ART_DIR.get(u.faction, "")
-	# Le armi non hanno rovescio; uomini inefficienti usano la cartella _Half
+	# Nazione reale dell'unità se disponibile, altrimenti lo stand-in per fazione.
+	var folder: String = u.nation_art if u.nation_art != "" else String(Domain.FACTION_ART_DIR.get(u.faction, ""))
+	# Le armi non hanno rovescio; uomini inefficienti usano la cartella _Half.
 	if not u.efficient and not u.is_weapon():
 		folder += "_Half"
 	var path := "res://assets/counters/%s/%s.png" % [folder, u.art_name]
 	if not _counter_cache.has(path):
-		_counter_cache[path] = load(path)
+		_counter_cache[path] = load(path) if ResourceLoader.exists(path) else null
 	return _counter_cache[path]
 
 

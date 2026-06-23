@@ -89,6 +89,10 @@ var active_faction: int = Domain.Faction.GERMAN
 var human_faction: int = Domain.Faction.GERMAN
 var scenario_number: int = 1
 var scenario_name: String = ""
+## Nazioni reali dei due lati (per mazzo, statistiche e arte). Lo slot "german_*"
+## tiene l'Asse, "russian_*" gli Alleati (stand-in degli enum di fazione).
+var axis_nation: String = "german"
+var allied_nation: String = "russian"
 var turn_number: int = 1
 var order_count: int = 0
 var max_orders: int = 2

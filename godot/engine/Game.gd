@@ -42,9 +42,9 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 		state.scenario_number = 1
 		state.scenario_name = Scenario1.SCENARIO_NAME
 
-	# Costruisce e mescola i mazzi
-	state.german_deck = Cards.build_german_deck()
-	state.russian_deck = Cards.build_russian_deck()
+	# Costruisce e mescola i mazzi reali delle due nazioni (slot Asse/Alleati).
+	state.german_deck = Cards.build_deck(state.axis_nation)
+	state.russian_deck = Cards.build_deck(state.allied_nation)
 	Cards.shuffle(state.german_deck)
 	Cards.shuffle(state.russian_deck)
 	Cards.deal_initial(state)

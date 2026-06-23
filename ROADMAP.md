@@ -97,10 +97,14 @@ la logica regola per regola. Stato del motore Godot:
    (assenti dalla carta base → fallback generico per tipo) e i **leader**
    (profilo rappresentativo per grado: i valori del singolo ufficiale sono sul
    counter, non nel catalogo).
-3. **Fazioni reali**: mazzi + artwork counter delle nazioni mancanti
-   (americani, inglesi, italiani, francesi, polacchi, ecc.); mappare
-   `fazione_axis/allies` → deck + cartella counter. Aggiungere `Russi_Half`
-   (unità russe rotte ora usano il rettangolo di ripiego).
+3. ~~**Fazioni reali**: artwork counter + mazzi delle nazioni mancanti~~ ✅
+   **fatto**. (a) Counter reali per tutte e 6 le nazioni (fronte+rovescio,
+   `assets/counters/`, mappa `art_map.json`, `Unit.nation_art`). (b) **Tutti e
+   6 i mazzi del Fato** (`assets/cards/<naz>_deck.json`, 72 carte) ricostruiti
+   dal **Card Manifest** (ordini/dadi/hex/consequence per coordinate, nomi
+   tradotti EN→IT allineando Germania/Russia ai deck esistenti); routing
+   `fazione→mazzo` in `Cards.build_deck` (minori→capofila) e slot Asse/Alleati
+   caricati da `axis_nation/allied_nation` dello scenario.
 4. **Armi/equipaggiamenti non modellati**: ~~mortai come fuoco indiretto
    (Targeting Roll + gittata minima)~~ ✅ **fatto** (ordnance generico:
    `Unit.ordnance/min_range`, `Combat` Targeting Roll d1×d2 > gittata+hindrance,
@@ -333,7 +337,7 @@ Cross-check con il rulebook ufficiale (24 pagine) ha rivelato e corretto:
 | 🟢 Fatto | UI fuoco preview | Pannello pre-fuoco con FP base, hindrance, elevazione, copertura, morale bersaglio. |
 | 🟢 Fatto | Splash scenari | Lista 24 scenari + banner verticale + dettagli + OB. |
 | 🟢 Fatto | Editor icone | Tutte le icone PNG ufficiali (terreno esagonale, hexside rettangolare). |
-| 🟡 Da fare | Counter art fazioni minori | Generare/disegnare PNG dedicati per Italian, French, British, Polish, Yugoslav, Brazilian, ANZAC (ora usano proxy). |
+| 🟢 Fatto | Counter art per nazione | Counter reali (fronte+`_Half`) per Tedeschi/Russi/Americani/Britannici/Francesi/Italiani in `assets/counters/`, ridimensionati a 192px; le minori usano la capofila. Risoluzione `(nazione, etichetta)→file` via `art_map.json` (`UnitChart`), reso da `HexMap` con `Unit.nation_art`. |
 | 🟡 Da fare | UI combattimento | Mostrare meglio risultati di combattimento sul terreno; UI conseguenze (Event card draw). |
 | 🟡 Da fare | UI iniziativa | Bottone "Scambia Iniziativa" già esposto via store; manca pulsante UI. |
 
