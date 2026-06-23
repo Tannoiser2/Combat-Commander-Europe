@@ -26,15 +26,31 @@ class FireResult:
 ## Unità che concorrono al fuoco da un esagono: tutte le unità efficienti della
 ## fazione dello sparatore nell'esagono, con gittata sufficiente per il bersaglio.
 static func fire_group(attacker: Unit, tq: int, tr: int, state: GameState) -> Array[Unit]:
-	var dist := HexGrid.distance(attacker.q, attacker.r, tq, tr)
 	var group: Array[Unit] = []
 	# Ordnance (11.5): non può partecipare a un gruppo di fuoco — spara da sola.
 	if attacker.ordnance:
 		group.append(attacker)
 		return group
+	# Raggio di Comando del miglior leader nell'esagono dell'attaccante: estende
+	# il gruppo di fuoco alle unità idonee negli esagoni vicini (O20.3.1 / 3.3).
+	# Senza leader cmd_range = 0 → solo unità co-locate (comportamento base).
+	var cmd_range := 0
 	for u in state.units_at(attacker.q, attacker.r):
-		if u.faction == attacker.faction and u.efficient and u.range >= dist and u.fp > 0 and not u.ordnance:
-			group.append(u)
+		if u.faction == attacker.faction and u.is_leader() and u.efficient:
+			cmd_range = maxi(cmd_range, u.command)
+	for u in state.units.values():
+		if u.faction != attacker.faction or not u.efficient or u.fp <= 0 or u.ordnance:
+			continue
+		# Co-locata oppure entro il raggio di comando dall'esagono attaccante.
+		if HexGrid.distance(attacker.q, attacker.r, u.q, u.r) > cmd_range:
+			continue
+		# Deve poter colpire il bersaglio dal proprio esagono (gittata + LOS).
+		var d := HexGrid.distance(u.q, u.r, tq, tr)
+		if d < 1 or d > u.range:
+			continue
+		if not HexGrid.has_los(u.q, u.r, tq, tr, state):
+			continue
+		group.append(u)
 	return group
 
 

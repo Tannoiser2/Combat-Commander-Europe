@@ -30,6 +30,7 @@ func _ready() -> void:
 	_test_fire_break_then_eliminate()
 	_test_fire_no_effect()
 	_test_leadership_and_group()
+	_test_command_multihex()
 	_test_recover()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
@@ -149,6 +150,25 @@ func _test_leadership_and_group() -> void:
 	_check(Rules.command_bonus_at(s, 0, 0, RUS) == 0, "nessun bonus comando per fazione assente")
 	var grp := Combat.fire_group(sq, 0, 1, s)
 	_check(grp.size() == 2, "gruppo di fuoco include le unità co-locate in gittata")
+
+
+func _test_command_multihex() -> void:
+	print("· Comando multi-esagono: gruppo di fuoco da esagoni diversi")
+	var s := _new_state(6, 3)
+	var sq1 := _mk("g1", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	var ld := _mk("gl", GER, LEADER, ELITE, 0, 0, 1, 9, 6, 2)  # comando 2
+	var sq2 := _mk("g2", GER, SQUAD, RIFLE, 1, 0, 5, 7)        # esagono adiacente
+	var tgt := _mk("r", RUS, SQUAD, RIFLE, 3, 0, 5, 7)
+	for u in [sq1, ld, sq2, tgt]:
+		s.units[u.id] = u
+	var grp := Combat.fire_group(sq1, 3, 0, s)
+	_check(grp.any(func(u: Unit) -> bool: return u.id == "g2"),
+		"con leader: unità entro il comando entra nel gruppo da un altro esagono")
+	# Senza leader: solo unità co-locate.
+	s.units.erase("gl")
+	var grp2 := Combat.fire_group(sq1, 3, 0, s)
+	_check(not grp2.any(func(u: Unit) -> bool: return u.id == "g2"),
+		"senza leader: niente gruppo multi-esagono")
 
 
 func _test_recover() -> void:
