@@ -168,6 +168,9 @@ var fire_modifier_cards: Array = []
 var spray_active: bool = false
 # Fuoco d'Assalto (A26): un attacco di fuoco già usato nell'ordine di Mossa corrente.
 var assault_fired: bool = false
+# Richiesta d'Artiglieria (O18): spotter/radio durante la scelta del bersaglio.
+var artillery_radio_id: String = ""
+var artillery_spotter_id: String = ""
 
 # ─── Finestra di reazione: Fuoco di Opportunità del giocatore (A33) ───────────
 # Mentre l'IA muove, se il giocatore umano ha tiratori idonei si apre una finestra

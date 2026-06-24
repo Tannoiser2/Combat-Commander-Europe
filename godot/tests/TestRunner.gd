@@ -697,6 +697,11 @@ func _test_artillery() -> void:
 	Game.state = s3
 	Game.play_card(0)
 	_check(s3.order_count == 1, "Artiglieria con Radio+Leader conta come ordine")
+	_check(s3.current_order == Domain.OrderType.ARTY and not s3.highlighted_hexes.is_empty(),
+		"Artiglieria: fase di scelta bersaglio con esagoni nella LOS")
+	Game.click_hex_artillery(3, 1)
+	_check(s3.phase == Domain.Phase.PLAYER_TURN and s3.current_order == -1,
+		"Artiglieria: scelto il bersaglio, si torna al turno")
 
 	# Senza Radio non si consuma un ordine.
 	var s4 := _new_state(6, 6)
