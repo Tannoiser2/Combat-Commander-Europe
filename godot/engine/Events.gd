@@ -33,6 +33,10 @@ static func fire(state: GameState, card: Card, faction: int) -> Array[String]:
 		"PROMOZIONE SUL CAMPO":    _field_promotion(state, faction, lines)
 		"COMANDO E CONTROLLO":     _command_control(state, faction, lines)
 		"IMPETO":                  _elan(state, faction, lines)
+		"PRIGIONIERI DI GUERRA":   _prisoners(state, faction, lines)
+		"POLVERE":                 _dust(state, card, lines)
+		"OBIETTIVO DELLA MISSIONE": _draw_objective_chit(state, lines, "Obiettivo della missione")
+		"OBIETTIVO STRATEGICO":    _draw_objective_chit(state, lines, "Obiettivo strategico")
 		"ZAPPATORI":
 			lines.append("Zappatori: nessuna mina o filo spinato da rimuovere.")
 		"SCONTRO SENZA PERDITE":
@@ -327,6 +331,56 @@ static func _elan(state: GameState, faction: int, lines: Array[String]) -> void:
 	state.surrender_threshold[faction] = cur + 1
 	lines.append("Impeto: soglia di resa di %s ora %d." % [
 		Domain.FACTION_NAMES.get(faction, "?"), cur + 1])
+
+
+## E66 Prigionieri di guerra: il giocatore deve eliminare una propria unità rotta
+## adiacente a (o nello stesso esagono di) un nemico. L'avversario incassa i VP.
+static func _prisoners(state: GameState, faction: int, lines: Array[String]) -> void:
+	for u in state.broken_men_of(faction):
+		if _enemy_near(state, u, faction):
+			lines.append("Prigionieri di guerra: %s catturata ed eliminata." % u.unit_name)
+			state.eliminate_unit(u.id)
+			return
+	lines.append("Prigionieri di guerra: nessuna unità rotta a contatto col nemico.")
+
+
+## Vero se c'è un'unità nemica nello stesso esagono o adiacente a `u`.
+static func _enemy_near(state: GameState, u: Unit, faction: int) -> bool:
+	for m in state.men_at(u.q, u.r):
+		if m.faction != faction:
+			return true
+	for nb in HexGrid.neighbors(u.q, u.r):
+		for m in state.men_at(nb.x, nb.y):
+			if m.faction != faction:
+				return true
+	return false
+
+
+## E53 Polvere: posa un marker di fumo (polvere) sull'esagono casuale della carta.
+static func _dust(state: GameState, card: Card, lines: Array[String]) -> void:
+	var qr := Domain.label_to_qr(card.random_hex_label)
+	var hd: GameState.HexData = state.hex_at(qr.x, qr.y)
+	if hd == null:
+		lines.append("Polvere: esagono non valido.")
+		return
+	hd.has_smoke = true
+	lines.append("Polvere: nube di polvere (fumo) in %s." % card.random_hex_label)
+
+
+## E65 Obiettivo della missione / E74 Obiettivo strategico: si estrae un chit
+## aggiuntivo e lo si somma (cumulativo, 7.3.2) ad un obiettivo casuale; i VP
+## fluiscono al controllore corrente tramite il normale calcolo.
+static func _draw_objective_chit(state: GameState, lines: Array[String], label: String) -> void:
+	if state.objectives.is_empty():
+		lines.append("%s: nessun obiettivo sulla mappa." % label)
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	var pool: Array = ObjectiveChits.CHIT_POOL
+	var v := int(pool[rng.randi_range(0, pool.size() - 1)])
+	var o: Objective = state.objectives[rng.randi_range(0, state.objectives.size() - 1)]
+	o.vp += v
+	lines.append("%s: Obiettivo #%d +%d VP." % [label, o.id, v])
 
 
 ## E50 Commissario: il giocatore russo sceglie una sua unità rotta e tira (dadi
