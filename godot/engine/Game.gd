@@ -283,6 +283,46 @@ func click_hex_move(tq: int, tr: int) -> void:
 	_execute_move_step(u, tq, tr)
 
 
+## Colonna del bordo AVVERSARIO da cui una fazione può uscire (7.2): i Tedeschi
+## (schierati a Est) escono a Ovest (q=0), i Russi (a Ovest) a Est (q=cols-1).
+func _exit_edge_col(faction: int) -> int:
+	return 0 if faction == Domain.Faction.GERMAN else state.map_cols - 1
+
+
+## Vero se l'unità è sul bordo avversario e può quindi uscire dalla mappa.
+func _on_exit_edge(u: Unit) -> bool:
+	return u.q == _exit_edge_col(u.faction)
+
+
+## L'unità umana selezionata esce dal bordo avversario (7.2, costo 1 MP): il
+## proprietario guadagna i VP del pezzo e la pedina lascia la mappa.
+func can_exit_selected() -> bool:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
+		return false
+	if state.current_order != Domain.OrderType.MOVE:
+		return false
+	var u := state.unit_by_id(state.selected_unit_id)
+	if u == null or u.faction != state.human_faction:
+		return false
+	return _on_exit_edge(u) and int(state.group_mp.get(u.id, 0)) >= 1
+
+
+func exit_selected_unit() -> void:
+	if not can_exit_selected():
+		return
+	var u := state.unit_by_id(state.selected_unit_id)
+	var v := state.exit_unit_for_vp(u.id)
+	_log("%s esce dal bordo avversario (7.2): +%d VP a %s." % [
+		u.unit_name, v, Domain.FACTION_NAMES[u.faction]])
+	emit_signal("unit_eliminated", u.id)  # rimuove la pedina dalla mappa
+	state.group_mp.erase(u.id)
+	_check_end_conditions()
+	if state.phase == Domain.Phase.GAME_OVER:
+		emit_signal("state_changed")
+	else:
+		_after_mover_done()
+
+
 ## Giocatore clicca un esagono nemico col FUOCO: entra nell'assemblaggio del
 ## gruppo di fuoco (O20.3.1). Se solo il pezzo base può colpire, spara subito.
 func click_hex_fire(tq: int, tr: int) -> void:

@@ -54,7 +54,7 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | **6 Game Time** | ✅🟡 | il Tempo avanza **solo** con Tempo! (`Fate`); Morte Subitanea come tiro 2d6 (6.2.2). Mancano i **rinforzi** e i marker dal track. |
 | **7 Victory** | 🟡 | Controllo obiettivi + bilancia VP live + auto-vittoria (`Game._update_objectives`). |
 | 7.1 Elimination VP | ✅ | ogni unità eliminata dà VP all'avversario (Squadra 2, Leader 1+Comando, Eroe/Arma 0) via `GameState.elimination_vp`; sommati alla bilancia (`bonus_vp`). Corretto anche il VP iniziale e il +1 del Tempo!, prima sovrascritti dal ricalcolo obiettivi. I **Team** non sono ancora distinti dalle Squadre. |
-| 7.2 Exit VP (uscita dal bordo) | ❌ | nessuna uscita volontaria/involontaria dalla mappa. |
+| 7.2 Exit VP (uscita dal bordo) | ✅🟡 | uscita VOLONTARIA dal bordo avversario durante la Mossa (tasto «X»): il proprietario guadagna i VP del pezzo (valori 7.1). Tedeschi a Ovest (q=0), Russi a Est. Manca: re-ingresso come rinforzo sul Time Track, perdita VP per Rotta forzata fuori dal proprio bordo, uscita in Avanzata, uso da parte dell'IA. |
 | 7.3.2–7.3.3 Objective Chits (segreti/aperti) | ❌ | gli obiettivi hanno VP fisso noto; niente chit pescati, niente bluff. |
 | **8 Stacking** | ✅🟡 | max 7 figure/esagono (`soldier_icons_at`). Limiti per Radio/Fortificazioni/Smoke/Blaze non realmente applicati. |
 | **9 Initiative** | 🟡 | tracciata, usata per il pareggio melee e la doppia resa. Niente passaggio della carta Iniziativa, niente re-roll (9.1). |
@@ -79,7 +79,7 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | **O18 Artillery Request** (radio/spotter/barrage) | ❌ | **intero sottosistema assente**: niente Spotting Round, accuracy, scatter, Fire For Effect, barrage fumogeno/HE. |
 | **O19 Command Confusion** | ❌ | non implementato. |
 | **O20 Fire** | ✅🟡🐞 | Attacco vs Fire Defense Roll; Targeting Roll per ordnance (O20.2.3); gruppo di fuoco (FP=X+Y). **Manca**: scelta del gruppo (vedi §0), Comando in difesa (🐞 §3), **colpi fumogeni** O20.2.1 (solo via azione Granate), bersagli «sospetti» O20.1. |
-| **O21 Move** | ✅🟡 | passo-passo coi PM, costi terreno + lati + tariffa strada, impilamento, **Op Fire** durante il movimento, **mossa di gruppo del leader** (3.3.1.1). Manca: double-time, **malus PM delle armi**, uscita dalla mappa, sentiero/trail come tariffa. |
+| **O21 Move** | ✅🟡 | passo-passo coi PM, costi terreno + lati + tariffa strada, impilamento, **Op Fire** durante il movimento, **mossa di gruppo del leader** (3.3.1.1), **uscita dal bordo avversario** (7.2, tasto «X»). Manca: double-time, **malus PM delle armi**, sentiero/trail come tariffa. |
 | **O22 Recover** | ✅ | 2d6 ≤ Morale (+Comando nell'esagono). |
 | **O23 Rout** | ✅🟡 | N = 2d6 − Morale verso il bordo amico; intrappolata+nemico adiacente → eliminata. Manca: Wire/Mine durante la ritirata (O23.3.3/4). |
 

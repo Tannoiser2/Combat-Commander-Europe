@@ -56,6 +56,7 @@ func _ready() -> void:
 	_test_event_commissar()
 	_test_event_hero()
 	_test_elimination_vp()
+	_test_exit_vp()
 	_test_spray_fire()
 	_test_fortifications()
 	_test_objectives_vp()
@@ -579,6 +580,53 @@ func _test_elimination_vp() -> void:
 	Game.state = s
 	Game._update_objectives()
 	_check(s.vp_tracker == s.bonus_vp, "la bilancia VP include i VP non-obiettivo")
+
+
+func _test_exit_vp() -> void:
+	print("· VP di uscita (7.2): uscita dal bordo avversario")
+	# Tedesco sul bordo Ovest (q=0) → +2 VP ai Tedeschi.
+	var s := _new_state(6, 6)
+	s.sudden_death_space = 20
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	var g := _mk("g", GER, SQUAD, RIFLE, 0, 2, 5, 7)
+	s.units[g.id] = g
+	s.selected_unit_id = g.id
+	s.group_mp[g.id] = 2
+	Game.state = s
+	_check(Game.can_exit_selected(), "Tedesco sul bordo Ovest può uscire")
+	Game.exit_selected_unit()
+	_check(not s.units.has("g"), "L'unità uscita lascia la mappa")
+	_check(s.bonus_vp == 2, "Uscita di una squadra tedesca: +2 VP ai Tedeschi")
+
+	# Russo sul bordo Est (q=cols-1) → +2 VP ai Russi (bonus negativo).
+	var s2 := _new_state(6, 6)
+	s2.sudden_death_space = 20
+	s2.human_faction = RUS
+	s2.phase = Domain.Phase.PLAYER_MOVING
+	s2.current_order = Domain.OrderType.MOVE
+	var r := _mk("r", RUS, SQUAD, RIFLE, 5, 2, 5, 7)
+	s2.units[r.id] = r
+	s2.selected_unit_id = r.id
+	s2.group_mp[r.id] = 1
+	Game.state = s2
+	_check(Game.can_exit_selected(), "Russo sul bordo Est può uscire")
+	Game.exit_selected_unit()
+	_check(s2.bonus_vp == -2, "Uscita di una squadra russa: +2 VP ai Russi")
+
+	# Lontano dal bordo: niente uscita.
+	var s3 := _new_state(6, 6)
+	s3.sudden_death_space = 20
+	s3.human_faction = GER
+	s3.phase = Domain.Phase.PLAYER_MOVING
+	s3.current_order = Domain.OrderType.MOVE
+	var g3 := _mk("g3", GER, SQUAD, RIFLE, 3, 2, 5, 7)
+	s3.units[g3.id] = g3
+	s3.selected_unit_id = g3.id
+	s3.group_mp[g3.id] = 2
+	Game.state = s3
+	_check(not Game.can_exit_selected(), "Lontano dal bordo non si può uscire")
 
 
 func _test_spray_fire() -> void:
