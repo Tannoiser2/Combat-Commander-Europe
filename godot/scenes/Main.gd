@@ -187,6 +187,19 @@ func _refresh_unit_info() -> void:
 	if u.activated: stato.append("attivata")
 	if stato.size() > 0:
 		lines += "\n[i]%s[/i]" % ", ".join(stato)
+	# Info dell'esagono occupato: terreno + copertura + marker.
+	var hd: GameState.HexData = s.hex_at(u.q, u.r)
+	if hd != null:
+		var terr: String = Domain.TERRAIN_NAMES.get(hd.terrain, "?")
+		var cov := Rules.cover_at(s, u.q, u.r, false)
+		var feats: Array[String] = []
+		if hd.fortification != Domain.Fort.NONE:
+			feats.append(Domain.FORT_NAMES.get(hd.fortification, "?"))
+		if hd.has_foxhole: feats.append("buca")
+		if hd.has_smoke: feats.append("fumo")
+		if hd.has_blaze: feats.append("incendio")
+		var ftxt := "  · " + ", ".join(feats) if feats.size() > 0 else ""
+		lines += "\n[color=#9fd]%s (cop. %d)%s[/color]" % [terr, cov, ftxt]
 	info_label.text = lines
 
 
