@@ -13,6 +13,7 @@ func _ready() -> void:
 	_test_leader_group_move()
 	_test_fire_group_assembly()
 	_test_fire_modifiers()
+	_test_order_limit()
 	if _fail == 0:
 		print("\nPLAYTHROUGH: PASS")
 	else:
@@ -282,3 +283,20 @@ func _test_fire_modifiers() -> void:
 	Game.confirm_fire()
 	_check(s.phase == Domain.Phase.PLAYER_TURN, "dopo il fuoco coi modificatori → PLAYER_TURN")
 	_check(s.fire_modifiers.is_empty(), "modificatori azzerati dopo il fuoco")
+
+
+func _test_order_limit() -> void:
+	print("· Limite ordini per turno (5.1)")
+	Game.start_new_game(Domain.Faction.GERMAN, 2)
+	var s := Game.state
+	s.max_orders = 2
+	s.order_count = 2  # ordini esauriti
+	s.hand_of(s.human_faction)[0] = _make_card(Domain.OrderType.MOVE, s.human_faction)
+	Game.play_card(0)
+	_check(s.phase == Domain.Phase.PLAYER_TURN, "oltre il limite: l'ordine è bloccato (resta PLAYER_TURN)")
+	_check(s.current_order == -1, "oltre il limite: nessun ordine avviato")
+
+	s.order_count = 0  # turno fresco
+	Game.play_card(0)
+	_check(s.phase == Domain.Phase.PLAYER_MOVING, "sotto il limite: l'ordine parte")
+	_check(s.order_count == 1, "conteggio ordini incrementato")
