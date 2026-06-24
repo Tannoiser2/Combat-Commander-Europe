@@ -60,6 +60,7 @@ func _ready() -> void:
 	_test_more_events2()
 	_test_radio_unit()
 	_test_artillery()
+	_test_ai_artillery()
 	_test_blaze()
 	_test_melee_fortification_tie()
 	_test_objective_chits()
@@ -710,6 +711,26 @@ func _test_artillery() -> void:
 	Game.state = s4
 	Game.play_card(0)
 	_check(s4.order_count == 0, "Artiglieria senza Radio non consuma un ordine")
+
+
+func _test_ai_artillery() -> void:
+	print("· IA artiglieria (O18): scelta del bombardamento")
+	var s := _new_state(6, 6)
+	var radio := _mk("R", RUS, Domain.UnitType.WEAPON, RIFLE, 1, 1, 0, 7)
+	radio.unit_name = "Radio 105mm"
+	s.units[radio.id] = radio
+	s.units["L"] = _mk("L", RUS, LEADER, ELITE, 1, 1, 1, 8)
+	s.units["g1"] = _mk("g1", GER, SQUAD, RIFLE, 3, 1, 5, 7)
+	s.units["g2"] = _mk("g2", GER, SQUAD, RIFLE, 3, 1, 5, 7)  # due nemici nello stesso esagono
+	var art := AI.best_artillery(s, RUS)
+	_check(not art.is_empty() and int(art["score"]) == 2, "IA mira al cluster nemico (2 unità)")
+	_check(art.get("spotter_id") == "L" and art.get("radio_id") == "R",
+		"IA usa Radio e Leader corretti")
+
+	var s2 := _new_state(6, 6)
+	s2.units["L2"] = _mk("L2", RUS, LEADER, ELITE, 1, 1, 1, 8)
+	s2.units["g3"] = _mk("g3", GER, SQUAD, RIFLE, 3, 1, 5, 7)
+	_check(AI.best_artillery(s2, RUS).is_empty(), "Senza Radio l'IA non richiede artiglieria")
 
 
 func _test_blaze() -> void:

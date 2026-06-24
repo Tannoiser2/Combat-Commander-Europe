@@ -256,28 +256,33 @@ func _play_artillery(hand_index: int) -> void:
 		_discard_card(hand_index)
 		return
 	state.order_count += 1
-	# Accuracy (O18.2.2): Targeting Roll spotter→SR (prodotto dei dadi vs gittata+hindrance).
-	var dist := HexGrid.distance(spotter.q, spotter.r, target.x, target.y)
-	var hind := HexGrid.los_hindrance(spotter.q, spotter.r, target.x, target.y, state)
+	_resolve_artillery_strike(spotter, radio, target.x, target.y)
+	_discard_card(hand_index)
+	_check_end_conditions()
+	emit_signal("state_changed")
+
+
+## Risoluzione comune della bombardamento (umano e IA): Targeting Roll
+## spotter→bersaglio, deriva della granata (O18.2.2) e impatto a 7 esagoni
+## (O18.2.3). Marca la radio come attivata.
+func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, prefix: String = "") -> void:
+	var dist := HexGrid.distance(spotter.q, spotter.r, tq, tr)
+	var hind := HexGrid.los_hindrance(spotter.q, spotter.r, tq, tr, state)
 	var tdice := Rules.roll_dice(_rng)
 	var hit := tdice.x * tdice.y > dist + hind
 	var dd := Rules.roll_dice(_rng)
-	var sr := Rules.artillery_drift(state, target.x, target.y, hit, dd.x, dd.y)
+	var sr := Rules.artillery_drift(state, tq, tr, hit, dd.x, dd.y)
 	radio.activated = true
 	if sr.x < 0:
-		_log("Artiglieria: la granata è uscita dalla mappa — nessun effetto.")
-		_discard_card(hand_index)
+		_log(prefix + "Artiglieria: la granata è uscita dalla mappa — nessun effetto.")
 		return
 	var fp := _radio_fp(radio)
 	var res := Combat.resolve_artillery(state, fp, sr.x, sr.y, _rng)
-	_log("Artiglieria (%s, FP%d) su (%d,%d): %d eliminate, %d rotte, %d soppresse." % [
+	_log(prefix + "Artiglieria (%s, FP%d) su (%d,%d): %d eliminate, %d rotte, %d soppresse." % [
 		"colpito" if hit else "mancato", fp, sr.x, sr.y,
 		res["eliminated"].size(), res["broken"].size(), res["suppressed"].size()])
 	for id in res["eliminated"]:
 		emit_signal("unit_eliminated", id)
-	_discard_card(hand_index)
-	_check_end_conditions()
-	emit_signal("state_changed")
 
 
 ## Miglior esagono d'impatto: esagono nemico nella LOS dello spotter col maggior
@@ -1295,8 +1300,19 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 					break
 		Domain.OrderType.MOVE:
 			await _ai_move_order(faction)
+		Domain.OrderType.ARTY:
+			_ai_artillery(faction, play)
 	_discard_for(faction, int(play["card_index"]))
 	emit_signal("state_changed")
+
+
+## L'IA richiede l'artiglieria (O18) sul bersaglio scelto da AI.best_artillery.
+func _ai_artillery(faction: int, play: Dictionary) -> void:
+	var spotter := state.unit_by_id(String(play.get("spotter_id", "")))
+	var radio := state.unit_by_id(String(play.get("radio_id", "")))
+	if spotter == null or radio == null:
+		return
+	_resolve_artillery_strike(spotter, radio, int(play["q"]), int(play["r"]), "IA — ")
 
 
 ## Avanzata dell'IA in (tq,tr); se vi sono nemici risolve il corpo a corpo (O21).
