@@ -151,6 +151,13 @@ func _draw() -> void:
 		draw_arc(oc, 11.0, 0, TAU, 20, Color.WHITE, 1.5)
 		_draw_text("%d" % obj.vp, oc, 12.0, Color(1, 0.95, 0.3), true)
 
+	# Fumo (Granate/Polvere/Fosforo/barrage): nube grigia translucida (hindrance)
+	for key in s.hexes:
+		var shd: GameState.HexData = s.hexes[key]
+		if shd.has_smoke:
+			var sp := String(key).split(",")
+			_draw_hex_fill(int(sp[0]), int(sp[1]), Color(0.82, 0.82, 0.86, 0.62))
+
 	# Incendio (E46): esagono in fiamme (riempimento arancio + simbolo)
 	for key in s.hexes:
 		var bhd: GameState.HexData = s.hexes[key]
