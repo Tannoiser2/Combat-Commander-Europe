@@ -23,6 +23,10 @@ static func fire(state: GameState, card: Card, faction: int) -> Array[String]:
 		"FUOCO DI SOPPRESSIONE":   _suppressing_fire(state, faction, lines)
 		"ACQUATTARSI":             _cower(state, faction, lines)
 		"TEMPRATI DALLA GUERRA":   _battle_harden(state, faction, lines)
+		"MEDICO":                  _medic(state, faction, lines)
+		"MALFUNZIONAMENTO":        _malfunction(state, card, lines)
+		"BREZZA":                  _breeze(state, lines)
+		"COMMISSARIO":             _commissar(state, card, lines)
 		"ZAPPATORI":
 			lines.append("Zappatori: nessuna mina o filo spinato da rimuovere.")
 		"SCONTRO SENZA PERDITE":
@@ -160,3 +164,71 @@ static func _battle_harden(state: GameState, faction: int, lines: Array[String])
 			lines.append("Temprati dalla guerra: %s veterana (morale %d)." % [u.unit_name, u.morale])
 			return
 	lines.append("Temprati dalla guerra: nessuna unità idonea.")
+
+
+## E64 Medico: ripristina (rally) un'unità rotta — di norma una amica di chi
+## pesca; se non ce ne sono, una nemica (l'effetto è comunque obbligatorio).
+static func _medic(state: GameState, faction: int, lines: Array[String]) -> void:
+	var target := _find_broken(state, faction, false)  # prima un'amica
+	if target == null:
+		target = _find_broken(state, faction, true)    # altrimenti una nemica
+	if target != null:
+		target.recover()
+		lines.append("Medico: %s ripristinata." % target.unit_name)
+	else:
+		lines.append("Medico: nessuna unità rotta da ripristinare.")
+
+
+## E63 Malfunzionamento: l'arma efficiente più vicina all'esagono casuale della
+## carta si inceppa (si rompe). Vale per entrambi gli schieramenti.
+static func _malfunction(state: GameState, card: Card, lines: Array[String]) -> void:
+	var qr := Domain.label_to_qr(card.random_hex_label)
+	if qr.x < 0:
+		lines.append("Malfunzionamento: esagono non valido.")
+		return
+	var best: Unit = null
+	var best_d := 99999
+	for u in state.units.values():
+		if u.is_weapon() and u.efficient:
+			var d := HexGrid.distance(qr.x, qr.y, u.q, u.r)
+			if d < best_d:
+				best_d = d
+				best = u
+	if best != null:
+		best.break_unit()
+		lines.append("Malfunzionamento: %s si inceppa." % best.unit_name)
+	else:
+		lines.append("Malfunzionamento: nessun'arma efficiente in campo.")
+
+
+## E48 Brezza: rimuove tutti i marcatori di Fumo dalla mappa. (La posa di Incendi,
+## non modellata, è loggata a parte.)
+static func _breeze(state: GameState, lines: Array[String]) -> void:
+	var removed := 0
+	for key in state.hexes:
+		var hd: GameState.HexData = state.hexes[key]
+		if hd.has_smoke:
+			hd.has_smoke = false
+			removed += 1
+	lines.append("Brezza: rimossi %d fumi (incendi non simulati)." % removed)
+
+
+## E50 Commissario: il giocatore russo sceglie una sua unità rotta e tira (dadi
+## della carta del Fato): se il risultato è > Morale l'unità è eliminata,
+## altrimenti viene ripristinata (rally).
+static func _commissar(state: GameState, card: Card, lines: Array[String]) -> void:
+	# Stand-in: il giocatore "russo" è lo slot Alleati (Domain.Faction.RUSSIAN).
+	var broken := state.broken_men_of(Domain.Faction.RUSSIAN)
+	if broken.is_empty():
+		lines.append("Commissario: nessuna unità russa rotta.")
+		return
+	var target: Unit = broken[0]
+	var roll := card.dice_white + card.dice_red
+	if roll > target.morale:
+		state.eliminate_unit(target.id)
+		lines.append("Commissario: %s — tiro %d > morale %d → ELIMINATA." % [
+			target.unit_name, roll, target.morale])
+	else:
+		target.recover()
+		lines.append("Commissario: %s — tiro %d ≤ morale %d → ripristinata." % [
+			target.unit_name, roll, target.morale])
