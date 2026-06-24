@@ -348,20 +348,106 @@ func confirm_fire() -> void:
 		g.activated = true
 		if g.is_weapon():
 			weapon_ids.append(g.id)
+	# Carta ordine + carte modificatore: consumate per riferimento (l'ordine degli
+	# indici non conta) dopo la risoluzione.
+	var hand := state.hand_of(state.human_faction)
+	var to_discard: Array = []
+	if state.selected_card_index >= 0 and state.selected_card_index < hand.size():
+		to_discard.append(hand[state.selected_card_index])
+	for c in state.fire_modifier_cards:
+		to_discard.append(c)
+	var fp_bonus := 2 * state.fire_modifiers.size()
 	var atk_fate := _draw_fate(state.human_faction)
 	var def_fate := _draw_fate(_ai_faction())
-	var result := Combat.resolve_fire(u, tq, tr, state, _dice_of(atk_fate), _dice_of(def_fate), group)
+	var atk_dice := _dice_of(atk_fate)
+	var result := Combat.resolve_fire(u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus)
 	_log(result.log_line)
+	# Fuoco Sostenuto (A41): su un doppio, un'arma (MG/mortaio) che spara si inceppa.
+	if atk_dice.x == atk_dice.y:
+		var breaks := state.fire_modifiers.count("FUOCO SOSTENUTO")
+		for g in group:
+			if breaks <= 0:
+				break
+			if g.is_weapon() and g.efficient and (g.unit_class == Domain.UnitClass.MG or g.unit_class == Domain.UnitClass.MORTAR):
+				g.break_unit()
+				breaks -= 1
+				_log("Fuoco Sostenuto: %s si inceppa (doppio)." % g.unit_name)
 	for uid2 in result.eliminated:
 		emit_signal("unit_eliminated", uid2)
 	emit_signal("fire_resolved", result)
 	_apply_fate(atk_fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
 	_apply_fate(def_fate, _ai_faction())
-	_discard_card(state.selected_card_index)
+	for c in to_discard:
+		var idx := hand.find(c)
+		if idx >= 0:
+			_discard_for(state.human_faction, idx)
 	_clear_order_selection()
 	_check_end_conditions()  # aggiorna obiettivi/VP e gestisce la fine partita
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
+
+
+# ─── Modificatori di fuoco (A30/A37/A41) ──────────────────────────────────────
+
+## Azioni che modificano un attacco di fuoco e si applicano durante
+## l'assemblaggio (ognuna +2 FP, con prerequisiti propri).
+const FIRE_MOD_NAMES := ["FUOCO MIRATO", "FUOCO SOSTENUTO", "FUOCO INCROCIATO"]
+
+
+## Pezzi attualmente nel gruppo di fuoco (oggetti Unit).
+func _current_fire_group() -> Array:
+	var g: Array = []
+	for id in state.fire_group_ids:
+		var u := state.unit_by_id(id)
+		if u != null:
+			g.append(u)
+	return g
+
+
+## "" se il modificatore è applicabile, altrimenti il motivo (prerequisito CC:E).
+func _fire_modifier_error(nm: String) -> String:
+	var group := _current_fire_group()
+	match nm:
+		"FUOCO MIRATO":  # Marksmanship (A37): deve sparare una squadra/team.
+			for g in group:
+				if g.is_man() and not g.is_leader():
+					return ""
+			return "richiede una squadra/team nel gruppo di fuoco"
+		"FUOCO SOSTENUTO":  # Sustained Fire (A41): deve sparare una MG/mortaio.
+			for g in group:
+				if g.is_weapon() and (g.unit_class == Domain.UnitClass.MG or g.unit_class == Domain.UnitClass.MORTAR):
+					return ""
+			return "richiede una MG o un mortaio nel gruppo"
+		"FUOCO INCROCIATO":  # Crossfire (A30): solo contro un bersaglio in movimento.
+			for t in state.men_at(state.fire_target_q, state.fire_target_r):
+				if t.id == state.moving_unit_id:
+					return ""
+			return "solo contro un'unità in movimento"
+	return ""
+
+
+## Applica un modificatore di fuoco dalla mano durante l'assemblaggio (+2 FP).
+func apply_fire_modifier(hand_index: int) -> void:
+	if state == null or state.current_order != Domain.OrderType.FIRE or state.fire_target_q < 0:
+		return
+	var hand := state.hand_of(state.human_faction)
+	if hand_index < 0 or hand_index >= hand.size():
+		return
+	var card: Card = hand[hand_index]
+	var nm := card.action_name
+	if not FIRE_MOD_NAMES.has(nm):
+		_log("«%s» non è un modificatore di fuoco (in questo contesto)." % (nm if nm != "" else "—"))
+		return
+	if state.fire_modifier_cards.has(card):
+		return  # già applicata
+	var err := _fire_modifier_error(nm)
+	if err != "":
+		_log("%s: %s." % [nm, err])
+		return
+	state.fire_modifiers.append(nm)
+	state.fire_modifier_cards.append(card)
+	_log("Modificatore di fuoco: %s (+2 FP)." % nm)
+	emit_signal("state_changed")
 
 
 ## FP previsto del gruppo di fuoco attuale (per il banner; senza dadi).
@@ -375,6 +461,7 @@ func projected_fire_fp() -> int:
 			fp = maxi(fp, Rules.fp_with_command(state, g))
 	if state.fire_group_ids.size() > 1:
 		fp += state.fire_group_ids.size() - 1
+	fp += 2 * state.fire_modifiers.size()  # modificatori applicati (+2 ciascuno)
 	var u := state.unit_by_id(state.selected_unit_id)
 	if u != null and not u.ordnance:
 		var hind := HexGrid.los_hindrance(u.q, u.r, state.fire_target_q, state.fire_target_r, state)
@@ -636,6 +723,8 @@ func _clear_fire_assembly() -> void:
 	state.fire_target_r = -1
 	state.fire_eligible_ids.clear()
 	state.fire_group_ids.clear()
+	state.fire_modifiers.clear()
+	state.fire_modifier_cards.clear()
 
 
 func _discard_card(hand_index: int) -> void:

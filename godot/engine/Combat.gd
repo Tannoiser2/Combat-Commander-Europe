@@ -72,7 +72,8 @@ static func resolve_fire(
 	attacker: Unit, tq: int, tr: int,
 	state: GameState,
 	atk_dice: Vector2i, def_dice: Vector2i,
-	group_override: Array[Unit] = []
+	group_override: Array[Unit] = [],
+	fp_bonus: int = 0
 ) -> FireResult:
 	var res := FireResult.new()
 	res.attacker_id = attacker.id
@@ -124,6 +125,8 @@ static func resolve_fire(
 		fp = maxi(fp, Rules.fp_with_command(state, u))
 	if group.size() > 1:
 		fp += group.size() - 1
+	# Modificatori di fuoco (Mirato/Sostenuto/Incrociato, A37/A41/A30): +FP.
+	fp += fp_bonus
 	var attack_fp := maxi(1, fp) if attacker.ordnance else maxi(1, fp - hind)
 	res.fp_total = attack_fp
 	res.dice_roll = atk_dice.x + atk_dice.y

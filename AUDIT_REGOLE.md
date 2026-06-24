@@ -95,20 +95,22 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | A36 Light Wounds (Ferite leggere) | ✅ | recupero. |
 | A39 Smoke Grenades (Granate fumogene) | ✅ | fumo → hindrance. |
 | A25 Ambush | ❌ | melee. |
-| **A26 Assault Fire** | ❌ | **modificatore di fuoco molto usato.** |
-| A27 Bore Sighting | ❌ | ordnance. |
+| **A26 Assault Fire** | ❌ | modificatore di fuoco (richiede il fuoco-in-movimento, da fare). |
+| A27 Bore Sighting | ❌ | ordnance (difensore, +2). |
 | A28 Command Confusion | ❌ | |
-| **A30 Crossfire** | ❌ | **modificatore di fuoco.** |
+| **A30 Crossfire** | 🟡 | applicato come modificatore (+2) nell'assemblaggio del fuoco, con prerequisito «solo vs unità in movimento». |
 | A31 Demolitions | ❌ | |
 | **A33 Opportunity Fire** | 🟡 | esiste ma **automatica** (un solo tiratore, nessuna scelta). |
 | A35 Hidden | ❌ | unità nascoste. |
-| **A37 Marksmanship** | ❌ | **modificatore di fuoco.** |
+| **A37 Marksmanship** | ✅ | +2 FP nell'assemblaggio del fuoco, prereq: una squadra/team spara. |
 | A38 No Quarter | ❌ | melee. |
-| **A40 Spray Fire** | ❌ | **modificatore di fuoco.** |
-| **A41 Sustained Fire** | ❌ | **modificatore di fuoco.** |
+| **A40 Spray Fire** | ❌ | modificatore di fuoco (richiede 2 esagoni bersaglio, da fare). |
+| **A41 Sustained Fire** | ✅ | +2 FP nell'assemblaggio, prereq: MG/mortaio spara; su un doppio un'arma si inceppa. |
 
-I cinque **modificatori di fuoco** (Assault/Crossfire/Marksmanship/Spray/Sustained)
-sono il pezzo più sentito nelle partite reali e sono **tutti assenti**.
+Dei cinque **modificatori di fuoco** ne sono ora attivi **3** (Mirato, Sostenuto,
+Incrociato), applicabili durante l'assemblaggio interattivo del fuoco (tasto destro
+su una carta). Restano **Sventagliata** (2 esagoni) e **Fuoco d'Assalto** (fuoco
+durante il movimento), che richiedono cambi al targeting/flusso.
 
 ---
 
