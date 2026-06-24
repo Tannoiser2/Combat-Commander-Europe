@@ -197,6 +197,49 @@ static func _resolve_hex_defenders(
 	return cover
 
 
+## Impatto d'artiglieria (O18.2.3): l'esagono centro (cq,cr) e i sei adiacenti
+## subiscono un attacco da `fp` FP. Ogni unità presente (di QUALSIASI fazione)
+## tira la difesa (Morale + copertura + 2d6) contro fp + 2d6. I dadi vengono
+## dall'`rng`. Restituisce { eliminated, broken, suppressed, hexes }.
+static func resolve_artillery(
+	state: GameState, fp: int, cq: int, cr: int, rng: RandomNumberGenerator
+) -> Dictionary:
+	var res := { "eliminated": [], "broken": [], "suppressed": [], "hexes": 0 }
+	var blast: Array = [Vector2i(cq, cr)]
+	for n in HexGrid.neighbors(cq, cr):
+		blast.append(n)
+	for h in blast:
+		if h.x < 0 or h.x >= state.map_cols or h.y < 0 or h.y >= state.map_rows:
+			continue
+		res["hexes"] += 1
+		var here: Array = []
+		for u in state.units.values():
+			if u.q == h.x and u.r == h.y:
+				here.append(u)
+		var cover := Rules.cover_at(state, h.x, h.y, false)
+		for u in here:
+			var atk: int = fp + rng.randi_range(1, 6) + rng.randi_range(1, 6)
+			var defn: int = int(u.morale) + cover + rng.randi_range(1, 6) + rng.randi_range(1, 6)
+			if atk > defn:
+				if u.efficient:
+					u.break_unit()
+					res["broken"].append(u.id)
+				else:
+					res["eliminated"].append(u.id)
+					state.eliminate_unit(u.id)
+			elif atk == defn:
+				if u.efficient and not u.suppressed:
+					u.suppress()
+					res["suppressed"].append(u.id)
+				elif u.efficient:
+					u.break_unit()
+					res["broken"].append(u.id)
+				else:
+					res["eliminated"].append(u.id)
+					state.eliminate_unit(u.id)
+	return res
+
+
 ## Verifica se un'unità può sparare legalmente.
 static func can_fire(attacker: Unit, tq: int, tr: int, state: GameState) -> bool:
 	if attacker.activated:

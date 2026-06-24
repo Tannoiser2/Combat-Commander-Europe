@@ -192,7 +192,7 @@ func play_card(hand_index: int) -> void:
 	# o giocare Azioni (tasto destro).
 	var counts_as_order: bool = card.order in [
 		Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE,
-		Domain.OrderType.RECOVER, Domain.OrderType.ROUT]
+		Domain.OrderType.RECOVER, Domain.OrderType.ROUT, Domain.OrderType.ARTY]
 	if counts_as_order and state.order_count >= state.max_orders:
 		_log("Ordini esauriti per questo turno (%d/%d). Premi «Fine Turno» o gioca un'Azione." % [
 			state.order_count, state.max_orders])
@@ -222,12 +222,94 @@ func play_card(hand_index: int) -> void:
 			_execute_recover(hand_index)
 		Domain.OrderType.ROUT:
 			_execute_rout(hand_index)
+		Domain.OrderType.ARTY:
+			_play_artillery(hand_index)
 		Domain.OrderType.PASS:
 			_discard_card(hand_index)
 			_end_player_turn()
 		_:
 			# Artiglieria e altri ordini non ancora portati: scartati.
 			_discard_card(hand_index)
+
+
+## Richiesta d'Artiglieria (O18, versione auto-target): serve una Radio e un
+## Leader (spotter) non rotti. Si fa un Targeting Roll spotter→bersaglio, la
+## granata deriva (O18.2.2) e il punto d'impatto colpisce 7 esagoni (O18.2.3).
+func _play_artillery(hand_index: int) -> void:
+	var human := state.human_faction
+	var radio: Unit = null
+	var spotter: Unit = null
+	for u in state.units_of(human):
+		if not u.efficient:
+			continue
+		if radio == null and u.unit_name.contains("Radio"):
+			radio = u
+		if spotter == null and u.is_leader():
+			spotter = u
+	if radio == null or spotter == null:
+		_log("Artiglieria: servono una Radio e un Leader non rotti in campo.")
+		_discard_card(hand_index)
+		return
+	var target := _best_artillery_target(spotter)
+	if target.x < 0:
+		_log("Artiglieria: nessun bersaglio nella linea di vista dello spotter.")
+		_discard_card(hand_index)
+		return
+	state.order_count += 1
+	# Accuracy (O18.2.2): Targeting Roll spotter→SR (prodotto dei dadi vs gittata+hindrance).
+	var dist := HexGrid.distance(spotter.q, spotter.r, target.x, target.y)
+	var hind := HexGrid.los_hindrance(spotter.q, spotter.r, target.x, target.y, state)
+	var tdice := Rules.roll_dice(_rng)
+	var hit := tdice.x * tdice.y > dist + hind
+	var dd := Rules.roll_dice(_rng)
+	var sr := Rules.artillery_drift(state, target.x, target.y, hit, dd.x, dd.y)
+	radio.activated = true
+	if sr.x < 0:
+		_log("Artiglieria: la granata è uscita dalla mappa — nessun effetto.")
+		_discard_card(hand_index)
+		return
+	var fp := _radio_fp(radio)
+	var res := Combat.resolve_artillery(state, fp, sr.x, sr.y, _rng)
+	_log("Artiglieria (%s, FP%d) su (%d,%d): %d eliminate, %d rotte, %d soppresse." % [
+		"colpito" if hit else "mancato", fp, sr.x, sr.y,
+		res["eliminated"].size(), res["broken"].size(), res["suppressed"].size()])
+	for id in res["eliminated"]:
+		emit_signal("unit_eliminated", id)
+	_discard_card(hand_index)
+	_check_end_conditions()
+	emit_signal("state_changed")
+
+
+## Miglior esagono d'impatto: esagono nemico nella LOS dello spotter col maggior
+## numero di nemici. (-1,-1) se nessuno è in vista.
+func _best_artillery_target(spotter: Unit) -> Vector2i:
+	var best := Vector2i(-1, -1)
+	var best_n := 0
+	for other in state.units.values():
+		if other.faction == spotter.faction or not other.is_man():
+			continue
+		if not HexGrid.has_los(spotter.q, spotter.r, other.q, other.r, state):
+			continue
+		var n := 0
+		for t in state.men_at(other.q, other.r):
+			if t.faction != spotter.faction:
+				n += 1
+		if n > best_n:
+			best_n = n
+			best = Vector2i(other.q, other.r)
+	return best
+
+
+## FP della bombardamento in base al calibro della Radio.
+func _radio_fp(radio: Unit) -> int:
+	var nm := radio.unit_name
+	if nm.contains("105"):
+		return 24
+	if nm.contains("88"):
+		return 20
+	if nm.contains("81"):
+		return 18
+	return 16  # 75mm e default
 
 
 ## Gioca la CARTA come AZIONE (banda inferiore) invece che come ordine.
