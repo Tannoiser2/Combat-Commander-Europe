@@ -119,6 +119,8 @@ func _guidance_text(s: GameState) -> String:
 						return "MOSSA — clicca un esagono giallo · clicca l'unità per concludere"
 					return "MOSSA — clicca un esagono giallo · clicca l'unità per annullare"
 				Domain.OrderType.FIRE:
+					if s.fire_target_q >= 0:
+						return "FUOCO — gruppo %d pezzi, FP ~%d · clicca i pezzi (arancio=incluso) · il bersaglio per sparare" % [s.fire_group_ids.size(), Game.projected_fire_fp()]
 					if not has_unit:
 						return "FUOCO — clicca l'unità che spara"
 					return "FUOCO — clicca un bersaglio nemico evidenziato · l'unità per annullare"

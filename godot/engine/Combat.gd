@@ -71,7 +71,8 @@ static func _apply_hit(t: Unit, res: FireResult) -> void:
 static func resolve_fire(
 	attacker: Unit, tq: int, tr: int,
 	state: GameState,
-	atk_dice: Vector2i, def_dice: Vector2i
+	atk_dice: Vector2i, def_dice: Vector2i,
+	group_override: Array[Unit] = []
 ) -> FireResult:
 	var res := FireResult.new()
 	res.attacker_id = attacker.id
@@ -113,7 +114,8 @@ static func resolve_fire(
 			return res
 
 	# ─── Potenza di fuoco del gruppo (O20.3.1.2) ─────────────────────────────
-	var group := fire_group(attacker, tq, tr, state)
+	# Gruppo esplicito (scelto dal giocatore) o, in assenza, quello automatico.
+	var group := group_override if not group_override.is_empty() else fire_group(attacker, tq, tr, state)
 	# FP del pezzo base = migliore FP già comprensivo del Comando del leader
 	# co-locato (3.3.1.2 squadre/team, 3.3.1.3 armi), + 1 per ogni pezzo
 	# aggiuntivo (NON la somma di tutti gli FP). L'ordnance non è mai modificata.
