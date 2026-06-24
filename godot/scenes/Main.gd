@@ -99,6 +99,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			if _legend != null:
 				_legend.visible = not _legend.visible
 			get_viewport().set_input_as_handled()
+		KEY_3:  # apri la vista mappa 3D (prototipo); «2»/ESC per tornare
+			get_tree().change_scene_to_file("res://scenes/Map3D.tscn")
+			get_viewport().set_input_as_handled()
 		KEY_SPACE:
 			if Game.state != null and Game.state.phase == Domain.Phase.REACTION_WINDOW:
 				Game.opfire_decline()
