@@ -72,6 +72,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				Game.exit_selected_unit()
 				_refresh_ui()
 				get_viewport().set_input_as_handled()
+		KEY_S:  # durante l'artiglieria: alterna barrage esplosivo/fumogeno
+			if Game.state != null and Game.state.current_order == Domain.OrderType.ARTY:
+				Game.toggle_artillery_smoke()
+				_refresh_ui()
+				get_viewport().set_input_as_handled()
 
 
 # ─── Aggiornamento UI ─────────────────────────────────────────────────────────
@@ -148,7 +153,8 @@ func _guidance_text(s: GameState) -> String:
 						return "AVANZATA — clicca l'unità che avanza"
 					return "AVANZATA — clicca un esagono adiacente · l'unità per annullare"
 				Domain.OrderType.ARTY:
-					return "🎯 ARTIGLIERIA — clicca l'esagono bersaglio (giallo) nella LOS dello spotter · lo spotter per annullare"
+					var mode := "FUMO" if s.artillery_smoke else "esplosivo"
+					return "🎯 ARTIGLIERIA [%s] — clicca il bersaglio (giallo) nella LOS · «S» = fumo/esplosivo · lo spotter per annullare" % mode
 				_:
 					return "Clicca un'unità sulla mappa"
 		Domain.Phase.REACTION_WINDOW:

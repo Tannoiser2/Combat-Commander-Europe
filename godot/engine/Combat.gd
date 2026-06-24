@@ -197,6 +197,24 @@ static func _resolve_hex_defenders(
 	return cover
 
 
+## Barrage fumogeno (O18.2.3.1): posa fumo nell'esagono centro e nei sei adiacenti
+## (no esplosivo). Salta gli esagoni in fiamme. Restituisce quanti ne ha coperti.
+static func resolve_smoke_barrage(state: GameState, cq: int, cr: int) -> int:
+	var n := 0
+	var blast: Array = [Vector2i(cq, cr)]
+	for nb in HexGrid.neighbors(cq, cr):
+		blast.append(nb)
+	for h in blast:
+		if h.x < 0 or h.x >= state.map_cols or h.y < 0 or h.y >= state.map_rows:
+			continue
+		var hd: GameState.HexData = state.hex_at(h.x, h.y)
+		if hd == null or hd.has_blaze:
+			continue
+		hd.has_smoke = true
+		n += 1
+	return n
+
+
 ## Impatto d'artiglieria (O18.2.3): l'esagono centro (cq,cr) e i sei adiacenti
 ## subiscono un attacco da `fp` FP. Ogni unità presente (di QUALSIASI fazione)
 ## tira la difesa (Morale + copertura + 2d6) contro fp + 2d6. I dadi vengono

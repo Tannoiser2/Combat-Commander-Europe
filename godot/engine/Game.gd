@@ -268,6 +268,15 @@ func _play_artillery(hand_index: int) -> void:
 	emit_signal("state_changed")
 
 
+## Alterna barrage esplosivo/fumogeno durante la scelta del bersaglio (O18.2.1.1).
+func toggle_artillery_smoke() -> void:
+	if state == null or state.current_order != Domain.OrderType.ARTY:
+		return
+	state.artillery_smoke = not state.artillery_smoke
+	_log("Artiglieria: barrage %s." % ("FUMOGENO" if state.artillery_smoke else "esplosivo"))
+	emit_signal("state_changed")
+
+
 ## Il giocatore sceglie l'esagono bersaglio (Spotting Round): si risolve il
 ## bombardamento con deriva e impatto.
 func click_hex_artillery(tq: int, tr: int) -> void:
@@ -277,11 +286,12 @@ func click_hex_artillery(tq: int, tr: int) -> void:
 	var spotter := state.unit_by_id(state.artillery_spotter_id)
 	var radio := state.unit_by_id(state.artillery_radio_id)
 	var ci := state.selected_card_index
+	var smoke := state.artillery_smoke
 	_clear_order_selection()
 	if spotter == null or radio == null:
 		_change_phase(Domain.Phase.PLAYER_TURN)
 		return
-	_resolve_artillery_strike(spotter, radio, tq, tr)
+	_resolve_artillery_strike(spotter, radio, tq, tr, "", smoke)
 	if ci >= 0:
 		_discard_card(ci)
 	_check_end_conditions()
@@ -293,7 +303,7 @@ func click_hex_artillery(tq: int, tr: int) -> void:
 ## Risoluzione comune della bombardamento (umano e IA): Targeting Roll
 ## spotter→bersaglio, deriva della granata (O18.2.2) e impatto a 7 esagoni
 ## (O18.2.3). Marca la radio come attivata.
-func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, prefix: String = "") -> void:
+func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, prefix: String = "", smoke: bool = false) -> void:
 	var dist := HexGrid.distance(spotter.q, spotter.r, tq, tr)
 	var hind := HexGrid.los_hindrance(spotter.q, spotter.r, tq, tr, state)
 	var tdice := Rules.roll_dice(_rng)
@@ -303,6 +313,12 @@ func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, pre
 	radio.activated = true
 	if sr.x < 0:
 		_log(prefix + "Artiglieria: la granata è uscita dalla mappa — nessun effetto.")
+		return
+	if smoke:
+		# Barrage fumogeno (O18.2.3.1): posa fumo sui 7 esagoni, niente esplosivo.
+		var ns := Combat.resolve_smoke_barrage(state, sr.x, sr.y)
+		_log(prefix + "Artiglieria fumogena (%s) su (%d,%d): fumo su %d esagoni." % [
+			"colpito" if hit else "mancato", sr.x, sr.y, ns])
 		return
 	var fp := _radio_fp(radio)
 	var res := Combat.resolve_artillery(state, fp, sr.x, sr.y, _rng)
@@ -1016,6 +1032,7 @@ func _clear_order_selection() -> void:
 	state.move_committed = false
 	state.artillery_radio_id = ""
 	state.artillery_spotter_id = ""
+	state.artillery_smoke = false
 	_clear_fire_assembly()
 
 
