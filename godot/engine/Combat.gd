@@ -46,7 +46,7 @@ static func fire_group(attacker: Unit, tq: int, tr: int, state: GameState) -> Ar
 			continue
 		# Deve poter colpire il bersaglio dal proprio esagono (gittata + LOS).
 		var d := HexGrid.distance(u.q, u.r, tq, tr)
-		if d < 1 or d > u.range:
+		if d < 1 or d > Rules.range_with_command(state, u):
 			continue
 		if not HexGrid.has_los(u.q, u.r, tq, tr, state):
 			continue
@@ -82,8 +82,9 @@ static func resolve_fire(
 	if dist == 0:
 		res.log_line = "Fuoco a distanza 0: usa il corpo a corpo (Avanzata)."
 		return res
-	if dist > attacker.range:
-		res.log_line = "Fuoco fuori gittata (%d > %d)" % [dist, attacker.range]
+	var atk_range := Rules.range_with_command(state, attacker)
+	if dist > atk_range:
+		res.log_line = "Fuoco fuori gittata (%d > %d)" % [dist, atk_range]
 		return res
 	if attacker.ordnance and dist < attacker.min_range:
 		res.log_line = "Sotto la gittata minima dell'ordnance (%d < %d)" % [dist, attacker.min_range]
@@ -111,21 +112,16 @@ static func resolve_fire(
 				attacker.unit_name, tq, tr, atk_dice.x, atk_dice.y, product, dist, hind]
 			return res
 
-	# ─── Potenza di fuoco del gruppo + Comando ───────────────────────────────
+	# ─── Potenza di fuoco del gruppo (O20.3.1.2) ─────────────────────────────
 	var group := fire_group(attacker, tq, tr, state)
-	# Gruppo di fuoco (O20.3.1): FP del pezzo migliore + 1 per ogni pezzo
-	# aggiuntivo (NON la somma di tutti gli FP).
+	# FP del pezzo base = migliore FP già comprensivo del Comando del leader
+	# co-locato (3.3.1.2 squadre/team, 3.3.1.3 armi), + 1 per ogni pezzo
+	# aggiuntivo (NON la somma di tutti gli FP). L'ordnance non è mai modificata.
 	var fp := 0
 	for u in group:
-		fp = maxi(fp, u.fp)
+		fp = maxi(fp, Rules.fp_with_command(state, u))
 	if group.size() > 1:
 		fp += group.size() - 1
-	# L'ordnance (barra bianca) NON è modificata dal Comando né dall'hindrance
-	# sull'FP (l'hindrance è già stato applicato al Targeting Roll).
-	var cmd_bonus := 0
-	if not attacker.ordnance:
-		cmd_bonus = Rules.command_bonus_at(state, attacker.q, attacker.r, attacker.faction)
-	fp += cmd_bonus
 	var attack_fp := maxi(1, fp) if attacker.ordnance else maxi(1, fp - hind)
 	res.fp_total = attack_fp
 	res.dice_roll = atk_dice.x + atk_dice.y
@@ -142,7 +138,10 @@ static func resolve_fire(
 	for t in state.men_at(tq, tr):
 		if t.faction == attacker.faction:
 			continue
-		var defense := t.morale + cover + def_roll
+		# Morale del difensore + copertura + Comando del leader co-locato (3.3.1.2:
+		# un leader aumenta la Morale di squadre/team nel suo esagono, non la propria).
+		var def_cmd := Rules.unit_command_bonus(state, t)
+		var defense := t.morale + cover + def_roll + def_cmd
 		if t.concealed:
 			defense += 1         # mimetizzazione: più difficile da colpire
 			t.concealed = false  # il fuoco la rivela comunque
@@ -158,9 +157,8 @@ static func resolve_fire(
 		# attack_total < defense → nessun effetto
 
 	# ─── Log ─────────────────────────────────────────────────────────────────
-	var cmd_str := " +cmd%d" % cmd_bonus if cmd_bonus > 0 else ""
-	res.log_line = "%s (×%d%s) spara su (%d,%d): ATT %d (FP%d−h%d+%d) vs DIF (mor+cop%d+%d)" % [
-		attacker.unit_name, group.size(), cmd_str, tq, tr,
+	res.log_line = "%s (×%d) spara su (%d,%d): ATT %d (FP%d−h%d+%d) vs DIF (mor+cop%d+%d)" % [
+		attacker.unit_name, group.size(), tq, tr,
 		attack_total, fp, hind, res.dice_roll, cover, def_roll
 	]
 	if res.eliminated.size() > 0:
@@ -188,7 +186,7 @@ static func can_fire(attacker: Unit, tq: int, tr: int, state: GameState) -> bool
 	if attacker.suppressed:
 		return false  # unità soppressa: non può sparare
 	var dist := HexGrid.distance(attacker.q, attacker.r, tq, tr)
-	if dist == 0 or dist > attacker.range:
+	if dist == 0 or dist > Rules.range_with_command(state, attacker):
 		return false
 	if attacker.ordnance and dist < attacker.min_range:
 		return false  # mortai/cannoni: gittata minima

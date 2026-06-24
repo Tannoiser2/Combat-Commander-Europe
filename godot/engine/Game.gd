@@ -146,7 +146,7 @@ func _form_move_group(u: Unit) -> void:
 		ids.append(u.id)
 	for id in ids:
 		state.ordered_group.append(id)
-		state.group_mp[id] = state.unit_by_id(id).move
+		state.group_mp[id] = Rules.move_with_command(state, state.unit_by_id(id))
 	if ids.size() > 1:
 		_log("Comando: %s attiva %d unità entro raggio %d." % [u.unit_name, ids.size(), u.command])
 
@@ -162,7 +162,7 @@ func _highlight_reachable(u: Unit) -> void:
 ## Esagoni nemici che l'unità può colpire (gittata + LOS + nemico presente).
 func _fire_targets(u: Unit) -> Array[Vector2i]:
 	var targets: Array[Vector2i] = []
-	for h in HexGrid.hexes_in_range(u.q, u.r, u.range, state):
+	for h in HexGrid.hexes_in_range(u.q, u.r, Rules.range_with_command(state, u), state):
 		if Combat.can_fire(u, h.x, h.y, state):
 			targets.append(h)
 	return targets
