@@ -27,6 +27,7 @@ static func fire(state: GameState, card: Card, faction: int) -> Array[String]:
 		"MALFUNZIONAMENTO":        _malfunction(state, card, lines)
 		"BREZZA":                  _breeze(state, lines)
 		"COMMISSARIO":             _commissar(state, card, lines)
+		"EROE":                    _hero(state, faction, lines)
 		"ZAPPATORI":
 			lines.append("Zappatori: nessuna mina o filo spinato da rimuovere.")
 		"SCONTRO SENZA PERDITE":
@@ -211,6 +212,36 @@ static func _breeze(state: GameState, lines: Array[String]) -> void:
 			hd.has_smoke = false
 			removed += 1
 	lines.append("Brezza: rimossi %d fumi (incendi non simulati)." % removed)
+
+
+## E58 Eroe: se la fazione di chi pesca non ha già un Eroe in campo, ne compare
+## uno in un esagono amico. L'Eroe è un leader a figura singola (Comando 1) che
+## non conta mai sul Casualty Track (E58.1).
+static func _hero(state: GameState, faction: int, lines: Array[String]) -> void:
+	for u in state.units_of(faction):
+		if u.hero:
+			lines.append("Eroe: già in campo.")
+			return
+	var host: Unit = null
+	for u in state.units_of(faction):
+		if u.is_man():
+			host = u
+			break
+	if host == null:
+		lines.append("Eroe: nessun esagono amico dove apparire.")
+		return
+	var id := "HERO-%s" % Domain.FACTION_SHORT.get(faction, "U")
+	var h := Unit.new(id, faction, Domain.UnitType.LEADER, Domain.UnitClass.ELITE, "Eroe")
+	h.hero = true
+	h.fp = 2
+	h.range = 4
+	h.move = 6
+	h.morale = 10
+	h.command = 1
+	h.q = host.q
+	h.r = host.r
+	state.units[id] = h
+	lines.append("Eroe: un Eroe appare in (%d,%d)!" % [h.q, h.r])
 
 
 ## E50 Commissario: il giocatore russo sceglie una sua unità rotta e tira (dadi

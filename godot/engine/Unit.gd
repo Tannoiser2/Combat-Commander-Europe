@@ -34,6 +34,7 @@ var suppressed: bool = false  ## marcatore di soppressione
 var activated: bool = false   ## già attivata in questo turno
 var veteran: bool = false     ## marcatore veterano
 var concealed: bool = false   ## mimetizzata (Mimetizzazione): +1 morale finché non rivelata
+var hero: bool = false        ## Eroe (E58): leader a figura singola, mai sul Casualty Track
 
 
 func _init(
