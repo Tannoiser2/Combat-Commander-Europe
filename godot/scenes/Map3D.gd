@@ -4,9 +4,12 @@
 ## rotella = zoom). «2»/ESC torna alla mappa 2D. Stato letto da GameState.
 extends Node3D
 
-const WORLD := 1.0 / 59.2   ## immagine→mondo: ~1 unità per raggio-esagono (cal_hex)
 const ELEV_STEP := 0.55     ## rialzo per livello di elevazione
 const BASE_H := 0.25        ## spessore minimo del prisma
+
+## immagine→mondo: 1 unità per raggio-esagono. Derivato dal cal_hex della mappa
+## corrente (così funziona per QUALSIASI mappa degli scenari, non solo map1).
+var _world := 1.0 / 59.2
 
 var _cam_yaw := 0.6
 var _cam_pitch := 0.85
@@ -56,6 +59,7 @@ func _build(s: GameState) -> void:
 	var ox: float = s.cal_ox
 	var oy: float = s.cal_oy
 	var hx: float = s.cal_hex
+	_world = 1.0 / hx
 
 	# Due superfici: i TOP esagonali col texture del tabellone, i FIANCHI a tinta unita.
 	var top_st := SurfaceTool.new()
@@ -80,9 +84,9 @@ func _build(s: GameState) -> void:
 		for i in range(6):
 			var a := deg_to_rad(60.0 * i)
 			var ci := cimg + hx * Vector2(cos(a), sin(a))
-			corners_w.append(Vector3(ci.x * WORLD, top_y, ci.y * WORLD))
+			corners_w.append(Vector3(ci.x * _world, top_y, ci.y * _world))
 			corners_uv.append(Vector2(ci.x / iw, ci.y / ih))
-		var center_w := Vector3(cimg.x * WORLD, top_y, cimg.y * WORLD)
+		var center_w := Vector3(cimg.x * _world, top_y, cimg.y * _world)
 		var center_uv := Vector2(cimg.x / iw, cimg.y / ih)
 		# Faccia superiore (ventaglio dal centro), texture del tabellone.
 		for i in range(6):
@@ -146,7 +150,7 @@ func _add_pieces(s: GameState, ox: float, oy: float, hx: float) -> void:
 			else Color(0.28, 0.5, 0.28)
 		pm.material_override = mat
 		var ci := _hex_img(u.q, u.r, ox, oy, hx)
-		pm.position = Vector3(ci.x * WORLD, top_y + 0.3, ci.y * WORLD)
+		pm.position = Vector3(ci.x * _world, top_y + 0.3, ci.y * _world)
 		add_child(pm)
 
 
