@@ -126,32 +126,108 @@ func _build(s: GameState) -> void:
 	add_child(side_mi)
 
 	_add_pieces(s, ox, oy, hx)
+	_add_objectives(s, ox, oy, hx)
 
 	_center = Vector3((minx + maxx) * 0.5, 0.0, (minz + maxz) * 0.5)
 	_cam_dist = maxf(maxx - minx, maxz - minz) * 0.7 + 8.0
 
 
-## Pedine: cilindro kaki (Ger) / verde (Rus) sopra l'esagono, all'altezza reale.
+## Pedine come SEGNALINI veri: ogni unità è uno sprite billboard con la grafica
+## del suo counter, in piedi sull'esagono all'altezza reale. Le unità impilate
+## sono scaglionate per restare leggibili.
 func _add_pieces(s: GameState, ox: float, oy: float, hx: float) -> void:
+	var by_hex := {}
 	for u in s.units.values():
-		if not u.is_man():
-			continue
-		var hd: GameState.HexData = s.hex_at(u.q, u.r)
+		var k := "%d,%d" % [u.q, u.r]
+		if not by_hex.has(k):
+			by_hex[k] = []
+		by_hex[k].append(u)
+	for k in by_hex:
+		var arr: Array = by_hex[k]
+		for i in arr.size():
+			var u: Unit = arr[i]
+			var hd: GameState.HexData = s.hex_at(u.q, u.r)
+			var top_y := BASE_H + (hd.elevation if hd != null else 0) * ELEV_STEP
+			var ci := _hex_img(u.q, u.r, ox, oy, hx)
+			# scaglionamento dell'impilamento (diagonale + leggero rialzo)
+			var off := Vector3(0.16 * i - 0.12, 0.12 * i, -0.16 * i + 0.12)
+			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off
+			var tex := _counter_tex(u)
+			if tex != null:
+				var sp := Sprite3D.new()
+				sp.texture = tex
+				sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+				sp.shaded = false
+				sp.pixel_size = 1.5 / float(tex.get_height())
+				sp.position = base + Vector3(0.0, 0.75, 0.0)
+				add_child(sp)
+			else:
+				var pm := MeshInstance3D.new()
+				var pc := CylinderMesh.new()
+				pc.top_radius = 0.3
+				pc.bottom_radius = 0.3
+				pc.height = 0.6
+				pc.radial_segments = 16
+				pm.mesh = pc
+				pm.material_override = _mat(Color(0.66, 0.58, 0.30) \
+					if u.faction == Domain.Faction.GERMAN else Color(0.28, 0.5, 0.28))
+				pm.position = base + Vector3(0.0, 0.3, 0.0)
+				add_child(pm)
+
+
+## Texture del counter dell'unità (stessa logica della 2D: usa nation_art oppure,
+## se vuota, la cartella della fazione). Restituisce null se non esiste.
+func _counter_tex(u: Unit) -> Texture2D:
+	if u.art_name == "":
+		return null
+	var folder: String = u.nation_art if u.nation_art != "" \
+		else String(Domain.FACTION_ART_DIR.get(u.faction, ""))
+	if folder == "":
+		return null
+	var path := "res://assets/counters/%s/%s.png" % [folder, u.art_name]
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
+
+
+## Marker degli obiettivi: un'astina con sopra il valore in VP, colorato in base
+## al controllore (kaki=Ger, verde=Rus, bianco=neutro).
+func _add_objectives(s: GameState, ox: float, oy: float, hx: float) -> void:
+	for o in s.objectives:
+		var hd: GameState.HexData = s.hex_at(o.q, o.r)
 		var top_y := BASE_H + (hd.elevation if hd != null else 0) * ELEV_STEP
-		var pm := MeshInstance3D.new()
+		var ci := _hex_img(o.q, o.r, ox, oy, hx)
+		var col := Color(0.9, 0.9, 0.9)
+		if o.controller == Domain.Faction.GERMAN:
+			col = Color(0.78, 0.7, 0.36)
+		elif o.controller == Domain.Faction.RUSSIAN:
+			col = Color(0.4, 0.66, 0.4)
+		var pole := MeshInstance3D.new()
 		var pc := CylinderMesh.new()
-		pc.top_radius = 0.32
-		pc.bottom_radius = 0.32
-		pc.height = 0.6
-		pc.radial_segments = 16
-		pm.mesh = pc
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.66, 0.58, 0.30) if u.faction == Domain.Faction.GERMAN \
-			else Color(0.28, 0.5, 0.28)
-		pm.material_override = mat
-		var ci := _hex_img(u.q, u.r, ox, oy, hx)
-		pm.position = Vector3(ci.x * _world, top_y + 0.3, ci.y * _world)
-		add_child(pm)
+		pc.top_radius = 0.04
+		pc.bottom_radius = 0.04
+		pc.height = 1.1
+		pc.radial_segments = 6
+		pole.mesh = pc
+		pole.material_override = _mat(Color(0.2, 0.2, 0.2))
+		pole.position = Vector3(ci.x * _world, top_y + 0.55, ci.y * _world)
+		add_child(pole)
+		var lbl := Label3D.new()
+		lbl.text = "%d" % o.vp
+		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		lbl.font_size = 80
+		lbl.pixel_size = 0.011
+		lbl.modulate = col
+		lbl.outline_size = 18
+		lbl.outline_modulate = Color(0, 0, 0, 0.85)
+		lbl.position = Vector3(ci.x * _world, top_y + 1.25, ci.y * _world)
+		add_child(lbl)
+
+
+func _mat(col: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	return m
 
 
 func _update_camera() -> void:
