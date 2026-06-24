@@ -50,6 +50,10 @@ func _ready() -> void:
 	_test_event_rubble()
 	_test_event_kia()
 	_test_event_suppressing_fire()
+	_test_event_medic()
+	_test_event_malfunction()
+	_test_event_breeze()
+	_test_event_commissar()
 	_test_objectives_vp()
 	_test_op_fire()
 	_test_actions()
@@ -473,6 +477,59 @@ func _test_event_suppressing_fire() -> void:
 	s.units[foe.id] = foe
 	Events.fire(s, _ev("FUOCO DI SOPPRESSIONE"), GER)
 	_check(foe.suppressed, "Fuoco di soppressione sopprime il nemico in gittata/LOS dell'MG")
+
+
+func _test_event_medic() -> void:
+	print("· Evento: Medico (rally)")
+	var s := _new_state()
+	var u := _mk("ger", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	u.break_unit()
+	s.units[u.id] = u
+	Events.fire(s, _ev("MEDICO"), GER)
+	_check(s.units["ger"].efficient, "Medico ripristina un'unità rotta amica")
+
+
+func _test_event_malfunction() -> void:
+	print("· Evento: Malfunzionamento (arma più vicina si rompe)")
+	var s := _new_state()
+	var w := _mk("mg", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 0, 0, 4, 7)
+	s.units[w.id] = w
+	var card := _ev("MALFUNZIONAMENTO")
+	card.random_hex_label = "A1"  # (0,0)
+	Events.fire(s, card, RUS)
+	_check(not s.units["mg"].efficient, "Malfunzionamento rompe l'arma efficiente più vicina")
+
+
+func _test_event_breeze() -> void:
+	print("· Evento: Brezza (rimuove il fumo)")
+	var s := _new_state()
+	s.hex_at(1, 1).has_smoke = true
+	s.hex_at(2, 2).has_smoke = true
+	Events.fire(s, _ev("BREZZA"), GER)
+	_check(not s.hex_at(1, 1).has_smoke and not s.hex_at(2, 2).has_smoke, "Brezza rimuove tutti i fumi")
+
+
+func _test_event_commissar() -> void:
+	print("· Evento: Commissario (tiro vs morale)")
+	var s := _new_state()
+	var lo := _mk("rus-lo", RUS, SQUAD, RIFLE, 0, 0, 5, 4)  # morale basso 4
+	lo.break_unit()
+	s.units[lo.id] = lo
+	var hi := _ev("COMMISSARIO")
+	hi.dice_white = 6
+	hi.dice_red = 6  # tiro 12 > 4 → eliminata
+	Events.fire(s, hi, GER)
+	_check(not s.units.has("rus-lo"), "Commissario: tiro > morale → unità russa eliminata")
+
+	var s2 := _new_state()
+	var ok := _mk("rus-ok", RUS, SQUAD, RIFLE, 0, 0, 5, 11)  # morale alto 11
+	ok.break_unit()
+	s2.units[ok.id] = ok
+	var c2 := _ev("COMMISSARIO")
+	c2.dice_white = 1
+	c2.dice_red = 1  # tiro 2 ≤ 11 → ripristinata
+	Events.fire(s2, c2, GER)
+	_check(s2.units.has("rus-ok") and s2.units["rus-ok"].efficient, "Commissario: tiro ≤ morale → ripristinata")
 
 
 func _test_objectives_vp() -> void:

@@ -114,16 +114,17 @@ durante il movimento), che richiedono cambi al targeting/flusso.
 
 ---
 
-## E42–E77 · Eventi — **~8 su ~35**
+## E42–E77 · Eventi — **~12 su ~35**
 
-Implementati (`Events.gd`): Air Support (E43), Battle Harden (E44), Cower (E51),
-Infiltration (E59), KIA (E62), Rubble (E69), Suppressing Fire (E75), Shell Shock
-(E72); Zappatori/Scontro-senza-perdite come no-op.
+Implementati (`Events.gd`): Air Support (E43), Battle Harden (E44), Breeze (E48),
+Commissar (E50), Cower (E51), Infiltration (E59), KIA (E62), Malfunction (E63),
+Medic! (E64), Rubble (E69), Suppressing Fire (E75), Shell Shock (E72);
+Zappatori/Scontro-senza-perdite come no-op.
 
-Assenti (~27), tra cui i più impattanti: **Hero (E58)**, **Field Promotion (E56)**,
-**Deploy (E52)**, **Reinforcements (E68)**, **Medic! (E64)**, **Mission/Strategic
-Objective (E65/E74)**, **Interdiction (E60)**, **Prisoners of War (E66)**, Commissar
-(E50), Élan (E54), Booby Trap (E47), Malfunction (E63), White Phosphorus (E77), ecc.
+Assenti (~23), tra cui i più impattanti: **Hero (E58)**, **Field Promotion (E56)**,
+**Deploy (E52)**, **Reinforcements (E68)**, **Mission/Strategic Objective
+(E65/E74)**, **Interdiction (E60)**, **Prisoners of War (E66)**, Élan (E54), Booby
+Trap (E47), White Phosphorus (E77), Scrounge (E71), Dust (E53), ecc.
 
 ---
 
