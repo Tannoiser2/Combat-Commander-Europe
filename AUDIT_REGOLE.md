@@ -114,17 +114,21 @@ movimento, una volta per ordine).
 
 ---
 
-## E42–E77 · Eventi — **~13 su ~35**
+## E42–E77 · Eventi — **~18 su ~35**
 
 Implementati (`Events.gd`): Air Support (E43), Battle Harden (E44), Breeze (E48),
-Commissar (E50), Cower (E51), Hero (E58), Infiltration (E59), KIA (E62),
-Malfunction (E63), Medic! (E64), Rubble (E69), Suppressing Fire (E75), Shell Shock
-(E72); Zappatori/Scontro-senza-perdite come no-op.
+Command & Control (E49), Commissar (E50), Élan (E54), Entrench (E55), Field
+Promotion (E56), Hero (E58), Infiltration (E59), Interdiction (E60), KIA (E62),
+Malfunction (E63), Medic! (E64), Cower (E51), Rubble (E69), Suppressing Fire (E75),
+Shell Shock (E72); Zappatori/Scontro-senza-perdite come no-op.
 
-Assenti (~22), tra cui i più impattanti: **Field Promotion (E56)**,
-**Deploy (E52)**, **Reinforcements (E68)**, **Mission/Strategic Objective
-(E65/E74)**, **Interdiction (E60)**, **Prisoners of War (E66)**, Élan (E54), Booby
-Trap (E47), White Phosphorus (E77), Scrounge (E71), Dust (E53), ecc.
+Note sulle semplificazioni: Interdiction scarta l'ultima carta della mano (anziché
+una a caso scelta dall'avversario); Field Promotion usa il «Soldato» standard
+(Comando 2, Morale 6) senza Support Table.
+
+Assenti (~17), tra cui: **Deploy (E52)**, **Reinforcements (E68)**,
+**Mission/Strategic Objective (E65/E74)**, **Prisoners of War (E66)**, Booby
+Trap (E47), White Phosphorus (E77), Scrounge (E71), Dust (E53), Blaze (E46), ecc.
 
 ---
 

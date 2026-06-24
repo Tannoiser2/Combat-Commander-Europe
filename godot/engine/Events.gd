@@ -28,6 +28,11 @@ static func fire(state: GameState, card: Card, faction: int) -> Array[String]:
 		"BREZZA":                  _breeze(state, lines)
 		"COMMISSARIO":             _commissar(state, card, lines)
 		"EROE":                    _hero(state, faction, lines)
+		"INTERDIZIONE":            _interdiction(state, lines)
+		"TRINCERAMENTO":           _entrench_event(state, faction, lines)
+		"PROMOZIONE SUL CAMPO":    _field_promotion(state, faction, lines)
+		"COMANDO E CONTROLLO":     _command_control(state, faction, lines)
+		"IMPETO":                  _elan(state, faction, lines)
 		"ZAPPATORI":
 			lines.append("Zappatori: nessuna mina o filo spinato da rimuovere.")
 		"SCONTRO SENZA PERDITE":
@@ -242,6 +247,86 @@ static func _hero(state: GameState, faction: int, lines: Array[String]) -> void:
 	h.r = host.r
 	state.units[id] = h
 	lines.append("Eroe: un Eroe appare in (%d,%d)!" % [h.q, h.r])
+
+
+## E60 Interdizione: ogni giocatore perde una carta dalla propria mano, che va
+## nello scarto (semplificazione del «scelta a caso dalla mano avversaria»: si
+## scarta l'ultima carta della mano).
+static func _interdiction(state: GameState, lines: Array[String]) -> void:
+	var n := 0
+	for fac in [Domain.Faction.GERMAN, Domain.Faction.RUSSIAN]:
+		var hand := state.hand_of(fac)
+		if hand.is_empty():
+			continue
+		var discard := state.german_discard if fac == Domain.Faction.GERMAN else state.russian_discard
+		Cards.discard_from_hand(hand, discard, hand.size() - 1)
+		n += 1
+	lines.append("Interdizione: ogni giocatore scarta una carta (%d in tutto)." % n)
+
+
+## E55 Trinceramento: il giocatore posa una buca su un esagono occupato da una
+## sua unità, privo di buca e di fortificazioni.
+static func _entrench_event(state: GameState, faction: int, lines: Array[String]) -> void:
+	for u in state.units_of(faction):
+		if not u.is_man():
+			continue
+		var hd: GameState.HexData = state.hex_at(u.q, u.r)
+		if hd != null and not hd.has_foxhole and hd.fortification == Domain.Fort.NONE:
+			hd.has_foxhole = true
+			lines.append("Trinceramento: buca creata in (%d,%d)." % [u.q, u.r])
+			return
+	lines.append("Trinceramento: nessun esagono idoneo.")
+
+
+## E56 Promozione sul campo (semplificata): se non già in campo, compare il
+## «Soldato» della nazione (Comando 2, Morale 6) su un'unità amica rotta.
+static func _field_promotion(state: GameState, faction: int, lines: Array[String]) -> void:
+	var id := "PRIVATE-%s" % Domain.FACTION_SHORT.get(faction, "U")
+	if state.units.has(id):
+		lines.append("Promozione sul campo: il Soldato è già in campo.")
+		return
+	var broken := state.broken_men_of(faction)
+	if broken.is_empty():
+		lines.append("Promozione sul campo: nessuna unità rotta su cui promuovere.")
+		return
+	var host: Unit = broken[0]
+	var p := Unit.new(id, faction, Domain.UnitType.LEADER, Domain.UnitClass.ELITE, "Soldato")
+	p.fp = 0
+	p.range = 6
+	p.move = 5
+	p.morale = 6
+	p.command = 2
+	p.q = host.q
+	p.r = host.r
+	state.units[id] = p
+	lines.append("Promozione sul campo: un Soldato (Comando 2) appare in (%d,%d)." % [p.q, p.r])
+
+
+## E49 Comando e Controllo: il giocatore guadagna 1 VP per ogni obiettivo che
+## controlla in questo momento.
+static func _command_control(state: GameState, faction: int, lines: Array[String]) -> void:
+	var n := 0
+	for o in state.objectives:
+		if o.controller == faction:
+			n += 1
+	if n > 0:
+		if faction == Domain.Faction.GERMAN:
+			state.bonus_vp += n
+		else:
+			state.bonus_vp -= n
+	lines.append("Comando e Controllo: %d obiettivi controllati → +%d VP." % [n, n])
+
+
+## E54 Impeto: il giocatore sposta il suo segnalino Resa di una casella più in
+## alto sul Casualty Track, cioè può subire una perdita in più prima di arrendersi.
+static func _elan(state: GameState, faction: int, lines: Array[String]) -> void:
+	var cur := int(state.surrender_threshold.get(faction, 0))
+	if cur <= 0:
+		lines.append("Impeto: nessuna soglia di resa da spostare.")
+		return
+	state.surrender_threshold[faction] = cur + 1
+	lines.append("Impeto: soglia di resa di %s ora %d." % [
+		Domain.FACTION_NAMES.get(faction, "?"), cur + 1])
 
 
 ## E50 Commissario: il giocatore russo sceglie una sua unità rotta e tira (dadi
