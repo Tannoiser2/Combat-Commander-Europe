@@ -171,6 +171,7 @@ var assault_fired: bool = false
 # Richiesta d'Artiglieria (O18): spotter/radio durante la scelta del bersaglio.
 var artillery_radio_id: String = ""
 var artillery_spotter_id: String = ""
+var artillery_smoke: bool = false  # barrage fumogeno invece che esplosivo (O18.2.1.1)
 
 # ─── Finestra di reazione: Fuoco di Opportunità del giocatore (A33) ───────────
 # Mentre l'IA muove, se il giocatore umano ha tiratori idonei si apre una finestra

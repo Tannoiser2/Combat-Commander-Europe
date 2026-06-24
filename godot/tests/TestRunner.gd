@@ -689,6 +689,15 @@ func _test_artillery() -> void:
 	Combat.resolve_artillery(sf2, 16, 2, 2, rng)
 	_check(sf2.hex_at(2, 2).fortification == Domain.Fort.BUNKER, "Artiglieria leggera (75mm) non spiana il Bunker")
 
+	# Barrage fumogeno (O18.2.3.1): posa fumo sui 7 esagoni, salta le fiamme.
+	var sm := _new_state(6, 6)
+	var ns := Combat.resolve_smoke_barrage(sm, 2, 2)
+	_check(ns >= 5 and sm.hex_at(2, 2).has_smoke, "Barrage fumogeno copre centro e adiacenti")
+	var sm2 := _new_state(6, 6)
+	sm2.hex_at(2, 2).has_blaze = true
+	Combat.resolve_smoke_barrage(sm2, 2, 2)
+	_check(not sm2.hex_at(2, 2).has_smoke, "Barrage fumogeno salta l'esagono in fiamme")
+
 	# Integrazione: l'ordine ARTI con Radio+Leader conta come ordine.
 	var s3 := _new_state(6, 6)
 	s3.human_faction = GER
@@ -709,6 +718,10 @@ func _test_artillery() -> void:
 	_check(s3.order_count == 1, "Artiglieria con Radio+Leader conta come ordine")
 	_check(s3.current_order == Domain.OrderType.ARTY and not s3.highlighted_hexes.is_empty(),
 		"Artiglieria: fase di scelta bersaglio con esagoni nella LOS")
+	Game.toggle_artillery_smoke()
+	_check(s3.artillery_smoke, "Toggle «S»: attiva il barrage fumogeno")
+	Game.toggle_artillery_smoke()
+	_check(not s3.artillery_smoke, "Toggle «S»: torna a esplosivo")
 	Game.click_hex_artillery(3, 1)
 	_check(s3.phase == Domain.Phase.PLAYER_TURN and s3.current_order == -1,
 		"Artiglieria: scelto il bersaglio, si torna al turno")
