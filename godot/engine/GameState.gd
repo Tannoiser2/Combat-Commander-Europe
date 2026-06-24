@@ -165,6 +165,8 @@ var fire_modifiers: Array[String] = []
 var fire_modifier_cards: Array = []
 # Sventagliata (A40): l'attacco colpisce anche un secondo esagono adiacente.
 var spray_active: bool = false
+# Fuoco d'Assalto (A26): un attacco di fuoco già usato nell'ordine di Mossa corrente.
+var assault_fired: bool = false
 
 # ─── Finestra di reazione: Fuoco di Opportunità del giocatore (A33) ───────────
 # Mentre l'IA muove, se il giocatore umano ha tiratori idonei si apre una finestra

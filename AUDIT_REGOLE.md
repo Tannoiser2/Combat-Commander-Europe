@@ -85,7 +85,7 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 
 ---
 
-## A24–A41 · Azioni — **6 su 17**
+## A24–A41 · Azioni — **7 su 17**
 
 | Azione (regola) | Stato | Note |
 |---|---|---|
@@ -95,7 +95,7 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | A36 Light Wounds (Ferite leggere) | ✅ | recupero. |
 | A39 Smoke Grenades (Granate fumogene) | ✅ | fumo → hindrance. |
 | A25 Ambush | ❌ | melee. |
-| **A26 Assault Fire** | ❌ | modificatore di fuoco (richiede il fuoco-in-movimento, da fare). |
+| **A26 Assault Fire** | ✅🟡 | Fuoco d'Assalto: durante una Mossa, una squadra/team in movimento fa un attacco di fuoco (una volta per ordine, tasto destro sulla carta). Bersaglio auto-scelto. Semplificazioni: niente distinzione FP «in scatola», gruppo del solo pezzo selezionato. |
 | A27 Bore Sighting | ❌ | ordnance (difensore, +2). |
 | A28 Command Confusion | ❌ | |
 | **A30 Crossfire** | 🟡 | applicato come modificatore (+2) nell'assemblaggio del fuoco, con prerequisito «solo vs unità in movimento». |
@@ -107,10 +107,10 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | **A40 Spray Fire** | ✅ | Sventagliata: un solo tiro colpisce anche un secondo esagono nemico adiacente (difesa a parte). Secondo esagono scelto automaticamente (adiacente, con nemico, a tiro/LOS di tutti i pezzi). |
 | **A41 Sustained Fire** | ✅ | +2 FP nell'assemblaggio, prereq: MG/mortaio spara; su un doppio un'arma si inceppa. |
 
-Dei cinque **modificatori di fuoco** ne sono ora attivi **4** (Mirato, Sostenuto,
-Incrociato, Sventagliata), applicabili durante l'assemblaggio interattivo del fuoco
-(tasto destro su una carta). Resta **Fuoco d'Assalto** (A26, fuoco durante il
-movimento), che richiede un cambio al flusso dell'ordine di Mossa.
+Tutti e cinque i **modificatori/azioni di fuoco** sono ora attivi: **Mirato,
+Sostenuto, Incrociato, Sventagliata** durante l'assemblaggio del fuoco (tasto destro
+su una carta), e **Fuoco d'Assalto** durante una Mossa (fuoco con il pezzo in
+movimento, una volta per ordine).
 
 ---
 

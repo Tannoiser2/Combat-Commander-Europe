@@ -56,6 +56,7 @@ func _ready() -> void:
 	_test_event_commissar()
 	_test_event_hero()
 	_test_elimination_vp()
+	_test_assault_fire()
 	_test_exit_vp()
 	_test_spray_fire()
 	_test_fortifications()
@@ -580,6 +581,52 @@ func _test_elimination_vp() -> void:
 	Game.state = s
 	Game._update_objectives()
 	_check(s.vp_tracker == s.bonus_vp, "la bilancia VP include i VP non-obiettivo")
+
+
+func _test_assault_fire() -> void:
+	print("· Fuoco d'Assalto (A26): attacco di fuoco durante la Mossa")
+	var s := _new_state(6, 6)
+	s.sudden_death_space = 20
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	var atk := _mk("g", GER, SQUAD, RIFLE, 2, 2, 12, 7, 6)
+	s.units[atk.id] = atk
+	s.selected_unit_id = atk.id
+	var d := _mk("r", RUS, SQUAD, RIFLE, 2, 4, 5, -50)  # in gittata/LOS, difesa sempre persa
+	s.units[d.id] = d
+	var card := Card.new()
+	card.action_name = "FUOCO D'ASSALTO"
+	s.german_hand.append(card)
+	Game.state = s
+	Game.assault_fire(0)
+	_check(s.assault_fired, "Fuoco d'Assalto: segnato come usato")
+	_check(not s.units.has("r") or not s.units["r"].efficient,
+		"Fuoco d'Assalto: il bersaglio in gittata è colpito")
+
+	# Un secondo Fuoco d'Assalto nello stesso ordine è rifiutato.
+	s.assault_fired = true
+	var d2 := _mk("r2", RUS, SQUAD, RIFLE, 3, 2, 5, 7)
+	s.units[d2.id] = d2
+	Game.assault_fire(0)
+	_check(s.units["r2"].efficient, "Fuoco d'Assalto: non si ripete nello stesso ordine")
+
+	# Un leader non può fare Fuoco d'Assalto (no FP «in scatola»).
+	var s2 := _new_state(6, 6)
+	s2.sudden_death_space = 20
+	s2.human_faction = GER
+	s2.phase = Domain.Phase.PLAYER_MOVING
+	s2.current_order = Domain.OrderType.MOVE
+	var ldr := _mk("L", GER, LEADER, RIFLE, 2, 2, 0, 8, 6)
+	s2.units[ldr.id] = ldr
+	s2.selected_unit_id = ldr.id
+	s2.units["re"] = _mk("re", RUS, SQUAD, RIFLE, 2, 3, 5, 7)
+	var c2 := Card.new()
+	c2.action_name = "FUOCO D'ASSALTO"
+	s2.german_hand.append(c2)
+	Game.state = s2
+	Game.assault_fire(0)
+	_check(not s2.assault_fired, "Fuoco d'Assalto: un leader non può eseguirlo")
 
 
 func _test_exit_vp() -> void:
