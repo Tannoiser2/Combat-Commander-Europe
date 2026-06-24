@@ -56,6 +56,7 @@ func _ready() -> void:
 	_test_event_commissar()
 	_test_event_hero()
 	_test_elimination_vp()
+	_test_more_events()
 	_test_objective_chits()
 	_test_assault_fire()
 	_test_exit_vp()
@@ -582,6 +583,51 @@ func _test_elimination_vp() -> void:
 	Game.state = s
 	Game._update_objectives()
 	_check(s.vp_tracker == s.bonus_vp, "la bilancia VP include i VP non-obiettivo")
+
+
+func _test_more_events() -> void:
+	print("· Eventi: Interdizione/Trinceramento/Promozione/C&C/Impeto")
+	# E60 Interdizione: ogni mano perde una carta.
+	var s := _new_state()
+	for _i in 3:
+		s.german_hand.append(Card.new())
+	for _j in 2:
+		s.russian_hand.append(Card.new())
+	Events.fire(s, _ev("INTERDIZIONE"), GER)
+	_check(s.german_hand.size() == 2 and s.russian_hand.size() == 1,
+		"Interdizione scarta una carta per mano")
+
+	# E55 Trinceramento: buca sull'esagono dell'unità.
+	var s2 := _new_state()
+	var g := _mk("g", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	s2.units[g.id] = g
+	Events.fire(s2, _ev("TRINCERAMENTO"), GER)
+	_check(s2.hex_at(1, 1).has_foxhole, "Trinceramento crea una buca sull'unità")
+
+	# E56 Promozione sul campo: Soldato (Comando 2) su un'unità rotta.
+	var s3 := _new_state()
+	var br := _mk("b", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	br.break_unit()
+	s3.units[br.id] = br
+	Events.fire(s3, _ev("PROMOZIONE SUL CAMPO"), GER)
+	_check(s3.units.has("PRIVATE-GER") and s3.units["PRIVATE-GER"].command == 2,
+		"Promozione crea un Soldato (Comando 2) sull'unità rotta")
+
+	# E49 Comando e Controllo: +1 VP per obiettivo controllato.
+	var s4 := _new_state()
+	for i in 3:
+		s4.objectives.append(Objective.new(i + 1, i, 0, 3))
+	s4.objectives[0].controller = GER
+	s4.objectives[1].controller = GER
+	s4.objectives[2].controller = RUS
+	Events.fire(s4, _ev("COMANDO E CONTROLLO"), GER)
+	_check(s4.bonus_vp == 2, "Comando e Controllo: +1 VP per obiettivo controllato")
+
+	# E54 Impeto: la soglia di resa sale di 1.
+	var s5 := _new_state()
+	s5.surrender_threshold[GER] = 5
+	Events.fire(s5, _ev("IMPETO"), GER)
+	_check(int(s5.surrender_threshold[GER]) == 6, "Impeto alza la soglia di resa di 1")
 
 
 func _test_objective_chits() -> void:
