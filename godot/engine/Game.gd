@@ -205,6 +205,7 @@ func play_card(hand_index: int) -> void:
 			# Ordini con bersaglio: si entra in fase di selezione sulla mappa.
 			state.order_count += 1
 			state.current_order = card.order
+			state.assault_fired = false  # Fuoco d'Assalto disponibile una volta per ordine
 			state.selected_card_index = hand_index
 			state.highlighted_hexes.clear()
 			_change_phase(Domain.Phase.PLAYER_MOVING)
@@ -305,6 +306,78 @@ func can_exit_selected() -> bool:
 	if u == null or u.faction != state.human_faction:
 		return false
 	return _on_exit_edge(u) and int(state.group_mp.get(u.id, 0)) >= 1
+
+
+# ─── Fuoco d'Assalto (A26 Assault Fire) ───────────────────────────────────────
+
+## Miglior bersaglio per il Fuoco d'Assalto di `u`: esagono nemico in gittata e
+## LOS, col maggior numero di nemici (a parità, il più vicino). (-1,-1) se nessuno.
+func _best_assault_target(u: Unit) -> Vector2i:
+	var best := Vector2i(-1, -1)
+	var best_n := 0
+	var best_d := 999
+	var rng := Rules.range_with_command(state, u)
+	for other in state.units.values():
+		if other.faction == u.faction or not other.is_man():
+			continue
+		var d := HexGrid.distance(u.q, u.r, other.q, other.r)
+		if d == 0 or d > rng or not HexGrid.has_los(u.q, u.r, other.q, other.r, state):
+			continue
+		var n := 0
+		for t in state.men_at(other.q, other.r):
+			if t.faction != u.faction:
+				n += 1
+		if n > best_n or (n == best_n and d < best_d):
+			best_n = n
+			best_d = d
+			best = Vector2i(other.q, other.r)
+	return best
+
+
+## Fuoco d'Assalto (A26): durante una Mossa, un'unità attivata a muovere fa un
+## attacco di fuoco (una volta per ordine). Bersaglio auto-scelto.
+func assault_fire(hand_index: int) -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING \
+		or state.current_order != Domain.OrderType.MOVE:
+		return
+	var hand := state.hand_of(state.human_faction)
+	if hand_index < 0 or hand_index >= hand.size():
+		return
+	var card: Card = hand[hand_index]
+	if card.action_name != "FUOCO D'ASSALTO":
+		_log("«%s» non è un Fuoco d'Assalto." % card.action_name)
+		return
+	if state.assault_fired:
+		_log("Fuoco d'Assalto: già usato in questa Mossa.")
+		return
+	var u := state.unit_by_id(state.selected_unit_id)
+	if u == null:
+		u = state.unit_by_id(state.moving_unit_id)
+	# A26: serve un pezzo in movimento con FP «in scatola» (qui: squadra/team non ordnance).
+	if u == null or not u.is_man() or u.is_leader() or not u.efficient or u.fp <= 0 or u.ordnance:
+		_log("Fuoco d'Assalto: serve una squadra/team in movimento con FP.")
+		return
+	var target := _best_assault_target(u)
+	if target.x < 0:
+		_log("Fuoco d'Assalto: nessun bersaglio in gittata/LOS.")
+		return
+	var group: Array[Unit] = [u]
+	var atk_fate := _draw_fate(state.human_faction)
+	var def_fate := _draw_fate(_ai_faction())
+	var atk_dice := _dice_of(atk_fate)
+	var result := Combat.resolve_fire(
+		u, target.x, target.y, state, atk_dice, _dice_of(def_fate), group, 0)
+	_log("Fuoco d'Assalto — " + result.log_line)
+	for uid2 in result.eliminated:
+		emit_signal("unit_eliminated", uid2)
+	emit_signal("fire_resolved", result)
+	_apply_fate(atk_fate, state.human_faction, { "kind": "fire", "weapons": [] })
+	_apply_fate(def_fate, _ai_faction())
+	state.assault_fired = true
+	_discard_card(hand_index)
+	_check_end_conditions()
+	if state.phase != Domain.Phase.GAME_OVER:
+		emit_signal("state_changed")
 
 
 func exit_selected_unit() -> void:

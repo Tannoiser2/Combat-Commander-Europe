@@ -237,13 +237,22 @@ func _on_card_pressed(index: int) -> void:
 
 
 ## Click destro su una carta = gioca l'AZIONE; durante l'assemblaggio del fuoco
-## applica invece il modificatore di fuoco (Mirato/Sostenuto/Incrociato/Sventagliata).
+## applica invece il modificatore di fuoco (Mirato/Sostenuto/Incrociato/Sventagliata);
+## durante una Mossa, una carta FUOCO D'ASSALTO spara col pezzo in movimento (A26).
 func _on_card_input(event: InputEvent, index: int) -> void:
 	if event is InputEventMouseButton and event.pressed \
 			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
 		var s := Game.state
-		if s != null and s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+		if s == null:
+			return
+		var hand := s.hand_of(s.human_faction)
+		var name := hand[index].action_name if index >= 0 and index < hand.size() else ""
+		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
 			Game.apply_fire_modifier(index)
+		elif s.phase == Domain.Phase.PLAYER_MOVING and s.current_order == Domain.OrderType.MOVE \
+				and name == "FUOCO D'ASSALTO":
+			Game.assault_fire(index)
+			_refresh_ui()
 		else:
 			Game.play_action(index)
 
