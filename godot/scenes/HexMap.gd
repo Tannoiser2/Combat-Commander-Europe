@@ -435,6 +435,8 @@ func _on_click(mouse_pos: Vector2) -> void:
 					Game.click_hex_fire(clicked_q, clicked_r)
 				Domain.OrderType.ADVANCE:
 					Game.click_hex_advance(clicked_q, clicked_r)
+				Domain.OrderType.ARTY:
+					Game.click_hex_artillery(clicked_q, clicked_r)
 		else:
 			var own_here := units_here.filter(
 				func(u): return u.faction == s.human_faction and not u.activated)

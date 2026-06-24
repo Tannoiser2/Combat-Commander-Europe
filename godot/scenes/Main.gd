@@ -147,6 +147,8 @@ func _guidance_text(s: GameState) -> String:
 					if not has_unit:
 						return "AVANZATA — clicca l'unità che avanza"
 					return "AVANZATA — clicca un esagono adiacente · l'unità per annullare"
+				Domain.OrderType.ARTY:
+					return "🎯 ARTIGLIERIA — clicca l'esagono bersaglio (giallo) nella LOS dello spotter · lo spotter per annullare"
 				_:
 					return "Clicca un'unità sulla mappa"
 		Domain.Phase.REACTION_WINDOW:

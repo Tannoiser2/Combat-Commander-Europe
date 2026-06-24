@@ -250,15 +250,43 @@ func _play_artillery(hand_index: int) -> void:
 		_log("Artiglieria: servono una Radio e un Leader non rotti in campo.")
 		_discard_card(hand_index)
 		return
-	var target := _best_artillery_target(spotter)
-	if target.x < 0:
-		_log("Artiglieria: nessun bersaglio nella linea di vista dello spotter.")
-		_discard_card(hand_index)
-		return
+	# Spotting (O18.2.1): si entra in fase di scelta del bersaglio. Il giocatore
+	# clicca un esagono nella LOS dello spotter; lì cadrà la Spotting Round.
 	state.order_count += 1
-	_resolve_artillery_strike(spotter, radio, target.x, target.y)
-	_discard_card(hand_index)
+	state.current_order = Domain.OrderType.ARTY
+	state.selected_unit_id = spotter.id
+	state.selected_card_index = hand_index
+	state.artillery_spotter_id = spotter.id
+	state.artillery_radio_id = radio.id
+	state.highlighted_hexes.clear()
+	for key in state.hexes:
+		var p := String(key).split(",")
+		if HexGrid.has_los(spotter.q, spotter.r, int(p[0]), int(p[1]), state):
+			state.highlighted_hexes.append(key)
+	_change_phase(Domain.Phase.PLAYER_MOVING)
+	_log("Artiglieria: scegli l'esagono bersaglio nella linea di vista di %s." % spotter.unit_name)
+	emit_signal("state_changed")
+
+
+## Il giocatore sceglie l'esagono bersaglio (Spotting Round): si risolve il
+## bombardamento con deriva e impatto.
+func click_hex_artillery(tq: int, tr: int) -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING \
+		or state.current_order != Domain.OrderType.ARTY:
+		return
+	var spotter := state.unit_by_id(state.artillery_spotter_id)
+	var radio := state.unit_by_id(state.artillery_radio_id)
+	var ci := state.selected_card_index
+	_clear_order_selection()
+	if spotter == null or radio == null:
+		_change_phase(Domain.Phase.PLAYER_TURN)
+		return
+	_resolve_artillery_strike(spotter, radio, tq, tr)
+	if ci >= 0:
+		_discard_card(ci)
 	_check_end_conditions()
+	if state.phase != Domain.Phase.GAME_OVER:
+		_change_phase(Domain.Phase.PLAYER_TURN)
 	emit_signal("state_changed")
 
 
@@ -283,26 +311,6 @@ func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, pre
 		res["eliminated"].size(), res["broken"].size(), res["suppressed"].size()])
 	for id in res["eliminated"]:
 		emit_signal("unit_eliminated", id)
-
-
-## Miglior esagono d'impatto: esagono nemico nella LOS dello spotter col maggior
-## numero di nemici. (-1,-1) se nessuno è in vista.
-func _best_artillery_target(spotter: Unit) -> Vector2i:
-	var best := Vector2i(-1, -1)
-	var best_n := 0
-	for other in state.units.values():
-		if other.faction == spotter.faction or not other.is_man():
-			continue
-		if not HexGrid.has_los(spotter.q, spotter.r, other.q, other.r, state):
-			continue
-		var n := 0
-		for t in state.men_at(other.q, other.r):
-			if t.faction != spotter.faction:
-				n += 1
-		if n > best_n:
-			best_n = n
-			best = Vector2i(other.q, other.r)
-	return best
 
 
 ## FP della bombardamento in base al calibro della Radio.
@@ -1005,6 +1013,8 @@ func _clear_order_selection() -> void:
 	state.ordered_group.clear()
 	state.group_mp.clear()
 	state.move_committed = false
+	state.artillery_radio_id = ""
+	state.artillery_spotter_id = ""
 	_clear_fire_assembly()
 
 
