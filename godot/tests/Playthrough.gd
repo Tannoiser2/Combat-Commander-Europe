@@ -11,6 +11,7 @@ func _ready() -> void:
 	_test_move_loop()
 	_test_fire_transition_and_cancel()
 	_test_leader_group_move()
+	_test_fire_group_assembly()
 	if _fail == 0:
 		print("\nPLAYTHROUGH: PASS")
 	else:
@@ -166,3 +167,57 @@ func _test_leader_group_move() -> void:
 	var ldr := s.unit_by_id(leader.id)
 	_check(ldr != null and ldr.activated, "leader marcato attivato (consumato dall'ordine)")
 	_check(s.ordered_group.is_empty(), "gruppo azzerato dopo la conclusione")
+
+
+# ─── Gruppo di fuoco interattivo (O20.3.1) ────────────────────────────────────
+
+func _mk_unit(id: String, faction: int, type: int, q: int, r: int, fp: int, mor: int) -> Unit:
+	var u := Unit.new(id, faction, type, Domain.UnitClass.RIFLE, id)
+	u.fp = fp
+	u.range = 6
+	u.move = 4
+	u.morale = mor
+	u.q = q
+	u.r = r
+	return u
+
+
+func _test_fire_group_assembly() -> void:
+	print("· Gruppo di fuoco interattivo: scegli bersaglio, includi/escludi, spara")
+	# Stato pulito (mappa aperta) per controllare gittata e LOS.
+	var s := GameState.new()
+	s.map_cols = 6
+	s.map_rows = 3
+	for q in 6:
+		for r in 3:
+			s.hexes["%d,%d" % [q, r]] = GameState.HexData.new(Domain.TerrainType.OPEN)
+	s.human_faction = Domain.Faction.GERMAN
+	var base := _mk_unit("b", Domain.Faction.GERMAN, Domain.UnitType.SQUAD, 0, 0, 6, 5)
+	var ld := _mk_unit("l", Domain.Faction.GERMAN, Domain.UnitType.LEADER, 0, 0, 4, 5)
+	ld.command = 2
+	var sq2 := _mk_unit("s2", Domain.Faction.GERMAN, Domain.UnitType.SQUAD, 1, 0, 6, 5)
+	var tgt := _mk_unit("t", Domain.Faction.RUSSIAN, Domain.UnitType.SQUAD, 2, 0, 5, 5)
+	for u in [base, ld, sq2, tgt]:
+		s.units[u.id] = u
+	Game.state = s
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.FIRE
+	s.selected_unit_id = "b"
+	s.selected_card_index = -1
+
+	Game.click_hex_fire(2, 0)
+	_check(s.fire_target_q == 2 and s.fire_target_r == 0, "bersaglio del fuoco impostato")
+	_check(s.fire_group_ids.size() >= 2, "gruppo iniziale con più pezzi idonei (%d)" % s.fire_group_ids.size())
+	var before := s.fire_group_ids.size()
+
+	Game.toggle_fire_piece("s2")
+	_check(s.fire_group_ids.size() == before - 1, "pezzo escluso dal gruppo")
+	_check(not s.fire_group_ids.has("s2"), "s2 fuori dal gruppo")
+	Game.toggle_fire_piece("s2")
+	_check(s.fire_group_ids.size() == before, "pezzo re-incluso")
+	Game.toggle_fire_piece("b")
+	_check(s.fire_group_ids.has("b"), "il pezzo base non si può escludere")
+
+	Game.confirm_fire()
+	_check(s.phase == Domain.Phase.PLAYER_TURN, "dopo il fuoco → PLAYER_TURN")
+	_check(s.fire_target_q == -1 and s.fire_group_ids.is_empty(), "assemblaggio azzerato dopo il fuoco")

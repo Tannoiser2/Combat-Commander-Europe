@@ -144,6 +144,16 @@ var ordered_group: Array[String] = []
 var group_mp: Dictionary = {}
 var move_committed: bool = false
 
+# ─── Assemblaggio gruppo di fuoco (O20.3.1) ──────────────────────────────────
+# Quando il giocatore sceglie un bersaglio col FUOCO, si entra nella fase di
+# assemblaggio: `fire_target_*` = esagono bersaglio (-1 = nessuno);
+# `fire_eligible_ids` = pezzi che possono colpirlo; `fire_group_ids` = pezzi
+# attualmente inclusi nel gruppo (il pezzo base resta sempre incluso).
+var fire_target_q: int = -1
+var fire_target_r: int = -1
+var fire_eligible_ids: Array[String] = []
+var fire_group_ids: Array[String] = []
+
 
 # ─── Log ─────────────────────────────────────────────────────────────────────
 

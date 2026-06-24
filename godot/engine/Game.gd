@@ -271,23 +271,78 @@ func click_hex_move(tq: int, tr: int) -> void:
 	_execute_move_step(u, tq, tr)
 
 
-## Giocatore clicca su un esagono nemico per sparare.
+## Giocatore clicca un esagono nemico col FUOCO: entra nell'assemblaggio del
+## gruppo di fuoco (O20.3.1). Se solo il pezzo base può colpire, spara subito.
 func click_hex_fire(tq: int, tr: int) -> void:
-	if state == null:
+	if state == null or state.current_order != Domain.OrderType.FIRE:
 		return
-	var uid := state.selected_unit_id
-	if uid == "":
-		return
-	var u := state.unit_by_id(uid)
+	var u := state.unit_by_id(state.selected_unit_id)
 	if u == null or u.faction != state.human_faction:
-		return
-	if state.current_order != Domain.OrderType.FIRE:
 		return
 	if not Combat.can_fire(u, tq, tr, state):
 		_log("Fuoco illegale verso (%d,%d)" % [tq, tr])
 		return
-	# Tutto il gruppo di fuoco (unità co-locate in gittata) si attiva.
-	var group := Combat.fire_group(u, tq, tr, state)
+	# Pezzi idonei a colpire il bersaglio (base + co-locati/in-comando, LOS+gittata).
+	var elig := Combat.fire_group(u, tq, tr, state)
+	state.fire_target_q = tq
+	state.fire_target_r = tr
+	state.fire_eligible_ids.clear()
+	state.fire_group_ids.clear()
+	for g in elig:
+		state.fire_eligible_ids.append(g.id)
+		state.fire_group_ids.append(g.id)
+	# Un solo pezzo idoneo → niente da assemblare: spara subito.
+	if state.fire_eligible_ids.size() <= 1:
+		confirm_fire()
+		return
+	state.highlighted_hexes = ["%d,%d" % [tq, tr]]
+	emit_signal("state_changed")
+
+
+## Include/esclude un pezzo idoneo dal gruppo di fuoco (il base resta sempre).
+func toggle_fire_piece(id: String) -> void:
+	if state == null or state.current_order != Domain.OrderType.FIRE or state.fire_target_q < 0:
+		return
+	if id == state.selected_unit_id or not state.fire_eligible_ids.has(id):
+		return
+	if state.fire_group_ids.has(id):
+		state.fire_group_ids.erase(id)
+	else:
+		state.fire_group_ids.append(id)
+	emit_signal("state_changed")
+
+
+## Annulla la scelta del bersaglio e torna alla selezione del bersaglio.
+func cancel_fire_target() -> void:
+	if state == null:
+		return
+	state.fire_target_q = -1
+	state.fire_target_r = -1
+	state.fire_eligible_ids.clear()
+	state.fire_group_ids.clear()
+	var u := state.unit_by_id(state.selected_unit_id)
+	if u != null:
+		select_unit(u.id)  # ri-evidenzia i bersagli possibili
+	else:
+		emit_signal("state_changed")
+
+
+## Risolve il fuoco col gruppo attualmente scelto dal giocatore.
+func confirm_fire() -> void:
+	if state == null or state.current_order != Domain.OrderType.FIRE:
+		return
+	var u := state.unit_by_id(state.selected_unit_id)
+	if u == null or state.fire_target_q < 0:
+		return
+	var tq := state.fire_target_q
+	var tr := state.fire_target_r
+	var group: Array[Unit] = []
+	for id in state.fire_group_ids:
+		var g := state.unit_by_id(id)
+		if g != null:
+			group.append(g)
+	if group.is_empty():
+		group.append(u)
 	var weapon_ids: Array = []
 	for g in group:
 		g.activated = true
@@ -295,7 +350,7 @@ func click_hex_fire(tq: int, tr: int) -> void:
 			weapon_ids.append(g.id)
 	var atk_fate := _draw_fate(state.human_faction)
 	var def_fate := _draw_fate(_ai_faction())
-	var result := Combat.resolve_fire(u, tq, tr, state, _dice_of(atk_fate), _dice_of(def_fate))
+	var result := Combat.resolve_fire(u, tq, tr, state, _dice_of(atk_fate), _dice_of(def_fate), group)
 	_log(result.log_line)
 	for uid2 in result.eliminated:
 		emit_signal("unit_eliminated", uid2)
@@ -307,6 +362,27 @@ func click_hex_fire(tq: int, tr: int) -> void:
 	_check_end_conditions()  # aggiorna obiettivi/VP e gestisce la fine partita
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
+
+
+## FP previsto del gruppo di fuoco attuale (per il banner; senza dadi).
+func projected_fire_fp() -> int:
+	if state == null or state.current_order != Domain.OrderType.FIRE or state.fire_target_q < 0:
+		return 0
+	var fp := 0
+	for id in state.fire_group_ids:
+		var g := state.unit_by_id(id)
+		if g != null:
+			fp = maxi(fp, Rules.fp_with_command(state, g))
+	if state.fire_group_ids.size() > 1:
+		fp += state.fire_group_ids.size() - 1
+	var u := state.unit_by_id(state.selected_unit_id)
+	if u != null and not u.ordnance:
+		var hind := HexGrid.los_hindrance(u.q, u.r, state.fire_target_q, state.fire_target_r, state)
+		var hd: GameState.HexData = state.hex_at(state.fire_target_q, state.fire_target_r)
+		if hd != null and hd.has_smoke:
+			hind += 1
+		fp = maxi(1, fp - hind)
+	return fp
 
 
 ## Giocatore clicca un esagono adiacente durante un'Avanzata.
@@ -551,6 +627,15 @@ func _clear_order_selection() -> void:
 	state.ordered_group.clear()
 	state.group_mp.clear()
 	state.move_committed = false
+	_clear_fire_assembly()
+
+
+## Azzera lo stato di assemblaggio del gruppo di fuoco.
+func _clear_fire_assembly() -> void:
+	state.fire_target_q = -1
+	state.fire_target_r = -1
+	state.fire_eligible_ids.clear()
+	state.fire_group_ids.clear()
 
 
 func _discard_card(hand_index: int) -> void:
@@ -643,6 +728,7 @@ func _end_player_turn() -> void:
 	state.ordered_group.clear()
 	state.group_mp.clear()
 	state.move_committed = false
+	_clear_fire_assembly()
 	for u in state.units.values():
 		u.activated = false
 

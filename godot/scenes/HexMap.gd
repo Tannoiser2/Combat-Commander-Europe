@@ -32,6 +32,8 @@ const COL_HIGHLIGHT := Color(1.0, 1.0, 0.0, 0.35)
 const COL_OBJECTIVE := Color(0.9, 0.2, 0.2, 0.55)
 const COL_SELECT := Color(0.0,  0.8,  1.0,  0.55)
 const COL_GROUP  := Color(1.0,  0.55, 0.0,  0.9)   ## contorno arancio del gruppo di comando
+const COL_GROUP_OFF := Color(0.6, 0.6, 0.6, 0.7)   ## pezzo idoneo ma escluso dal gruppo di fuoco
+const COL_FIRE_TARGET := Color(0.95, 0.15, 0.15, 0.5)  ## esagono bersaglio del fuoco
 
 ## Terreno → colore di tinta
 const TERRAIN_TINT := {
@@ -151,6 +153,18 @@ func _draw() -> void:
 		var gv := s.unit_by_id(gid)
 		if gv:
 			_draw_hex_outline(gv.q, gv.r, COL_GROUP, 3.0)
+
+	# Assemblaggio gruppo di fuoco: bersaglio + pezzi inclusi/esclusi
+	if s.fire_target_q >= 0:
+		_draw_hex_fill(s.fire_target_q, s.fire_target_r, COL_FIRE_TARGET)
+		for eid in s.fire_eligible_ids:
+			if eid == s.selected_unit_id:
+				continue
+			var ev := s.unit_by_id(eid)
+			if ev == null:
+				continue
+			var inc: bool = s.fire_group_ids.has(eid)
+			_draw_hex_outline(ev.q, ev.r, COL_GROUP if inc else COL_GROUP_OFF, 3.0 if inc else 2.0)
 
 	# Esagono selezionato
 	if s.selected_unit_id != "":
@@ -346,6 +360,21 @@ func _on_click(mouse_pos: Vector2) -> void:
 
 	if s.phase == Domain.Phase.PLAYER_MOVING:
 		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
+		# Fuoco: assemblaggio del gruppo (bersaglio già scelto).
+		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+			if clicked_q == s.fire_target_q and clicked_r == s.fire_target_r:
+				Game.confirm_fire()  # clic sul bersaglio = spara
+				return
+			for eid in s.fire_eligible_ids:
+				if eid == s.selected_unit_id:
+					continue
+				var ev := s.unit_by_id(eid)
+				if ev != null and ev.q == clicked_q and ev.r == clicked_r:
+					Game.toggle_fire_piece(eid)  # includi/escludi un pezzo
+					return
+			if sel != null and clicked_q == sel.q and clicked_r == sel.r:
+				Game.cancel_fire_target()  # clic sul base = ritorna alla scelta bersaglio
+			return
 		# Mossa di gruppo: cliccare un ALTRO membro attivato cambia il mover attivo.
 		if s.current_order == Domain.OrderType.MOVE:
 			for gid in s.ordered_group:
