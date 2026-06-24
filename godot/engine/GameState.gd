@@ -108,6 +108,10 @@ var sudden_death_space: int = 7
 # ─── Punti Vittoria ──────────────────────────────────────────────────────────
 
 var vp_tracker: int = 0  ## >0 Germania in vantaggio, <0 Russia
+## VP non legati agli obiettivi (positivi = Germania): VP iniziali dello scenario,
+## +1 del Tempo! al difensore e VP da eliminazione/uscita (7.1/7.2). Vengono
+## sommati alla bilancia degli obiettivi in Game._update_objectives.
+var bonus_vp: int = 0
 
 
 # ─── Iniziativa ──────────────────────────────────────────────────────────────
@@ -246,10 +250,30 @@ func hand_size_of(faction: int) -> int:
 ## le unità lasciano `units`, così il conteggio resa resta sempre coerente.
 func eliminate_unit(uid: String) -> void:
 	var u: Unit = units.get(uid)
-	# Gli Eroi (E58.1) non vanno mai sul Casualty Track.
-	if u != null and u.is_man() and not u.hero:
-		casualties[u.faction] = int(casualties.get(u.faction, 0)) + 1
+	if u != null:
+		# Gli Eroi (E58.1) non vanno mai sul Casualty Track.
+		if u.is_man() and not u.hero:
+			casualties[u.faction] = int(casualties.get(u.faction, 0)) + 1
+		# VP da eliminazione (7.1): all'avversario di chi viene eliminato.
+		var v := elimination_vp(u)
+		if v > 0:
+			if u.faction == Domain.Faction.GERMAN:
+				bonus_vp -= v  # i Russi guadagnano
+			else:
+				bonus_vp += v  # i Tedeschi guadagnano
 	units.erase(uid)
+
+
+## Valore in VP di un'unità eliminata (7.1): Squadra 2, Team 1 (non distinto qui),
+## Leader (non Eroe) 1 + Comando, Eroe 0, Arma 0.
+static func elimination_vp(u: Unit) -> int:
+	if u.hero:
+		return 0
+	if u.is_leader():
+		return 1 + u.command
+	if u.is_weapon():
+		return 0
+	return 2  # squadra (i Team non sono distinti nel modello attuale)
 
 
 ## Vero se le perdite della fazione hanno raggiunto la sua soglia di resa (6.3).

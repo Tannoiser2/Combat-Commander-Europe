@@ -53,7 +53,7 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | 5.3–5.4 Scarto / Rifornimento mano | ✅ | scarto+ripesca 1↔1. |
 | **6 Game Time** | ✅🟡 | il Tempo avanza **solo** con Tempo! (`Fate`); Morte Subitanea come tiro 2d6 (6.2.2). Mancano i **rinforzi** e i marker dal track. |
 | **7 Victory** | 🟡 | Controllo obiettivi + bilancia VP live + auto-vittoria (`Game._update_objectives`). |
-| 7.1 Elimination VP | ❌ | eliminare unità **non** dà VP (si contano solo per la **resa**, non per i VP). |
+| 7.1 Elimination VP | ✅ | ogni unità eliminata dà VP all'avversario (Squadra 2, Leader 1+Comando, Eroe/Arma 0) via `GameState.elimination_vp`; sommati alla bilancia (`bonus_vp`). Corretto anche il VP iniziale e il +1 del Tempo!, prima sovrascritti dal ricalcolo obiettivi. I **Team** non sono ancora distinti dalle Squadre. |
 | 7.2 Exit VP (uscita dal bordo) | ❌ | nessuna uscita volontaria/involontaria dalla mappa. |
 | 7.3.2–7.3.3 Objective Chits (segreti/aperti) | ❌ | gli obiettivi hanno VP fisso noto; niente chit pescati, niente bluff. |
 | **8 Stacking** | ✅🟡 | max 7 figure/esagono (`soldier_icons_at`). Limiti per Radio/Fortificazioni/Smoke/Blaze non realmente applicati. |

@@ -83,7 +83,7 @@ static func _state_to_dict(s: GameState) -> Dictionary:
 		"phase": s.phase, "turn_number": s.turn_number, "order_count": s.order_count,
 		"max_orders": s.max_orders, "ai_max_orders": s.ai_max_orders,
 		"time_marker": s.time_marker, "sudden_death_space": s.sudden_death_space,
-		"vp_tracker": s.vp_tracker,
+		"vp_tracker": s.vp_tracker, "bonus_vp": s.bonus_vp,
 		# Per-fazione
 		"hand_size": _faction_dict(s.hand_size),
 		"casualties": _faction_dict(s.casualties),
@@ -129,7 +129,7 @@ static func _state_from_dict(d: Dictionary) -> GameState:
 	s.phase = int(d.get("phase", Domain.Phase.PLAYER_TURN)); s.turn_number = int(d.get("turn_number", 1))
 	s.order_count = int(d.get("order_count", 0)); s.max_orders = int(d.get("max_orders", 2)); s.ai_max_orders = int(d.get("ai_max_orders", 2))
 	s.time_marker = int(d.get("time_marker", 0)); s.sudden_death_space = int(d.get("sudden_death_space", 7))
-	s.vp_tracker = int(d.get("vp_tracker", 0))
+	s.vp_tracker = int(d.get("vp_tracker", 0)); s.bonus_vp = int(d.get("bonus_vp", 0))
 	s.hand_size = _faction_dict_from(d.get("hand_size", {}), 4)
 	s.casualties = _faction_dict_from(d.get("casualties", {}), 0)
 	s.surrender_threshold = _faction_dict_from(d.get("surrender_threshold", {}), 0)

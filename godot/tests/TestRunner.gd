@@ -55,6 +55,7 @@ func _ready() -> void:
 	_test_event_breeze()
 	_test_event_commissar()
 	_test_event_hero()
+	_test_elimination_vp()
 	_test_objectives_vp()
 	_test_op_fire()
 	_test_actions()
@@ -552,6 +553,30 @@ func _test_event_hero() -> void:
 	var before := int(s.casualties.get(GER, 0))
 	s.eliminate_unit("HERO-GER")
 	_check(int(s.casualties.get(GER, 0)) == before, "Eroe eliminato NON conta come perdita")
+
+
+func _test_elimination_vp() -> void:
+	print("· VP da eliminazione (7.1)")
+	var s := _new_state()
+	var rsq := _mk("r", RUS, SQUAD, RIFLE, 0, 0)
+	var rld := _mk("rl", RUS, LEADER, ELITE, 0, 0, 1, 9, 6, 2)  # comando 2
+	var gsq := _mk("g", GER, SQUAD, RIFLE, 1, 1)
+	var hero := _mk("h", GER, LEADER, ELITE, 2, 2, 2, 10, 4, 1)
+	hero.hero = true
+	for u in [rsq, rld, gsq, hero]:
+		s.units[u.id] = u
+	s.eliminate_unit("r")
+	_check(s.bonus_vp == 2, "squadra russa eliminata → +2 VP ai tedeschi")
+	s.eliminate_unit("rl")
+	_check(s.bonus_vp == 5, "leader russo (cmd2) eliminato → +3 VP (1+2)")
+	s.eliminate_unit("g")
+	_check(s.bonus_vp == 3, "squadra tedesca eliminata → -2 VP")
+	var before := s.bonus_vp
+	s.eliminate_unit("h")
+	_check(s.bonus_vp == before, "Eroe eliminato → 0 VP")
+	Game.state = s
+	Game._update_objectives()
+	_check(s.vp_tracker == s.bonus_vp, "la bilancia VP include i VP non-obiettivo")
 
 
 func _test_objectives_vp() -> void:
