@@ -779,14 +779,15 @@ func _dice_of(card: Card) -> Vector2i:
 
 # ─── Fuoco di Opportunità (A33) ───────────────────────────────────────────────
 
-## Il difensore reagisce al movimento di `mover` con il miglior tiratore idoneo
-## (fuoco automatico per ora; la scelta interattiva del tiratore è un'aggiunta
-## futura). Restituisce true se il mover è stato rotto o eliminato (movimento da
-## interrompere).
-func _op_fire(mover: Unit, defender: int) -> bool:
-	var shooter := OpFire.best_shooter(state, mover, defender)
-	if shooter == null:
-		return false
+signal opfire_offered(mover_id: String)  ## Finestra di reazione aperta per l'umano
+signal _opfire_decided()                 ## Interno: il giocatore ha scelto
+
+var _opfire_choice: String = ""          ## Tiratore scelto ("" = non sparare)
+
+
+## Risolve un Fuoco di Opportunità con uno SPECIFICO tiratore. Restituisce true se
+## il mover è stato rotto o eliminato (movimento da interrompere).
+func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	var group := Combat.fire_group(shooter, mover.q, mover.r, state)
 	var weapon_ids: Array = []
 	for g in group:
@@ -801,6 +802,72 @@ func _op_fire(mover: Unit, defender: int) -> bool:
 	_apply_fate(atk_fate, defender, { "kind": "fire", "weapons": weapon_ids })
 	_apply_fate(def_fate, mover.faction)
 	return res.eliminated.has(mover.id) or res.broken.has(mover.id)
+
+
+## Op Fire AUTOMATICO: il difensore reagisce col miglior tiratore idoneo. Usato
+## quando il difensore è l'IA (durante il movimento del giocatore).
+func _op_fire(mover: Unit, defender: int) -> bool:
+	var shooter := OpFire.best_shooter(state, mover, defender)
+	if shooter == null:
+		return false
+	return _resolve_op_fire(shooter, mover, defender)
+
+
+## Op Fire come FINESTRA DI REAZIONE (A33). Se il difensore è l'umano, apre la
+## scelta del tiratore (o «non sparare») e attende la decisione; se è l'IA, fuoco
+## automatico. Coroutine: il chiamante deve usare `await`.
+func _reactive_op_fire(mover: Unit, defender: int) -> bool:
+	var shooters := OpFire.eligible_shooters(state, mover, defender)
+	if shooters.is_empty():
+		return false
+	if defender != state.human_faction:
+		return _op_fire(mover, defender)  # difensore IA: automatico
+
+	# Difensore umano: apre la finestra di reazione e attende la scelta.
+	state.opfire_mover_id = mover.id
+	state.opfire_shooter_ids.clear()
+	for s in shooters:
+		state.opfire_shooter_ids.append(s.id)
+	_opfire_choice = ""
+	var prev_phase := state.phase
+	_change_phase(Domain.Phase.REACTION_WINDOW)
+	emit_signal("opfire_offered", mover.id)
+	await _opfire_decided
+
+	var broke := false
+	var chosen := state.unit_by_id(_opfire_choice) if _opfire_choice != "" else null
+	state.opfire_mover_id = ""
+	state.opfire_shooter_ids.clear()
+	if chosen != null:
+		# Marca il mover «in movimento» così un pareggio in difesa lo rompe (A33).
+		var prev_moving := state.moving_unit_id
+		state.moving_unit_id = mover.id
+		broke = _resolve_op_fire(chosen, mover, defender)
+		state.moving_unit_id = prev_moving
+	else:
+		_log("Fuoco di Opportunità: non spari.")
+	# Torna alla fase precedente (il turno IA prosegue) se la partita non è finita.
+	if state.phase != Domain.Phase.GAME_OVER:
+		_change_phase(prev_phase)
+	return broke
+
+
+## Il giocatore sceglie un tiratore per il Fuoco di Opportunità (dalla finestra).
+func opfire_choose(shooter_id: String) -> void:
+	if state == null or state.phase != Domain.Phase.REACTION_WINDOW:
+		return
+	if not state.opfire_shooter_ids.has(shooter_id):
+		return
+	_opfire_choice = shooter_id
+	emit_signal("_opfire_decided")
+
+
+## Il giocatore rinuncia al Fuoco di Opportunità.
+func opfire_decline() -> void:
+	if state == null or state.phase != Domain.Phase.REACTION_WINDOW:
+		return
+	_opfire_choice = ""
+	emit_signal("_opfire_decided")
 
 
 ## Applica la conseguenza della carta del Fato (Tempo!/Cecchino/Inceppamento/
@@ -842,28 +909,32 @@ func _end_player_turn() -> void:
 
 	state.turn_number += 1
 	_log("--- Fine turno %d ---" % (state.turn_number - 1))
-	# Turno dell'IA (la fazione opposta all'umano).
+	# Turno dell'IA: coroutine «fire-and-forget» — può sospendersi sulla finestra
+	# di reazione (Op Fire) del giocatore e riprendere alla sua decisione. Il
+	# ritorno al turno del giocatore avviene alla fine di _run_ai_turn.
 	_run_ai_turn()
-	if state.phase == Domain.Phase.GAME_OVER:
-		return  # l'IA ha chiuso la partita: non riportare il turno all'umano
-	_change_phase(Domain.Phase.PLAYER_TURN)
-	_log("Turno %d — il tuo ordine" % state.turn_number)
 
 
 func _run_ai_turn() -> void:
+	_change_phase(Domain.Phase.AI_TURN)
 	var faction := _ai_faction()
 	var plays := 0
 	while plays < state.ai_max_orders:
 		var play := AI.choose_play(state, faction)
 		if play.is_empty():
 			break
-		_ai_execute(faction, play)
+		await _ai_execute(faction, play)
 		plays += 1
 		_check_end_conditions()
 		if state.phase == Domain.Phase.GAME_OVER:
 			return
 	if plays == 0:
 		_log("IA: nessun ordine giocabile.")
+	# Fine del turno IA → al giocatore (qui, non in _end_player_turn, perché questa
+	# coroutine può essersi sospesa sulla finestra di reazione).
+	if state.phase != Domain.Phase.GAME_OVER:
+		_change_phase(Domain.Phase.PLAYER_TURN)
+		_log("Turno %d — il tuo ordine" % state.turn_number)
 
 
 ## Esegue un ordine scelto dall'IA (vedi AI.choose_play) e scarta la carta.
@@ -912,7 +983,7 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 				if state.phase == Domain.Phase.GAME_OVER:
 					break
 		Domain.OrderType.MOVE:
-			_ai_move_order(faction)
+			await _ai_move_order(faction)
 	_discard_for(faction, int(play["card_index"]))
 	emit_signal("state_changed")
 
@@ -949,7 +1020,7 @@ func _ai_move_order(faction: int) -> void:
 			continue
 		var obj := _nearest_objective(faction, u)
 		if obj != null:
-			_ai_move_toward(u, obj.q, obj.r, faction)
+			await _ai_move_toward(u, obj.q, obj.r, faction)
 		u.activated = true
 
 
@@ -972,6 +1043,7 @@ func _nearest_objective(faction: int, u: Unit) -> Objective:
 func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 	if u.move <= 0:
 		return
+	# (coroutine: può attendere la finestra di reazione del giocatore)
 	var best: Vector2i = Vector2i(u.q, u.r)
 	var best_dist := HexGrid.distance(u.q, u.r, tq, tr)
 	for n in HexGrid.neighbors(u.q, u.r):
@@ -993,11 +1065,11 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 		u.q = best.x
 		u.r = best.y
 		emit_signal("unit_moved", u.id, best.x, best.y)
-		# Il difensore (avversario di chi muove) reagisce col Fuoco di Opportunità.
-		# Marca l'unità come "in movimento" così un pareggio difesa la rompe (A33).
+		# Il difensore reagisce col Fuoco di Opportunità (finestra interattiva se il
+		# difensore è l'umano). Marca l'unità «in movimento» per il pareggio (A33).
 		var prev_moving := state.moving_unit_id
 		state.moving_unit_id = u.id
-		_op_fire(u, _opponent(u.faction))
+		await _reactive_op_fire(u, _opponent(u.faction))
 		state.moving_unit_id = prev_moving
 
 

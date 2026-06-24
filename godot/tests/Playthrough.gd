@@ -14,6 +14,7 @@ func _ready() -> void:
 	_test_fire_group_assembly()
 	_test_fire_modifiers()
 	_test_order_limit()
+	_test_opfire_reaction()
 	if _fail == 0:
 		print("\nPLAYTHROUGH: PASS")
 	else:
@@ -300,3 +301,79 @@ func _test_order_limit() -> void:
 	Game.play_card(0)
 	_check(s.phase == Domain.Phase.PLAYER_MOVING, "sotto il limite: l'ordine parte")
 	_check(s.order_count == 1, "conteggio ordini incrementato")
+
+
+# ─── Op Fire interattivo: finestra di reazione del giocatore (A33) ────────────
+
+func _kick_opfire(mover: Unit, defender: int, out: Array) -> void:
+	out[0] = await Game._reactive_op_fire(mover, defender)
+	out[1] = true
+
+
+func _test_opfire_reaction() -> void:
+	print("· Op Fire interattivo: finestra di reazione (scelta/declina)")
+	# Declina ──────────────────────────────────────────────────────────────────
+	var s := GameState.new()
+	s.map_cols = 6
+	s.map_rows = 3
+	for q in 6:
+		for r in 3:
+			s.hexes["%d,%d" % [q, r]] = GameState.HexData.new(Domain.TerrainType.OPEN)
+	s.human_faction = Domain.Faction.GERMAN
+	var shooter := _mk_unit("sh", Domain.Faction.GERMAN, Domain.UnitType.SQUAD, 2, 0, 6, 5)
+	var mover := _mk_unit("mv", Domain.Faction.RUSSIAN, Domain.UnitType.SQUAD, 0, 0, 5, 5)
+	s.units[shooter.id] = shooter
+	s.units[mover.id] = mover
+	Game.state = s
+	var out := [false, false]
+	_kick_opfire(mover, Domain.Faction.GERMAN, out)  # coroutine: si sospende sulla scelta
+	_check(s.phase == Domain.Phase.REACTION_WINDOW, "finestra di reazione aperta")
+	_check(s.opfire_shooter_ids.size() == 1 and s.opfire_shooter_ids[0] == "sh", "tiratore idoneo proposto")
+	Game.opfire_decline()
+	_check(out[1], "coroutine ripresa dopo «non sparare»")
+	_check(s.opfire_shooter_ids.is_empty(), "stato reazione azzerato dopo la decisione")
+
+	# Scegli il tiratore ────────────────────────────────────────────────────────
+	var s2 := GameState.new()
+	s2.map_cols = 6
+	s2.map_rows = 3
+	for q in 6:
+		for r in 3:
+			s2.hexes["%d,%d" % [q, r]] = GameState.HexData.new(Domain.TerrainType.OPEN)
+	s2.human_faction = Domain.Faction.GERMAN
+	var sh2 := _mk_unit("sh", Domain.Faction.GERMAN, Domain.UnitType.SQUAD, 1, 0, 40, 5)  # FP enorme
+	var mv2 := _mk_unit("mv", Domain.Faction.RUSSIAN, Domain.UnitType.SQUAD, 0, 0, 5, 5)
+	s2.units[sh2.id] = sh2
+	s2.units[mv2.id] = mv2
+	Game.state = s2
+	var out2 := [false, false]
+	_kick_opfire(mv2, Domain.Faction.GERMAN, out2)
+	_check(s2.phase == Domain.Phase.REACTION_WINDOW, "2ª finestra aperta")
+	Game.opfire_choose("sh")
+	_check(out2[1], "coroutine ripresa dopo la scelta del tiratore")
+	_check(not s2.units["mv"].efficient or out2[0], "il fuoco scelto ha colpito il mover")
+
+	# Integrazione: la MOSSA dell'IA si sospende sulla reazione e riprende ─────────
+	var s3 := GameState.new()
+	s3.map_cols = 6
+	s3.map_rows = 3
+	for q in 6:
+		for r in 3:
+			s3.hexes["%d,%d" % [q, r]] = GameState.HexData.new(Domain.TerrainType.OPEN)
+	s3.human_faction = Domain.Faction.GERMAN
+	var hsh := _mk_unit("sh", Domain.Faction.GERMAN, Domain.UnitType.SQUAD, 2, 0, 6, 5)
+	var amv := _mk_unit("mv", Domain.Faction.RUSSIAN, Domain.UnitType.SQUAD, 0, 0, 5, 5)
+	s3.units[hsh.id] = hsh
+	s3.units[amv.id] = amv
+	Game.state = s3
+	var out3 := [false]
+	_kick_ai_move(amv, 3, 0, Domain.Faction.RUSSIAN, out3)
+	_check(s3.phase == Domain.Phase.REACTION_WINDOW, "la MOSSA IA apre la reazione del giocatore")
+	_check(amv.q == 1, "il mover IA ha fatto un passo (0,0)→(1,0)")
+	Game.opfire_decline()
+	_check(out3[0], "la MOSSA IA riprende e termina dopo la decisione")
+
+
+func _kick_ai_move(u: Unit, tq: int, tr: int, faction: int, out: Array) -> void:
+	await Game._ai_move_toward(u, tq, tr, faction)
+	out[0] = true

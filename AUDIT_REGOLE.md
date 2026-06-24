@@ -47,8 +47,8 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | 1.1 Dimensione mano | ✅ | per fazione (`hand_size`, scenario). |
 | 1.2–1.3 Conoscenza/Rivelazione carte | 🟡 | la mano avversaria è nascosta; nessuna meccanica di rivelazione FP «boxed». |
 | 1.9.1 Trigger dadi (Tempo/Cecchino/Inceppamento/Evento) | ✅🟡 | tutti e 4 presenti (`Fate.apply_consequence`); Cecchino rompe **una** unità. |
-| **5 Sequence of Play** | 🟡🐞 | **Divergenza strutturale grossa.** Regola: i giocatori si alternano **un ordine alla volta**, con finestre di reazione (Op Fire/Azioni) per l'inattivo, e l'iniziativa passa di mano. Motore: l'umano gioca **un blocco** di ordini (`Game.play_card`), poi l'IA gioca il suo blocco (`_run_ai_turn`). Niente alternanza carta-per-carta, niente vera finestra di reazione (solo Op Fire automatico durante il movimento). |
-| 5.1 Order Capability (limite ordini) | 🐞 | `order_count` viene incrementato ma **mai controllato** per l'umano: si possono giocare ordini illimitati fino a «Fine Turno». `max_orders` resta inutilizzato per il giocatore. |
+| **5 Sequence of Play** | ✅🟡 | Chiarimento: in CC:E i **turni** si alternano per **turno intero** (un giocatore gioca i suoi Ordini, poi l'altro) — ed è ciò che il motore già fa (umano → IA → umano). La **finestra di reazione** del giocatore inattivo (Op Fire) durante il turno IA è ora implementata (`_reactive_op_fire`, fase `REACTION_WINDOW`). Resta da rendere interattive anche le **Azioni reattive** dell'inattivo e il passaggio della carta Iniziativa. |
+| 5.1 Order Capability (limite ordini) | ✅ | Tetto `max_orders` dello scenario ora applicato (MOVE/FIRE/ADVANCE/RECOVER/ROUT contano; PASS/Azioni no); conteggio mostrato e azzerato a fine turno. |
 | 5.2 Action Capability | 🟡 | azioni via click destro, ma fuori dalla sequenza alternata. |
 | 5.3–5.4 Scarto / Rifornimento mano | ✅ | scarto+ripesca 1↔1. |
 | **6 Game Time** | ✅🟡 | il Tempo avanza **solo** con Tempo! (`Fate`); Morte Subitanea come tiro 2d6 (6.2.2). Mancano i **rinforzi** e i marker dal track. |
@@ -100,7 +100,7 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | A28 Command Confusion | ❌ | |
 | **A30 Crossfire** | 🟡 | applicato come modificatore (+2) nell'assemblaggio del fuoco, con prerequisito «solo vs unità in movimento». |
 | A31 Demolitions | ❌ | |
-| **A33 Opportunity Fire** | 🟡 | esiste ma **automatica** (un solo tiratore, nessuna scelta). |
+| **A33 Opportunity Fire** | ✅🟡 | **finestra di reazione interattiva**: quando l'IA muove in LOS/gittata, il giocatore sceglie il tiratore o rinuncia (`REACTION_WINDOW`). L'IA come difensore (durante il movimento del giocatore) resta automatica. |
 | A35 Hidden | ❌ | unità nascoste. |
 | **A37 Marksmanship** | ✅ | +2 FP nell'assemblaggio del fuoco, prereq: una squadra/team spara. |
 | A38 No Quarter | ❌ | melee. |
