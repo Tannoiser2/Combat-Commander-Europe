@@ -23,15 +23,47 @@ extends Control
 var _hand_collapsed := false
 
 
+var _legend: Panel = null
+
+
 func _ready() -> void:
 	# Se si arriva qui senza passare dal menù, avvia una partita predefinita.
 	if Game.state == null:
 		Game.start_new_game(Domain.Faction.GERMAN)
 	_connect_signals()
+	_build_legend()
 	_refresh_ui()
 	# Riempi il registro con le righe già accumulate
 	for line in Game.state.log:
 		log_list.add_item(line)
+
+
+## Legenda dei simboli della mappa (toggle col tasto «L»), creata via codice per
+## non modificare la scena.
+func _build_legend() -> void:
+	_legend = Panel.new()
+	_legend.visible = false
+	_legend.position = Vector2(12, 90)
+	_legend.size = Vector2(290, 196)
+	_legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var lbl := RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	lbl.add_theme_constant_override("margin_left", 10)
+	lbl.add_theme_constant_override("margin_top", 8)
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.text = "[b]Legenda (L per chiudere)[/b]\n" \
+		+ "T / C / B  Trincea / Casamatta / Bunker\n" \
+		+ "≋  Filo spinato    ✸  Mine\n" \
+		+ "✷  Esagono in fiamme (impassabile)\n" \
+		+ "[color=#cfc]riempimento verde[/color]  buca/foxhole\n" \
+		+ "[color=#ccd]nube grigia[/color]  fumo (hindrance)\n" \
+		+ "[color=#f55]anello rosso[/color]  impatto d'artiglieria\n" \
+		+ "gettone con numero  obiettivo (VP)\n" \
+		+ "bordo arancio  esagono selezionabile"
+	_legend.add_child(lbl)
+	add_child(_legend)
 
 
 func _connect_signals() -> void:
@@ -62,6 +94,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		KEY_C:
 			_toggle_hand()
+			get_viewport().set_input_as_handled()
+		KEY_L:  # legenda dei simboli della mappa
+			if _legend != null:
+				_legend.visible = not _legend.visible
 			get_viewport().set_input_as_handled()
 		KEY_SPACE:
 			if Game.state != null and Game.state.phase == Domain.Phase.REACTION_WINDOW:
