@@ -39,6 +39,41 @@ static func has_command_at(state: GameState, q: int, r: int, faction: int) -> bo
 	return false
 
 
+## Bonus di Comando per una Squadra/Team co-locata con un leader efficiente
+## (3.3.1.2): si applica a FP, Gittata, Movimento e Morale. Non vale per leader
+## né per le armi (i leader non influenzano sé stessi o altri leader, 3.3.1.1).
+static func unit_command_bonus(state: GameState, u: Unit) -> int:
+	if u.is_leader() or u.is_weapon():
+		return 0
+	return command_bonus_at(state, u.q, u.r, u.faction)
+
+
+## Bonus di Comando per un'arma co-locata con un leader (3.3.1.3): si applica a
+## FP e Gittata di ogni arma senza barra bianca (l'ordnance è esclusa).
+static func weapon_command_bonus(state: GameState, u: Unit) -> int:
+	if not u.is_weapon() or u.ordnance:
+		return 0
+	return command_bonus_at(state, u.q, u.r, u.faction)
+
+
+## Gittata effettiva includendo il Comando del leader co-locato (3.3.1.2/.3).
+static func range_with_command(state: GameState, u: Unit) -> int:
+	return u.range + (weapon_command_bonus(state, u) if u.is_weapon() else unit_command_bonus(state, u))
+
+
+## Movimento effettivo includendo il Comando del leader co-locato (3.3.1.2).
+static func move_with_command(state: GameState, u: Unit) -> int:
+	return u.move + unit_command_bonus(state, u)
+
+
+## FP di base per il fuoco includendo il Comando (3.3.1.2 squadre/team, 3.3.1.3
+## armi). L'ordnance non è mai modificata dal Comando.
+static func fp_with_command(state: GameState, u: Unit) -> int:
+	if u.ordnance:
+		return u.fp
+	return u.fp + (weapon_command_bonus(state, u) if u.is_weapon() else unit_command_bonus(state, u))
+
+
 # ─── Recupero (O22) ────────────────────────────────────────────────────────────
 
 ## Tiro di Morale per recuperare un'unità rotta: successo se 2d6 ≤ Morale

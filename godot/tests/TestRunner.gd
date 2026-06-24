@@ -31,6 +31,7 @@ func _ready() -> void:
 	_test_fire_no_effect()
 	_test_leadership_and_group()
 	_test_command_multihex()
+	_test_command_stats()
 	_test_recover()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
@@ -170,6 +171,48 @@ func _test_command_multihex() -> void:
 	var grp2 := Combat.fire_group(sq1, 3, 0, s)
 	_check(not grp2.any(func(u: Unit) -> bool: return u.id == "g2"),
 		"senza leader: niente gruppo multi-esagono")
+
+
+func _test_command_stats() -> void:
+	print("· Comando: gittata/movimento/FP/armi/difesa (3.3.1.2-.3)")
+	var s := _new_state(8, 3)
+	var sq := _mk("g-sq", GER, SQUAD, RIFLE, 0, 0, 5, 7, 6)        # FP5 gittata6 mov4
+	var ld := _mk("g-ld", GER, LEADER, ELITE, 0, 0, 1, 9, 6, 2)    # comando 2, co-locato
+	s.units[sq.id] = sq
+	s.units[ld.id] = ld
+	_check(Rules.range_with_command(s, sq) == 8, "gittata squadra + comando (6+2)")
+	_check(Rules.move_with_command(s, sq) == 6, "movimento squadra + comando (4+2)")
+	_check(Rules.fp_with_command(s, sq) == 7, "FP squadra + comando (5+2)")
+	_check(Rules.range_with_command(s, ld) == 6, "il leader non estende la propria gittata")
+	_check(Rules.unit_command_bonus(s, ld) == 0, "il Comando non si applica ai leader stessi")
+
+	# Arma normale: weapon command su FP/gittata; ordnance esclusa (3.3.1.3).
+	var wpn := _mk("g-w", GER, Domain.UnitType.WEAPON, RIFLE, 0, 0, 8, 7, 10)
+	s.units[wpn.id] = wpn
+	_check(Rules.range_with_command(s, wpn) == 12, "arma: gittata + comando (10+2)")
+	_check(Rules.fp_with_command(s, wpn) == 10, "arma: FP + comando (8+2)")
+	wpn.ordnance = true
+	_check(Rules.range_with_command(s, wpn) == 10, "ordnance: gittata NON modificata dal comando")
+	_check(Rules.fp_with_command(s, wpn) == 8, "ordnance: FP NON modificato dal comando")
+
+	# Difesa (3.3.1.2): un leader co-locato alza la Morale dei difensori → protegge.
+	var s2 := _new_state(4, 3)
+	var atk := _mk("a", RUS, SQUAD, RIFLE, 0, 0, 5, 7, 6)
+	var dsq := _mk("d", GER, SQUAD, RIFLE, 0, 1, 5, 7, 6)
+	var dld := _mk("dl", GER, LEADER, ELITE, 0, 1, 1, 9, 6, 3)     # comando 3 nel bersaglio
+	for u in [atk, dsq, dld]:
+		s2.units[u.id] = u
+	# Attacco 5+dadi(3,3)=11; difesa squadra 7+0+dadi(1,1)=2 +cmd3 = 12 > 11 → regge.
+	Combat.resolve_fire(atk, 0, 1, s2, Vector2i(3, 3), Vector2i(1, 1))
+	_check(s2.units.has("d") and s2.units["d"].efficient, "difensore protetto dal Comando (non si rompe)")
+
+	var s3 := _new_state(4, 3)
+	var atk3 := _mk("a", RUS, SQUAD, RIFLE, 0, 0, 5, 7, 6)
+	var dsq3 := _mk("d", GER, SQUAD, RIFLE, 0, 1, 5, 7, 6)         # stessa squadra, NESSUN leader
+	s3.units[atk3.id] = atk3
+	s3.units[dsq3.id] = dsq3
+	Combat.resolve_fire(atk3, 0, 1, s3, Vector2i(3, 3), Vector2i(1, 1))
+	_check(s3.units.has("d") and not s3.units["d"].efficient, "senza leader: la stessa squadra si rompe")
 
 
 func _test_recover() -> void:
