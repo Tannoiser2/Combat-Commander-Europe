@@ -67,6 +67,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			if Game.state != null and Game.state.phase == Domain.Phase.REACTION_WINDOW:
 				Game.opfire_decline()
 				get_viewport().set_input_as_handled()
+		KEY_X:  # uscita dal bordo avversario (7.2): VP al proprietario
+			if Game.can_exit_selected():
+				Game.exit_selected_unit()
+				_refresh_ui()
+				get_viewport().set_input_as_handled()
 
 
 # ─── Aggiornamento UI ─────────────────────────────────────────────────────────
@@ -113,6 +118,8 @@ func _guidance_text(s: GameState) -> String:
 			return "Il tuo turno%s — clicca un'unità, poi gioca una carta ordine" % ord
 		Domain.Phase.PLAYER_MOVING:
 			var has_unit := s.selected_unit_id != ""
+			if Game.can_exit_selected():
+				return "MOSSA — sul bordo avversario: «X» per USCIRE (VP) · o un esagono giallo"
 			match s.current_order:
 				Domain.OrderType.MOVE:
 					var n := s.ordered_group.size()

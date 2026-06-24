@@ -267,6 +267,23 @@ func eliminate_unit(uid: String) -> void:
 	units.erase(uid)
 
 
+## Uscita dal bordo avversario (7.2): a differenza dell'eliminazione, è il
+## PROPRIETARIO a guadagnare i VP del pezzo (valori 7.1) e l'unità lascia la
+## mappa SENZA finire sul Casualty Track. Restituisce i VP assegnati.
+func exit_unit_for_vp(uid: String) -> int:
+	var u: Unit = units.get(uid)
+	if u == null:
+		return 0
+	var v := elimination_vp(u)
+	if v > 0:
+		if u.faction == Domain.Faction.GERMAN:
+			bonus_vp += v  # i Tedeschi guadagnano
+		else:
+			bonus_vp -= v  # i Russi guadagnano
+	units.erase(uid)
+	return v
+
+
 ## Valore in VP di un'unità eliminata (7.1): Squadra 2, Team 1 (non distinto qui),
 ## Leader (non Eroe) 1 + Comando, Eroe 0, Arma 0.
 static func elimination_vp(u: Unit) -> int:
