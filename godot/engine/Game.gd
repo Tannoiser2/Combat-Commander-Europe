@@ -1160,7 +1160,8 @@ func _update_objectives() -> int:
 			obj.controller = -1
 			all_ger = false
 			all_rus = false
-	state.vp_tracker = ger_vp - rus_vp
+	# Bilancia = VP obiettivi + VP non-obiettivo (iniziali, Tempo!, eliminazioni 7.1).
+	state.vp_tracker = ger_vp - rus_vp + state.bonus_vp
 	if all_ger:
 		return Domain.Faction.GERMAN
 	if all_rus:

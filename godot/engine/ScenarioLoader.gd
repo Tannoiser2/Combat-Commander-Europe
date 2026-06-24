@@ -58,7 +58,10 @@ static func setup(state: GameState, num: int) -> bool:
 	# Casella iniziale del segnalino Tempo (6.1.1: «di solito 0»). Campo opzionale
 	# del catalogo per scenari che partono da una casella diversa (es. anno).
 	state.time_marker = int(e.get("tempo_iniziale", 0))
-	state.vp_tracker = int(e.get("vp_iniziali", 0))  # >0 Axis(GER), <0 Allied(RUS)
+	# VP iniziali come bonus non-obiettivo (così non vengono sovrascritti dal
+	# ricalcolo degli obiettivi). >0 Axis(GER), <0 Allied(RUS).
+	state.bonus_vp = int(e.get("vp_iniziali", 0))
+	state.vp_tracker = state.bonus_vp
 	var init_axis := String(e.get("iniziativa", "axis")) == "axis"
 	state.initiative_holder = Domain.Faction.GERMAN if init_axis else Domain.Faction.RUSSIAN
 	state.active_faction = state.initiative_holder

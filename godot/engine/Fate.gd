@@ -63,9 +63,9 @@ static func _consequence_time(state: GameState, lines: Array[String]) -> void:
 	lines.append("TEMPO! La traccia avanza a %d/%d" % [state.time_marker, state.sudden_death_space])
 	var defender := Domain.Faction.RUSSIAN if state.initiative_holder == Domain.Faction.GERMAN else Domain.Faction.GERMAN
 	if defender == Domain.Faction.GERMAN:
-		state.vp_tracker += 1
+		state.bonus_vp += 1
 	else:
-		state.vp_tracker -= 1
+		state.bonus_vp -= 1
 	_reshuffle(state, Domain.Faction.GERMAN)
 	_reshuffle(state, Domain.Faction.RUSSIAN)
 	# Passo 4 (6.1.2): rimuovi UN marker fumo.
