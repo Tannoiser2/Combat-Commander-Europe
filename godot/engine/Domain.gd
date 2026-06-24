@@ -74,6 +74,15 @@ enum TerrainType {
 	HILL1, HILL2, ROAD, RUBBLE,
 }
 
+## Nomi dei terreni (per il pannello info esagono)
+const TERRAIN_NAMES := {
+	TerrainType.OPEN: "Aperto", TerrainType.BRUSH: "Macchia", TerrainType.WOODS: "Bosco",
+	TerrainType.BUILDING: "Edificio", TerrainType.ORCHARD: "Frutteto", TerrainType.FIELD: "Campo",
+	TerrainType.STREAM: "Ruscello", TerrainType.MARSH: "Palude", TerrainType.WATER_BARRIER: "Acqua",
+	TerrainType.GULLY: "Forra", TerrainType.BRIDGE: "Ponte", TerrainType.HILL1: "Collina 1",
+	TerrainType.HILL2: "Collina 2", TerrainType.ROAD: "Strada", TerrainType.RUBBLE: "Macerie",
+}
+
 ## Lati di esagono (CC Terrain Chart)
 enum HexsideFeature { NONE, HEDGE, WALL, FENCE, BOCAGE, CLIFF, LOS_CLEAR, STREAM_SIDE }
 
