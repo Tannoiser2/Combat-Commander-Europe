@@ -100,6 +100,35 @@ static func fp_with_command(state: GameState, u: Unit) -> int:
 	return u.fp + cmd - wire_penalty(state, u)
 
 
+## Deriva della granata d'artiglieria (O18.2.2). Partendo da (q,r):
+## - HIT: si sposta 1 esagono nella direzione del dado bianco, poi 1 in quella
+##   del dado colorato;
+## - MISS: si sposta di `cd` esagoni (dado colorato) nella direzione del dado
+##   bianco.
+## Se in qualsiasi momento esce dalla mappa restituisce (-1,-1) (O18.2.2.3).
+static func artillery_drift(state: GameState, q: int, r: int, hit: bool, wd: int, cd: int) -> Vector2i:
+	var dir_w := (wd - 1) % 6
+	var dir_c := (cd - 1) % 6
+	var cur := Vector2i(q, r)
+	if hit:
+		cur = HexGrid.step_dir(cur.x, cur.y, dir_w)
+		if _off_map(state, cur):
+			return Vector2i(-1, -1)
+		cur = HexGrid.step_dir(cur.x, cur.y, dir_c)
+		if _off_map(state, cur):
+			return Vector2i(-1, -1)
+	else:
+		for _i in cd:
+			cur = HexGrid.step_dir(cur.x, cur.y, dir_w)
+			if _off_map(state, cur):
+				return Vector2i(-1, -1)
+	return cur
+
+
+static func _off_map(state: GameState, c: Vector2i) -> bool:
+	return c.x < 0 or c.x >= state.map_cols or c.y < 0 or c.y >= state.map_rows
+
+
 # ─── Recupero (O22) ────────────────────────────────────────────────────────────
 
 ## Tiro di Morale per recuperare un'unità rotta: successo se 2d6 ≤ Morale

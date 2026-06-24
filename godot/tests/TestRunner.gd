@@ -58,6 +58,7 @@ func _ready() -> void:
 	_test_elimination_vp()
 	_test_more_events()
 	_test_more_events2()
+	_test_artillery()
 	_test_blaze()
 	_test_melee_fortification_tie()
 	_test_objective_chits()
@@ -631,6 +632,63 @@ func _test_more_events() -> void:
 	s5.surrender_threshold[GER] = 5
 	Events.fire(s5, _ev("IMPETO"), GER)
 	_check(int(s5.surrender_threshold[GER]) == 6, "Impeto alza la soglia di resa di 1")
+
+
+func _test_artillery() -> void:
+	print("· Artiglieria (O18): deriva e impatto a 7 esagoni")
+	var s := _new_state()
+	var sr := Rules.artillery_drift(s, 2, 2, true, 1, 1)
+	_check(sr.x >= 0 and sr.x < s.map_cols and sr.y >= 0 and sr.y < s.map_rows,
+		"Deriva (colpito) resta in mappa")
+	var off := Rules.artillery_drift(s, 0, 0, false, 5, 2)
+	_check(off.x < 0, "Deriva oltre il bordo → nessun effetto")
+
+	# Impatto: chi è nel raggio (centro+adiacenti) è colpito, chi è fuori no.
+	var s2 := _new_state()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var inblast := _mk("in", GER, SQUAD, RIFLE, 2, 2, 5, 2)
+	var outside := _mk("out", RUS, SQUAD, RIFLE, 0, 0, 5, 2)
+	s2.units[inblast.id] = inblast
+	s2.units[outside.id] = outside
+	var res := Combat.resolve_artillery(s2, 30, 2, 2, rng)
+	_check(not s2.units.has("in") or not s2.units["in"].efficient,
+		"Impatto colpisce chi è nel raggio")
+	_check(s2.units["out"].efficient, "Impatto non tocca chi è fuori dal raggio")
+	_check(int(res["hexes"]) >= 5, "Impatto copre il centro e gli adiacenti in mappa")
+
+	# Integrazione: l'ordine ARTI con Radio+Leader conta come ordine.
+	var s3 := _new_state(6, 6)
+	s3.human_faction = GER
+	s3.phase = Domain.Phase.PLAYER_TURN
+	s3.max_orders = 5
+	s3.sudden_death_space = 20
+	var radio := _mk("R", GER, Domain.UnitType.WEAPON, RIFLE, 1, 1, 0, 7)
+	radio.unit_name = "Radio 75mm"
+	var ldr := _mk("L", GER, LEADER, ELITE, 1, 1, 1, 8)
+	s3.units[radio.id] = radio
+	s3.units[ldr.id] = ldr
+	s3.units["en"] = _mk("en", RUS, SQUAD, RIFLE, 3, 1, 5, 2)
+	var card := Card.new()
+	card.order = Domain.OrderType.ARTY
+	s3.german_hand.append(card)
+	Game.state = s3
+	Game.play_card(0)
+	_check(s3.order_count == 1, "Artiglieria con Radio+Leader conta come ordine")
+
+	# Senza Radio non si consuma un ordine.
+	var s4 := _new_state(6, 6)
+	s4.human_faction = GER
+	s4.phase = Domain.Phase.PLAYER_TURN
+	s4.max_orders = 5
+	s4.sudden_death_space = 20
+	s4.units["L2"] = _mk("L2", GER, LEADER, ELITE, 1, 1, 1, 8)
+	var card2 := Card.new()
+	card2.order = Domain.OrderType.ARTY
+	s4.german_hand.append(card2)
+	Game.state = s4
+	Game.play_card(0)
+	_check(s4.order_count == 0, "Artiglieria senza Radio non consuma un ordine")
 
 
 func _test_blaze() -> void:

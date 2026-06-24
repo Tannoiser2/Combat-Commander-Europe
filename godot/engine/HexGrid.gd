@@ -25,6 +25,14 @@ static func neighbors(q: int, r: int) -> Array[Vector2i]:
 	return result
 
 
+## Vicino nella direzione `dir` (0-5, bussola esagonale). Usato dalla deriva
+## della granata d'artiglieria (O18.2.2).
+static func step_dir(q: int, r: int, dir: int) -> Vector2i:
+	var dirs := _DIRS_ODD if (q & 1) else _DIRS_EVEN
+	var d: Vector2i = dirs[dir % 6]
+	return Vector2i(q + d.x, r + d.y)
+
+
 ## Distanza in esagoni tra due celle (metrica cubica convertita da offset).
 static func distance(q1: int, r1: int, q2: int, r2: int) -> int:
 	var c1 := _to_cube(q1, r1)
