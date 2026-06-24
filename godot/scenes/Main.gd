@@ -32,10 +32,23 @@ func _ready() -> void:
 		Game.start_new_game(Domain.Faction.GERMAN)
 	_connect_signals()
 	_build_legend()
+	_build_view3d_button()
 	_refresh_ui()
 	# Riempi il registro con le righe già accumulate
 	for line in Game.state.log:
 		log_list.add_item(line)
+
+
+## Pulsante per passare alla vista mappa 3D (in alto a destra).
+func _build_view3d_button() -> void:
+	var btn := Button.new()
+	btn.text = "⬚ Vista 3D"
+	btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	btn.offset_left = -150
+	btn.offset_top = 40
+	btn.offset_right = -12
+	btn.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/Map3D.tscn"))
+	add_child(btn)
 
 
 ## Legenda dei simboli della mappa (toggle col tasto «L»), creata via codice per
