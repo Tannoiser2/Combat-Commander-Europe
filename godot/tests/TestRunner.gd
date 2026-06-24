@@ -60,6 +60,7 @@ func _ready() -> void:
 	_test_more_events2()
 	_test_radio_unit()
 	_test_artillery()
+	_test_artillery_available()
 	_test_ai_artillery()
 	_test_blaze()
 	_test_melee_fortification_tie()
@@ -759,6 +760,22 @@ func _test_ai_artillery() -> void:
 	s2.units["L2"] = _mk("L2", RUS, LEADER, ELITE, 1, 1, 1, 8)
 	s2.units["g3"] = _mk("g3", GER, SQUAD, RIFLE, 3, 1, 5, 7)
 	_check(AI.best_artillery(s2, RUS).is_empty(), "Senza Radio l'IA non richiede artiglieria")
+
+
+func _test_artillery_available() -> void:
+	print("· HUD: disponibilità artiglieria (Radio + Leader)")
+	var s := _new_state()
+	s.human_faction = GER
+	Game.state = s
+	_check(not Game.has_artillery_available(), "Senza unità: niente artiglieria")
+	s.units["L"] = _mk("L", GER, LEADER, ELITE, 1, 1, 1, 8)
+	_check(not Game.has_artillery_available(), "Solo leader: niente artiglieria")
+	var r := _mk("R", GER, Domain.UnitType.WEAPON, RIFLE, 1, 1, 0, 7)
+	r.unit_name = "Radio 75mm"
+	s.units["R"] = r
+	_check(Game.has_artillery_available(), "Radio + Leader: artiglieria disponibile")
+	r.break_unit()
+	_check(not Game.has_artillery_available(), "Radio rotta: niente artiglieria")
 
 
 func _test_blaze() -> void:

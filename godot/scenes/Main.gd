@@ -116,11 +116,12 @@ func _guidance_text(s: GameState) -> String:
 	match s.phase:
 		Domain.Phase.PLAYER_TURN:
 			var ord := "  (ordini %d/%d)" % [s.order_count, s.max_orders]
+			var arty := "  · 📻 Artiglieria pronta" if Game.has_artillery_available() else ""
 			if s.order_count >= s.max_orders:
 				return "Ordini esauriti%s — gioca un'Azione (dx) o premi «Fine Turno»" % ord
 			if s.selected_unit_id != "":
-				return "Unità scelta%s — gioca una carta:  Sx = ordine · Dx = azione" % ord
-			return "Il tuo turno%s — clicca un'unità, poi gioca una carta ordine" % ord
+				return "Unità scelta%s — gioca una carta:  Sx = ordine · Dx = azione%s" % [ord, arty]
+			return "Il tuo turno%s — clicca un'unità, poi gioca una carta ordine%s" % [ord, arty]
 		Domain.Phase.PLAYER_MOVING:
 			var has_unit := s.selected_unit_id != ""
 			if Game.can_exit_selected():

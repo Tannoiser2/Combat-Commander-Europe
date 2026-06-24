@@ -269,6 +269,23 @@ func _play_artillery(hand_index: int) -> void:
 	emit_signal("state_changed")
 
 
+## Vero se la fazione umana ha una Radio e un Leader (spotter) non rotti: può
+## quindi giocare un ordine di Artiglieria (O18).
+func has_artillery_available() -> bool:
+	if state == null:
+		return false
+	var radio := false
+	var spotter := false
+	for u in state.units_of(state.human_faction):
+		if not u.efficient:
+			continue
+		if u.unit_name.contains("Radio"):
+			radio = true
+		elif u.is_leader():
+			spotter = true
+	return radio and spotter
+
+
 ## Alterna barrage esplosivo/fumogeno durante la scelta del bersaglio (O18.2.1.1).
 func toggle_artillery_smoke() -> void:
 	if state == null or state.current_order != Domain.OrderType.ARTY:
