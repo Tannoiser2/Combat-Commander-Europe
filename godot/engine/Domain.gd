@@ -27,6 +27,29 @@ const FACTION_SHORT := {
 }
 
 
+# ─── Fortificazioni (F100-F106) ──────────────────────────────────────────────
+# La buca (Foxhole) resta gestita a parte (HexData.has_foxhole). Qui i tipi
+# aggiuntivi posati durante la partita.
+enum Fort { NONE, TRENCH, PILLBOX, BUNKER, WIRE, MINES }
+
+## Copertura alternativa (non cumulativa) di Trincea/Casamatta/Bunker; +1 contro
+## ordnance. Filo/Mine non danno copertura.
+const FORT_COVER := {
+	Fort.TRENCH:  4,
+	Fort.PILLBOX: 5,
+	Fort.BUNKER:  6,
+}
+
+const FORT_NAMES := {
+	Fort.NONE: "—",
+	Fort.TRENCH: "Trincea",
+	Fort.PILLBOX: "Casamatta",
+	Fort.BUNKER: "Bunker",
+	Fort.WIRE: "Filo spinato",
+	Fort.MINES: "Mine",
+}
+
+
 # ─── Tipi di unità ───────────────────────────────────────────────────────────
 
 enum UnitType { SQUAD, LEADER, WEAPON }

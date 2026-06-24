@@ -604,6 +604,20 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	])
 	emit_signal("unit_moved", u.id, tq, tr)
 
+	# Mine (F103): attacco entrando in un esagono minato; se colpita, la mossa finisce.
+	if _mine_attack_on_move(u, old_q, old_r):
+		state.group_mp[u.id] = 0
+		_check_end_conditions()
+		if state.phase == Domain.Phase.GAME_OVER:
+			emit_signal("state_changed")
+		else:
+			_after_mover_done()
+		return
+	# Filo (F106): entrando/uscendo da un esagono con Filo la mossa si ferma qui.
+	if _wire_on_move(u, old_q, old_r):
+		remaining = 0
+		state.group_mp[u.id] = 0
+
 	# Fuoco di Opportunità del difensore (A33): può interrompere QUESTO mover.
 	if _op_fire(u, _ai_faction()):
 		state.group_mp[u.id] = 0
@@ -775,6 +789,42 @@ func _dice_of(card: Card) -> Vector2i:
 	if card == null:
 		return Rules.roll_dice(_rng)
 	return Fate.dice(card)
+
+
+# ─── Fortificazioni: effetti sul movimento (F103 Mine, F106 Filo) ─────────────
+
+## Vero se l'unità è entrata in (o uscita da) un esagono con Filo: deve fermarsi.
+func _wire_on_move(u: Unit, from_q: int, from_r: int) -> bool:
+	var to_hd: GameState.HexData = state.hex_at(u.q, u.r)
+	var from_hd: GameState.HexData = state.hex_at(from_q, from_r)
+	return (to_hd != null and to_hd.fortification == Domain.Fort.WIRE) \
+		or (from_hd != null and from_hd.fortification == Domain.Fort.WIRE)
+
+
+## Attacco delle Mine (F103): se l'unità entra in (o esce da) un esagono minato,
+## subisce un attacco da 6 FP (copertura 0). Restituisce true se rotta/eliminata.
+func _mine_attack_on_move(u: Unit, from_q: int, from_r: int) -> bool:
+	var to_hd: GameState.HexData = state.hex_at(u.q, u.r)
+	var from_hd: GameState.HexData = state.hex_at(from_q, from_r)
+	var mined := (to_hd != null and to_hd.fortification == Domain.Fort.MINES) \
+		or (from_hd != null and from_hd.fortification == Domain.Fort.MINES)
+	if not mined:
+		return false
+	var ad := Rules.roll_dice(_rng)
+	var dd := Rules.roll_dice(_rng)
+	var atk := 6 + ad.x + ad.y
+	var defn := u.morale + dd.x + dd.y  # copertura sempre 0 contro le mine
+	if atk > defn:
+		if u.efficient:
+			u.break_unit()
+			_log("💥 Mine: %s colpita (att %d > dif %d) → rotta." % [u.unit_name, atk, defn])
+		else:
+			_log("💥 Mine: %s colpita (att %d > dif %d) → eliminata." % [u.unit_name, atk, defn])
+			emit_signal("unit_eliminated", u.id)
+			state.eliminate_unit(u.id)
+		return true
+	_log("Mine: %s passa (att %d ≤ dif %d)." % [u.unit_name, atk, defn])
+	return false
 
 
 # ─── Fuoco di Opportunità (A33) ───────────────────────────────────────────────
@@ -1062,9 +1112,15 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 			best_dist = d
 			best = n
 	if best != Vector2i(u.q, u.r):
+		var oq := u.q
+		var orr := u.r
 		u.q = best.x
 		u.r = best.y
 		emit_signal("unit_moved", u.id, best.x, best.y)
+		# Mine (F103) sull'IA che si muove: se colpita, il movimento si ferma.
+		if _mine_attack_on_move(u, oq, orr):
+			_check_end_conditions()
+			return
 		# Il difensore reagisce col Fuoco di Opportunità (finestra interattiva se il
 		# difensore è l'umano). Marca l'unità «in movimento» per il pareggio (A33).
 		var prev_moving := state.moving_unit_id

@@ -35,6 +35,16 @@ const COL_GROUP  := Color(1.0,  0.55, 0.0,  0.9)   ## contorno arancio del grupp
 const COL_GROUP_OFF := Color(0.6, 0.6, 0.6, 0.7)   ## pezzo idoneo ma escluso dal gruppo di fuoco
 const COL_FIRE_TARGET := Color(0.95, 0.15, 0.15, 0.5)  ## esagono bersaglio del fuoco
 
+## Fortificazioni: lettera e colore del badge
+const FORT_LETTERS := { 1: "T", 2: "C", 3: "B", 4: "≋", 5: "✸" }  # Trincea/Casamatta/Bunker/Filo/Mine
+const FORT_COLORS := {
+	1: Color(0.7, 0.9, 1.0),   # Trincea
+	2: Color(0.8, 0.8, 0.85),  # Casamatta
+	3: Color(0.85, 0.85, 0.9), # Bunker
+	4: Color(1.0, 0.8, 0.3),   # Filo
+	5: Color(1.0, 0.4, 0.3),   # Mine
+}
+
 ## Terreno → colore di tinta
 const TERRAIN_TINT := {
 	Domain.TerrainType.WOODS:    Color(0.18, 0.40, 0.18, 0.45),
@@ -140,6 +150,16 @@ func _draw() -> void:
 		draw_circle(oc, 11.0, Color(0.1, 0.1, 0.1, 0.85))
 		draw_arc(oc, 11.0, 0, TAU, 20, Color.WHITE, 1.5)
 		_draw_text("%d" % obj.vp, oc, 12.0, Color(1, 0.95, 0.3), true)
+
+	# Fortificazioni: piccola etichetta in alto nell'esagono
+	for key in s.hexes:
+		var hd: GameState.HexData = s.hexes[key]
+		if hd.fortification != Domain.Fort.NONE:
+			var fp := String(key).split(",")
+			var fc := _hex_center(int(fp[0]), int(fp[1])) - Vector2(0, _hsize() * 0.55)
+			var col: Color = FORT_COLORS.get(hd.fortification, Color.WHITE)
+			draw_circle(fc, 8.0, Color(0.08, 0.08, 0.08, 0.9))
+			_draw_text(FORT_LETTERS.get(hd.fortification, "?"), fc, 11.0, col, true)
 
 	# Esagoni evidenziati (movimento)
 	for key in s.highlighted_hexes:

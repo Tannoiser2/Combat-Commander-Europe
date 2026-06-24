@@ -56,6 +56,7 @@ func _ready() -> void:
 	_test_event_commissar()
 	_test_event_hero()
 	_test_elimination_vp()
+	_test_fortifications()
 	_test_objectives_vp()
 	_test_op_fire()
 	_test_actions()
@@ -577,6 +578,47 @@ func _test_elimination_vp() -> void:
 	Game.state = s
 	Game._update_objectives()
 	_check(s.vp_tracker == s.bonus_vp, "la bilancia VP include i VP non-obiettivo")
+
+
+func _test_fortifications() -> void:
+	print("· Fortificazioni: copertura, filo, mine, posa")
+	var s := _new_state()
+	var hd := s.hex_at(1, 1)
+	hd.fortification = Domain.Fort.BUNKER
+	_check(Rules.cover_at(s, 1, 1, false) == 6, "Bunker → copertura 6")
+	_check(Rules.cover_at(s, 1, 1, true) == 7, "Bunker vs ordnance → 7")
+	hd.fortification = Domain.Fort.TRENCH
+	_check(Rules.cover_at(s, 1, 1, false) == 4, "Trincea → copertura 4")
+
+	# Filo spinato: −1 a FP/Gittata/Morale.
+	var u := _mk("g", GER, SQUAD, RIFLE, 2, 2, 6, 7, 6)
+	s.units[u.id] = u
+	s.hex_at(2, 2).fortification = Domain.Fort.WIRE
+	_check(Rules.wire_penalty(s, u) == 1, "Filo: penalità 1")
+	_check(Rules.fp_with_command(s, u) == 5, "Filo: FP -1 (6→5)")
+	_check(Rules.range_with_command(s, u) == 5, "Filo: gittata -1 (6→5)")
+
+	# Posa via azione.
+	var s2 := _new_state()
+	var g2 := _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	s2.units[g2.id] = g2
+	var card := Card.new()
+	card.action_name = "MINE NASCOSTE"
+	Actions.play(s2, card, GER)
+	_check(s2.hex_at(0, 0).fortification == Domain.Fort.MINES, "MINE NASCOSTE posa le mine sull'esagono amico")
+
+	# Attacco mine (esiti deterministici tramite morale estremo).
+	Game.state = s2
+	var hit := _mk("rh", RUS, SQUAD, RIFLE, 0, 0, 5, -50)  # difesa sempre < attacco
+	s2.units[hit.id] = hit
+	_check(Game._mine_attack_on_move(hit, 1, 0), "Mine: chi entra nell'esagono minato è colpito")
+	_check(not s2.units["rh"].efficient or not s2.units.has("rh"), "Mine: l'unità colpita si rompe/elimina")
+	var miss := _mk("rm", RUS, SQUAD, RIFLE, 0, 0, 5, 99)  # difesa sempre > attacco
+	s2.units[miss.id] = miss
+	_check(not Game._mine_attack_on_move(miss, 1, 0), "Mine: con morale altissimo l'attacco fallisce")
+	var nomine := _mk("rn", RUS, SQUAD, RIFLE, 3, 3, 5, 5)
+	s2.units[nomine.id] = nomine
+	_check(not Game._mine_attack_on_move(nomine, 2, 3), "Mine: nessun attacco fuori da esagoni minati")
 
 
 func _test_objectives_vp() -> void:

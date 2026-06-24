@@ -133,10 +133,8 @@ static func resolve_fire(
 	var attack_total := attack_fp + res.dice_roll
 	res.final_score = attack_total
 
-	# Copertura per il tiro di difesa.
-	var cover: int = Domain.TERRAIN_COVER.get(hd.terrain, 0) if hd else 0
-	if hd != null and hd.has_foxhole:
-		cover += 3  # buca/foxhole (scheda Fortificazioni: copertura 3)
+	# Copertura per il tiro di difesa (terreno + fortificazioni F101-F105).
+	var cover := Rules.cover_at(state, tq, tr, attacker.ordnance)
 	var def_roll := def_dice.x + def_dice.y
 
 	# ─── Fire Defense Roll per ogni difensore (O20.3.4) ──────────────────────
@@ -144,9 +142,10 @@ static func resolve_fire(
 		if t.faction == attacker.faction:
 			continue
 		# Morale del difensore + copertura + Comando del leader co-locato (3.3.1.2:
-		# un leader aumenta la Morale di squadre/team nel suo esagono, non la propria).
+		# un leader aumenta la Morale di squadre/team nel suo esagono, non la propria);
+		# il Filo spinato (F106) abbassa di 1 la Morale di chi è nell'esagono.
 		var def_cmd := Rules.unit_command_bonus(state, t)
-		var defense := t.morale + cover + def_roll + def_cmd
+		var defense := t.morale + cover + def_roll + def_cmd - Rules.wire_penalty(state, t)
 		if t.concealed:
 			defense += 1         # mimetizzazione: più difficile da colpire
 			t.concealed = false  # il fuoco la rivela comunque
