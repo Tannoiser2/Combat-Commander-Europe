@@ -152,6 +152,8 @@ static func step_cost(state: GameState, fq: int, fr: int, tq: int, tr: int) -> i
 	var hd: GameState.HexData = state.hex_at(tq, tr)
 	if hd == null:
 		return -1
+	if hd.has_blaze:
+		return -1  # incendio (E46): esagono impassabile
 	var base: int = Domain.TERRAIN_MOVE_COST.get(hd.terrain, 1)
 	if base >= 99:
 		return -1
