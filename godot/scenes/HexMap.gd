@@ -166,6 +166,16 @@ func _draw() -> void:
 			var inc: bool = s.fire_group_ids.has(eid)
 			_draw_hex_outline(ev.q, ev.r, COL_GROUP if inc else COL_GROUP_OFF, 3.0 if inc else 2.0)
 
+	# Finestra di reazione (Fuoco di Opportunità): mover in rosso, tiratori in giallo
+	if s.phase == Domain.Phase.REACTION_WINDOW:
+		var mv := s.unit_by_id(s.opfire_mover_id)
+		if mv:
+			_draw_hex_fill(mv.q, mv.r, COL_FIRE_TARGET)
+		for sid in s.opfire_shooter_ids:
+			var sv := s.unit_by_id(sid)
+			if sv:
+				_draw_hex_outline(sv.q, sv.r, COL_GROUP, 3.0)
+
 	# Esagono selezionato
 	if s.selected_unit_id != "":
 		var u := s.unit_by_id(s.selected_unit_id)
@@ -402,6 +412,15 @@ func _on_click(mouse_pos: Vector2) -> void:
 				func(u): return u.faction == s.human_faction and not u.activated)
 			if own_here.size() > 0:
 				Game.select_unit(own_here[0].id)
+	elif s.phase == Domain.Phase.REACTION_WINDOW:
+		# Fuoco di Opportunità: clicca un tiratore evidenziato per sparare; un
+		# qualsiasi altro esagono = non sparare.
+		for sid in s.opfire_shooter_ids:
+			var sv := s.unit_by_id(sid)
+			if sv != null and sv.q == clicked_q and sv.r == clicked_r:
+				Game.opfire_choose(sid)
+				return
+		Game.opfire_decline()
 	elif s.phase == Domain.Phase.PLAYER_TURN:
 		# Seleziona unità amica
 		var own := units_here.filter(func(u): return u.faction == s.human_faction and not u.activated)

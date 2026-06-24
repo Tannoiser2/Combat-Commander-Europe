@@ -63,6 +63,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_C:
 			_toggle_hand()
 			get_viewport().set_input_as_handled()
+		KEY_SPACE:
+			if Game.state != null and Game.state.phase == Domain.Phase.REACTION_WINDOW:
+				Game.opfire_decline()
+				get_viewport().set_input_as_handled()
 
 
 # ─── Aggiornamento UI ─────────────────────────────────────────────────────────
@@ -136,6 +140,8 @@ func _guidance_text(s: GameState) -> String:
 					return "AVANZATA — clicca un esagono adiacente · l'unità per annullare"
 				_:
 					return "Clicca un'unità sulla mappa"
+		Domain.Phase.REACTION_WINDOW:
+			return "⚡ FUOCO DI OPPORTUNITÀ — clicca un tiratore (giallo) per sparare · altrove o SPAZIO = non sparare"
 		_:
 			return Domain.PHASE_LABELS.get(s.phase, "")
 

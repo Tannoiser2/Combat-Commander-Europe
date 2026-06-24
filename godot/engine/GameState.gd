@@ -159,6 +159,13 @@ var fire_group_ids: Array[String] = []
 var fire_modifiers: Array[String] = []
 var fire_modifier_cards: Array = []
 
+# ─── Finestra di reazione: Fuoco di Opportunità del giocatore (A33) ───────────
+# Mentre l'IA muove, se il giocatore umano ha tiratori idonei si apre una finestra
+# di scelta: `opfire_mover_id` = unità IA in movimento; `opfire_shooter_ids` =
+# tiratori umani idonei tra cui scegliere (o declinare).
+var opfire_mover_id: String = ""
+var opfire_shooter_ids: Array[String] = []
+
 
 # ─── Log ─────────────────────────────────────────────────────────────────────
 
