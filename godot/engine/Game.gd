@@ -186,6 +186,18 @@ func play_card(hand_index: int) -> void:
 	if hand_index < 0 or hand_index >= hand.size():
 		return
 	var card: Card = hand[hand_index]
+
+	# Limite di Ordini per turno (5.1): MOVE/FIRE/ADVANCE/RECOVER/ROUT contano come
+	# Ordini. PASS e Artiglieria-negata no. Esauriti gli Ordini, si può solo passare
+	# o giocare Azioni (tasto destro).
+	var counts_as_order: bool = card.order in [
+		Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE,
+		Domain.OrderType.RECOVER, Domain.OrderType.ROUT]
+	if counts_as_order and state.order_count >= state.max_orders:
+		_log("Ordini esauriti per questo turno (%d/%d). Premi «Fine Turno» o gioca un'Azione." % [
+			state.order_count, state.max_orders])
+		return
+
 	_log("Carta #%d giocata: %s" % [card.number, Domain.ORDER_LABELS.get(card.order, card.order_label)])
 
 	match card.order:
@@ -807,7 +819,8 @@ func _apply_fate(card: Card, faction: int, context: Dictionary = {}) -> void:
 
 
 func _end_player_turn() -> void:
-	# Azzera attivazioni e PM residui
+	# Azzera attivazioni, PM residui e il conteggio Ordini del turno (5.1).
+	state.order_count = 0
 	state.moving_unit_id = ""
 	state.moving_remaining_mp = 0
 	state.moving_card_index = -1
