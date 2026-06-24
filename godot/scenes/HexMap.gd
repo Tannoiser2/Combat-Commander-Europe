@@ -260,8 +260,8 @@ func _counter_texture(u: Unit) -> Texture2D:
 
 func _draw_counter(u: Unit, center: Vector2) -> void:
 	# Dimensione proporzionale all'esagono a schermo (così resta allineata su
-	# qualunque mappa/zoom).
-	var sz := _hsize() * (1.15 if u.is_weapon() else 1.7)
+	# qualunque mappa/zoom). Tarata per stare DENTRO l'esagono lasciando margine.
+	var sz := _hsize() * (0.92 if u.is_weapon() else 1.28)
 	var rect := Rect2(center.x - sz * 0.5, center.y - sz * 0.5, sz, sz)
 	var tex := _counter_texture(u)
 

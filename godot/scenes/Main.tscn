@@ -122,24 +122,37 @@ self_modulate = Color(1, 1, 1, 0.88)
 [node name="LogList" type="ItemList" parent="LogPanel"]
 layout_mode = 2
 
-[node name="BottomBar" type="PanelContainer" parent="."]
+[node name="HandPanel" type="PanelContainer" parent="."]
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = 7
+anchor_left = 0.5
 anchor_top = 1.0
-anchor_right = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
-offset_top = -124.0
+grow_horizontal = 2
+grow_vertical = 0
+self_modulate = Color(1, 1, 1, 0.9)
 
-[node name="HBox" type="HBoxContainer" parent="BottomBar"]
+[node name="VBox" type="VBoxContainer" parent="HandPanel"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
-[node name="Cards" type="HBoxContainer" parent="BottomBar/HBox"]
+[node name="Header" type="HBoxContainer" parent="HandPanel/VBox"]
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
+alignment = 1
 
-[node name="EndTurnBtn" type="Button" parent="BottomBar/HBox"]
+[node name="ToggleBtn" type="Button" parent="HandPanel/VBox/Header"]
 layout_mode = 2
-custom_minimum_size = Vector2(110, 0)
+custom_minimum_size = Vector2(130, 0)
+text = "▼ Carte"
+
+[node name="EndTurnBtn" type="Button" parent="HandPanel/VBox/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(130, 0)
 text = "Fine Turno"
+
+[node name="Cards" type="HBoxContainer" parent="HandPanel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1

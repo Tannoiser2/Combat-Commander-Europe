@@ -16,8 +16,11 @@ extends Control
 @onready var hint_label: Label = $Hint
 @onready var unit_info: Panel = $UnitInfo
 @onready var info_label: RichTextLabel = $UnitInfo/Margin/InfoLabel
-@onready var hand_container: HBoxContainer = $BottomBar/HBox/Cards
-@onready var end_turn_btn: Button = $BottomBar/HBox/EndTurnBtn
+@onready var hand_container: HBoxContainer = $HandPanel/VBox/Cards
+@onready var end_turn_btn: Button = $HandPanel/VBox/Header/EndTurnBtn
+@onready var hand_toggle_btn: Button = $HandPanel/VBox/Header/ToggleBtn
+
+var _hand_collapsed := false
 
 
 func _ready() -> void:
@@ -37,6 +40,7 @@ func _connect_signals() -> void:
 	Game.phase_changed.connect(_on_phase_changed)
 	Game.game_over.connect(_on_game_over)
 	end_turn_btn.pressed.connect(_on_end_turn)
+	hand_toggle_btn.pressed.connect(_toggle_hand)
 	menu_btn.pressed.connect(_on_menu)
 
 
@@ -55,6 +59,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		KEY_M:
 			Game._log("Audio %s." % ("attivo" if Audio.toggle_mute() else "muto"))
+			get_viewport().set_input_as_handled()
+		KEY_C:
+			_toggle_hand()
 			get_viewport().set_input_as_handled()
 
 
@@ -151,6 +158,11 @@ func _refresh_hand() -> void:
 		child.queue_free()
 	if Game.state == null:
 		return
+	hand_toggle_btn.text = "▲ Carte (%d)" % Game.state.hand_of(Game.state.human_faction).size() if _hand_collapsed \
+		else "▼ Carte (%d)" % Game.state.hand_of(Game.state.human_faction).size()
+	hand_container.visible = not _hand_collapsed
+	if _hand_collapsed:
+		return
 	var hand := Game.state.hand_of(Game.state.human_faction)
 	for i in hand.size():
 		var card: Card = hand[i]
@@ -158,7 +170,7 @@ func _refresh_hand() -> void:
 		tb.texture_normal = load(card.face_path())
 		tb.ignore_texture_size = true
 		tb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		tb.custom_minimum_size = Vector2(78, 108)
+		tb.custom_minimum_size = Vector2(124, 174)
 		tb.tooltip_text = "Sx: %s  ·  Dx: %s" % [
 			Domain.ORDER_LABELS.get(card.order, card.order_label), card.action_name
 		]
@@ -201,6 +213,13 @@ func _on_card_input(event: InputEvent, index: int) -> void:
 	if event is InputEventMouseButton and event.pressed \
 			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
 		Game.play_action(index)
+
+
+## Mostra/nasconde la fila carte (il pannello si riduce all'header) per liberare
+## la mappa. Le carte restano giocabili appena riaperto.
+func _toggle_hand() -> void:
+	_hand_collapsed = not _hand_collapsed
+	_refresh_hand()
 
 
 func _on_menu() -> void:
