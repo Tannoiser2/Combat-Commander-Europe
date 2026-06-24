@@ -168,9 +168,17 @@ static func resolve_melee(
 		res.winner = def_faction
 		losers = attackers
 	else:
-		# Pareggio: entrambi i lati eliminati.
-		res.winner = -1
-		losers = attackers + defenders
+		# Pareggio: di norma entrambi i lati eliminati. Eccezione (F101/F104): in
+		# Bunker o Casamatta vince chi difende la fortificazione, cioè l'ultimo
+		# occupante solitario dell'esagono (qui il difensore, che la presidiava).
+		var hd: GameState.HexData = state.hex_at(defenders[0].q, defenders[0].r)
+		if hd != null and (hd.fortification == Domain.Fort.BUNKER \
+			or hd.fortification == Domain.Fort.PILLBOX):
+			res.winner = def_faction
+			losers = attackers
+		else:
+			res.winner = -1
+			losers = attackers + defenders
 
 	for u in losers:
 		res.eliminated.append(u.id)
