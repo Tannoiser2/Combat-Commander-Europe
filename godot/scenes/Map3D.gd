@@ -1,31 +1,15 @@
-## Prototipo della mappa 3D (2.5D): il terreno esagonale è reso con prismi 3D la
-## cui altezza dipende dall'elevazione; le unità sono cilindri colorati. Scena
-## SEPARATA dalla mappa 2D (nessun rischio per il gioco esistente). Camera
-## orbitabile (trascina = ruota, rotella = zoom). Riusa i dati di GameState.
+## Mappa 3D (vista alternativa): il tabellone reale è usato come SKIN, drappeggiato
+## su esagoni flat-top estrusi in base all'elevazione reale (esagoni ad altezza
+## variabile). Scena SEPARATA dalla 2D. Camera orbitabile (trascina = ruota,
+## rotella = zoom). «2»/ESC torna alla mappa 2D. Stato letto da GameState.
 extends Node3D
 
-const HEX_R := 1.0          ## circumraggio dell'esagono (layout flat-top)
-const ELEV_STEP := 0.7      ## rialzo per livello di elevazione
-const BASE_H := 0.4         ## spessore base del prisma
+const ELEV_STEP := 0.55     ## rialzo per livello di elevazione
+const BASE_H := 0.25        ## spessore minimo del prisma
 
-## Terreno → colore (versione opaca per il 3D).
-const TERRAIN_COLOR := {
-	Domain.TerrainType.OPEN:          Color(0.56, 0.62, 0.34),
-	Domain.TerrainType.BRUSH:         Color(0.46, 0.55, 0.30),
-	Domain.TerrainType.WOODS:         Color(0.16, 0.34, 0.16),
-	Domain.TerrainType.BUILDING:      Color(0.58, 0.47, 0.36),
-	Domain.TerrainType.ORCHARD:       Color(0.40, 0.58, 0.28),
-	Domain.TerrainType.FIELD:         Color(0.82, 0.73, 0.30),
-	Domain.TerrainType.STREAM:        Color(0.22, 0.45, 0.68),
-	Domain.TerrainType.MARSH:         Color(0.40, 0.46, 0.34),
-	Domain.TerrainType.WATER_BARRIER: Color(0.16, 0.38, 0.62),
-	Domain.TerrainType.GULLY:         Color(0.46, 0.42, 0.30),
-	Domain.TerrainType.BRIDGE:        Color(0.60, 0.50, 0.38),
-	Domain.TerrainType.HILL1:         Color(0.62, 0.52, 0.32),
-	Domain.TerrainType.HILL2:         Color(0.66, 0.50, 0.28),
-	Domain.TerrainType.ROAD:          Color(0.72, 0.62, 0.42),
-	Domain.TerrainType.RUBBLE:        Color(0.46, 0.43, 0.40),
-}
+## immagine→mondo: 1 unità per raggio-esagono. Derivato dal cal_hex della mappa
+## corrente (così funziona per QUALSIASI mappa degli scenari, non solo map1).
+var _world := 1.0 / 59.2
 
 var _cam_yaw := 0.6
 var _cam_pitch := 0.85
@@ -46,159 +30,128 @@ func _ready() -> void:
 	_update_camera()
 
 
-## Luce direzionale (sole) + ambiente con cielo e luce ambientale, così le facce
-## non illuminate non risultano nere.
 func _add_lighting() -> void:
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55.0, -40.0, 0.0)
-	sun.light_energy = 1.1
+	sun.rotation_degrees = Vector3(-58.0, -35.0, 0.0)
+	sun.light_energy = 1.05
 	add_child(sun)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.55, 0.66, 0.82)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.82, 0.82, 0.88)
-	env.ambient_light_energy = 0.55
+	env.ambient_light_color = Color(0.92, 0.92, 0.95)
+	env.ambient_light_energy = 0.85
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 
 
-## Posizione (x,z) del centro dell'esagono nel mondo 3D (layout flat-top, offset
-## colonne — lo stesso della mappa 2D).
-func _hex_world(q: int, r: int) -> Vector3:
-	var x := 1.5 * HEX_R * q
-	var z := sqrt(3.0) * HEX_R * (r + 0.5 * (q & 1))
-	return Vector3(x, 0.0, z)
+## Centro dell'esagono (q,r) in PIXEL dell'immagine del tabellone (stessa
+## calibrazione della 2D: ox/oy/hex).
+func _hex_img(q: int, r: int, ox: float, oy: float, hx: float) -> Vector2:
+	return Vector2(ox + hx * 1.5 * q, oy + hx * sqrt(3.0) * (r + 0.5 * (q & 1)))
 
 
 func _build(s: GameState) -> void:
-	var maxx := 0.0
-	var maxz := 0.0
+	var tex := load("res://assets/maps_img/%s.jpg" % s.map_image) as Texture2D
+	var iw := float(tex.get_width()) if tex != null else 1024.0
+	var ih := float(tex.get_height()) if tex != null else 1024.0
+	var ox: float = s.cal_ox
+	var oy: float = s.cal_oy
+	var hx: float = s.cal_hex
+	_world = 1.0 / hx
+
+	# Due superfici: i TOP esagonali col texture del tabellone, i FIANCHI a tinta unita.
+	var top_st := SurfaceTool.new()
+	top_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var side_st := SurfaceTool.new()
+	side_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	var minx := INF
+	var minz := INF
+	var maxx := -INF
+	var maxz := -INF
 	for key in s.hexes:
 		var p := String(key).split(",")
 		var q := int(p[0])
 		var r := int(p[1])
 		var hd: GameState.HexData = s.hexes[key]
-		var h := BASE_H + hd.elevation * ELEV_STEP
-		var mi := MeshInstance3D.new()
-		var cyl := CylinderMesh.new()
-		cyl.top_radius = HEX_R
-		cyl.bottom_radius = HEX_R
-		cyl.height = h
-		cyl.radial_segments = 6
-		mi.mesh = cyl
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = TERRAIN_COLOR.get(hd.terrain, Color(0.5, 0.55, 0.35))
-		mi.material_override = mat
-		var w := _hex_world(q, r)
-		mi.position = Vector3(w.x, h * 0.5, w.z)
-		add_child(mi)
-		_decorate(hd, q, r, Vector3(w.x, h, w.z))
-		maxx = maxf(maxx, w.x)
-		maxz = maxf(maxz, w.z)
-	# Unità: cilindro color kaki (Ger) o verde (Rus) sopra l'esagono.
+		var top_y := BASE_H + hd.elevation * ELEV_STEP
+		var cimg := _hex_img(q, r, ox, oy, hx)
+		# Vertici (flat-top: angoli 0,60,…,300) in pixel immagine → mondo + UV.
+		var corners_w: Array[Vector3] = []
+		var corners_uv: Array[Vector2] = []
+		for i in range(6):
+			var a := deg_to_rad(60.0 * i)
+			var ci := cimg + hx * Vector2(cos(a), sin(a))
+			corners_w.append(Vector3(ci.x * _world, top_y, ci.y * _world))
+			corners_uv.append(Vector2(ci.x / iw, ci.y / ih))
+		var center_w := Vector3(cimg.x * _world, top_y, cimg.y * _world)
+		var center_uv := Vector2(cimg.x / iw, cimg.y / ih)
+		# Faccia superiore (ventaglio dal centro), texture del tabellone.
+		for i in range(6):
+			var j := (i + 1) % 6
+			top_st.set_normal(Vector3.UP)
+			top_st.set_uv(center_uv); top_st.add_vertex(center_w)
+			top_st.set_uv(corners_uv[i]); top_st.add_vertex(corners_w[i])
+			top_st.set_uv(corners_uv[j]); top_st.add_vertex(corners_w[j])
+		# Fianchi: dal bordo superiore giù a y=0 (estrusione = altezza variabile).
+		for i in range(6):
+			var j := (i + 1) % 6
+			var tA := corners_w[i]
+			var tB := corners_w[j]
+			var bA := Vector3(tA.x, 0.0, tA.z)
+			var bB := Vector3(tB.x, 0.0, tB.z)
+			side_st.add_vertex(tA); side_st.add_vertex(bA); side_st.add_vertex(tB)
+			side_st.add_vertex(tB); side_st.add_vertex(bA); side_st.add_vertex(bB)
+		minx = minf(minx, center_w.x); maxx = maxf(maxx, center_w.x)
+		minz = minf(minz, center_w.z); maxz = maxf(maxz, center_w.z)
+
+	top_st.generate_normals()
+	var top_mat := StandardMaterial3D.new()
+	if tex != null:
+		top_mat.albedo_texture = tex
+	top_mat.roughness = 1.0
+	var top_mi := MeshInstance3D.new()
+	top_mi.mesh = top_st.commit()
+	top_mi.material_override = top_mat
+	add_child(top_mi)
+
+	side_st.generate_normals()
+	var side_mat := StandardMaterial3D.new()
+	side_mat.albedo_color = Color(0.32, 0.26, 0.18)  # terra dei fianchi
+	var side_mi := MeshInstance3D.new()
+	side_mi.mesh = side_st.commit()
+	side_mi.material_override = side_mat
+	add_child(side_mi)
+
+	_add_pieces(s, ox, oy, hx)
+
+	_center = Vector3((minx + maxx) * 0.5, 0.0, (minz + maxz) * 0.5)
+	_cam_dist = maxf(maxx - minx, maxz - minz) * 0.7 + 8.0
+
+
+## Pedine: cilindro kaki (Ger) / verde (Rus) sopra l'esagono, all'altezza reale.
+func _add_pieces(s: GameState, ox: float, oy: float, hx: float) -> void:
 	for u in s.units.values():
 		if not u.is_man():
 			continue
-		var hd2: GameState.HexData = s.hex_at(u.q, u.r)
-		var top := BASE_H + (hd2.elevation if hd2 != null else 0) * ELEV_STEP
+		var hd: GameState.HexData = s.hex_at(u.q, u.r)
+		var top_y := BASE_H + (hd.elevation if hd != null else 0) * ELEV_STEP
 		var pm := MeshInstance3D.new()
 		var pc := CylinderMesh.new()
-		pc.top_radius = 0.34
-		pc.bottom_radius = 0.34
-		pc.height = 0.7
-		pc.radial_segments = 14
+		pc.top_radius = 0.32
+		pc.bottom_radius = 0.32
+		pc.height = 0.6
+		pc.radial_segments = 16
 		pm.mesh = pc
-		var pmat := StandardMaterial3D.new()
-		pmat.albedo_color = Color(0.62, 0.56, 0.32) if u.faction == Domain.Faction.GERMAN \
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.66, 0.58, 0.30) if u.faction == Domain.Faction.GERMAN \
 			else Color(0.28, 0.5, 0.28)
-		pm.material_override = pmat
-		var w2 := _hex_world(u.q, u.r)
-		pm.position = Vector3(w2.x, top + 0.35, w2.z)
+		pm.material_override = mat
+		var ci := _hex_img(u.q, u.r, ox, oy, hx)
+		pm.position = Vector3(ci.x * _world, top_y + 0.3, ci.y * _world)
 		add_child(pm)
-	_center = Vector3(maxx * 0.5, 0.0, maxz * 0.5)
-	_cam_dist = maxf(maxx, maxz) * 0.8 + 10.0
-
-
-## Aggiunge volumi 3D sopra l'esagono in base al terreno (alberi, edifici, macerie).
-## `top` = centro della faccia superiore del prisma.
-func _decorate(hd: GameState.HexData, q: int, r: int, top: Vector3) -> void:
-	match hd.terrain:
-		Domain.TerrainType.WOODS:
-			_add_tree(top, _jit(q, r, 0), 1.0)
-			_add_tree(top, _jit(q, r, 1), 0.85)
-			_add_tree(top, _jit(q, r, 2), 0.7)
-		Domain.TerrainType.ORCHARD:
-			_add_tree(top, _jit(q, r, 0), 0.8)
-			_add_tree(top, _jit(q, r, 3), 0.7)
-		Domain.TerrainType.BUILDING:
-			_add_building(top)
-		Domain.TerrainType.RUBBLE:
-			_add_box(top + Vector3(0.2, 0.1, -0.1), Vector3(0.4, 0.2, 0.4), Color(0.45, 0.43, 0.40))
-			_add_box(top + Vector3(-0.25, 0.07, 0.2), Vector3(0.3, 0.14, 0.3), Color(0.5, 0.47, 0.44))
-
-
-## Offset deterministico (niente RNG) per scostare gli alberi dentro l'esagono.
-func _jit(q: int, r: int, i: int) -> Vector3:
-	var a := float(q * 12 + r * 7 + i * 53)
-	return Vector3(sin(a) * 0.42, 0.0, cos(a * 1.7) * 0.42)
-
-
-## Albero: tronco (cilindro marrone) + chioma (cono verde).
-func _add_tree(top: Vector3, off: Vector3, scale: float) -> void:
-	var trunk := MeshInstance3D.new()
-	var tc := CylinderMesh.new()
-	tc.top_radius = 0.05 * scale
-	tc.bottom_radius = 0.07 * scale
-	tc.height = 0.35 * scale
-	tc.radial_segments = 6
-	trunk.mesh = tc
-	trunk.material_override = _mat(Color(0.35, 0.25, 0.15))
-	trunk.position = top + off + Vector3(0.0, 0.175 * scale, 0.0)
-	add_child(trunk)
-	var foliage := MeshInstance3D.new()
-	var fc := CylinderMesh.new()
-	fc.top_radius = 0.0
-	fc.bottom_radius = 0.32 * scale
-	fc.height = 0.7 * scale
-	fc.radial_segments = 8
-	foliage.mesh = fc
-	foliage.material_override = _mat(Color(0.10, 0.32, 0.12))
-	foliage.position = top + off + Vector3(0.0, (0.35 + 0.35) * scale, 0.0)
-	add_child(foliage)
-
-
-## Edificio: corpo + tetto a falde semplificato.
-func _add_building(top: Vector3) -> void:
-	_add_box(top + Vector3(0.0, 0.3, 0.0), Vector3(0.95, 0.6, 0.85), Color(0.62, 0.5, 0.4))
-	var roof := MeshInstance3D.new()
-	var rc := CylinderMesh.new()
-	rc.top_radius = 0.0
-	rc.bottom_radius = 0.72
-	rc.height = 0.4
-	rc.radial_segments = 4
-	roof.mesh = rc
-	roof.rotation_degrees = Vector3(0.0, 45.0, 0.0)
-	roof.material_override = _mat(Color(0.45, 0.22, 0.18))
-	roof.position = top + Vector3(0.0, 0.6 + 0.2, 0.0)
-	add_child(roof)
-
-
-func _add_box(center: Vector3, size: Vector3, col: Color) -> void:
-	var b := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = size
-	b.mesh = bm
-	b.material_override = _mat(col)
-	b.position = center
-	add_child(b)
-
-
-func _mat(col: Color) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = col
-	return m
 
 
 func _update_camera() -> void:
@@ -228,5 +181,5 @@ func _unhandled_input(event: InputEvent) -> void:
 			_cam_dist = maxf(8.0, _cam_dist - 2.0)
 			_update_camera()
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_cam_dist = minf(120.0, _cam_dist + 2.0)
+			_cam_dist = minf(160.0, _cam_dist + 2.0)
 			_update_camera()
