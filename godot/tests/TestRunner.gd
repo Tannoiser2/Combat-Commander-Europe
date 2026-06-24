@@ -54,6 +54,7 @@ func _ready() -> void:
 	_test_event_malfunction()
 	_test_event_breeze()
 	_test_event_commissar()
+	_test_event_hero()
 	_test_objectives_vp()
 	_test_op_fire()
 	_test_actions()
@@ -530,6 +531,27 @@ func _test_event_commissar() -> void:
 	c2.dice_red = 1  # tiro 2 ≤ 11 → ripristinata
 	Events.fire(s2, c2, GER)
 	_check(s2.units.has("rus-ok") and s2.units["rus-ok"].efficient, "Commissario: tiro ≤ morale → ripristinata")
+
+
+func _test_event_hero() -> void:
+	print("· Evento: Eroe (E58)")
+	var s := _new_state()
+	var host := _mk("ger", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	s.units[host.id] = host
+	Events.fire(s, _ev("EROE"), GER)
+	var hero: Unit = s.units.get("HERO-GER")
+	_check(hero != null and hero.hero and hero.is_leader(), "Eroe creato come leader a figura singola")
+	_check(hero != null and hero.q == 1 and hero.r == 1, "Eroe compare in un esagono amico")
+	Events.fire(s, _ev("EROE"), GER)
+	var heroes := 0
+	for u in s.units.values():
+		if u.hero:
+			heroes += 1
+	_check(heroes == 1, "un solo Eroe per fazione (non duplicato)")
+	# L'Eroe non conta sul Casualty Track.
+	var before := int(s.casualties.get(GER, 0))
+	s.eliminate_unit("HERO-GER")
+	_check(int(s.casualties.get(GER, 0)) == before, "Eroe eliminato NON conta come perdita")
 
 
 func _test_objectives_vp() -> void:

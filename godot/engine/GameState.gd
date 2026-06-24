@@ -246,7 +246,8 @@ func hand_size_of(faction: int) -> int:
 ## le unità lasciano `units`, così il conteggio resa resta sempre coerente.
 func eliminate_unit(uid: String) -> void:
 	var u: Unit = units.get(uid)
-	if u != null and u.is_man():
+	# Gli Eroi (E58.1) non vanno mai sul Casualty Track.
+	if u != null and u.is_man() and not u.hero:
 		casualties[u.faction] = int(casualties.get(u.faction, 0)) + 1
 	units.erase(uid)
 
