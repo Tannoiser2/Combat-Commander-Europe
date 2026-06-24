@@ -56,6 +56,7 @@ func _ready() -> void:
 	_test_event_commissar()
 	_test_event_hero()
 	_test_elimination_vp()
+	_test_spray_fire()
 	_test_fortifications()
 	_test_objectives_vp()
 	_test_op_fire()
@@ -578,6 +579,39 @@ func _test_elimination_vp() -> void:
 	Game.state = s
 	Game._update_objectives()
 	_check(s.vp_tracker == s.bonus_vp, "la bilancia VP include i VP non-obiettivo")
+
+
+func _test_spray_fire() -> void:
+	print("· Sventagliata (A40): due esagoni adiacenti con un solo tiro")
+	var s := _new_state(6, 6)
+	var atk := _mk("g", GER, SQUAD, RIFLE, 2, 3, 10, 7, 6)  # FP alto
+	s.units[atk.id] = atk
+	var d1 := _mk("r1", RUS, SQUAD, RIFLE, 2, 2, 5, 3)  # bersaglio primario
+	var d2 := _mk("r2", RUS, SQUAD, RIFLE, 3, 2, 5, 3)  # secondo esagono
+	s.units[d1.id] = d1
+	s.units[d2.id] = d2
+	var grp: Array[Unit] = [atk]
+	# Senza sventagliata: solo il primario è colpito.
+	var only := Combat.resolve_fire(atk, 2, 2, s, Vector2i(6, 6), Vector2i(1, 1), grp, 0)
+	_check(_was_affected(only, "r1") and not _was_affected(only, "r2"),
+		"Senza sventagliata colpisce solo il bersaglio primario")
+	# Con sventagliata: stesso tiro su entrambi gli esagoni.
+	var d3 := _mk("r3", RUS, SQUAD, RIFLE, 2, 2, 5, 3)
+	var d4 := _mk("r4", RUS, SQUAD, RIFLE, 3, 2, 5, 3)
+	var s2 := _new_state(6, 6)
+	var atk2 := _mk("g2", GER, SQUAD, RIFLE, 2, 3, 10, 7, 6)
+	s2.units[atk2.id] = atk2
+	s2.units[d3.id] = d3
+	s2.units[d4.id] = d4
+	var grp2: Array[Unit] = [atk2]
+	var res := Combat.resolve_fire(atk2, 2, 2, s2, Vector2i(6, 6), Vector2i(1, 1), grp2, 0, 3, 2)
+	_check(_was_affected(res, "r3"), "Sventagliata colpisce il bersaglio primario")
+	_check(_was_affected(res, "r4"), "Sventagliata colpisce anche il secondo esagono")
+
+
+## Vero se l'unità compare tra gli effetti del fuoco (rotta/eliminata/soppressa).
+func _was_affected(res, uid: String) -> bool:
+	return res.broken.has(uid) or res.eliminated.has(uid) or res.suppressed.has(uid)
 
 
 func _test_fortifications() -> void:

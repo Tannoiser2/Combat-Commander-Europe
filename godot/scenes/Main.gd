@@ -130,6 +130,8 @@ func _guidance_text(s: GameState) -> String:
 						var msg := "FUOCO — gruppo %d, FP ~%d · pezzi (arancio) · dx carta = modificatore · bersaglio per sparare" % [s.fire_group_ids.size(), Game.projected_fire_fp()]
 						if not s.fire_modifiers.is_empty():
 							msg += "  [%s]" % ", ".join(s.fire_modifiers)
+						if s.spray_active:
+							msg += "  [SVENTAGLIATA]"
 						return msg
 					if not has_unit:
 						return "FUOCO — clicca l'unità che spara"
@@ -228,7 +230,7 @@ func _on_card_pressed(index: int) -> void:
 
 
 ## Click destro su una carta = gioca l'AZIONE; durante l'assemblaggio del fuoco
-## applica invece il modificatore di fuoco (Mirato/Sostenuto/Incrociato).
+## applica invece il modificatore di fuoco (Mirato/Sostenuto/Incrociato/Sventagliata).
 func _on_card_input(event: InputEvent, index: int) -> void:
 	if event is InputEventMouseButton and event.pressed \
 			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:

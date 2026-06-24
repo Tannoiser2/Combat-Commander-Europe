@@ -85,7 +85,7 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 
 ---
 
-## A24–A41 · Azioni — **5 su 17**
+## A24–A41 · Azioni — **6 su 17**
 
 | Azione (regola) | Stato | Note |
 |---|---|---|
@@ -104,13 +104,13 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | A35 Hidden | ❌ | unità nascoste. |
 | **A37 Marksmanship** | ✅ | +2 FP nell'assemblaggio del fuoco, prereq: una squadra/team spara. |
 | A38 No Quarter | ❌ | melee. |
-| **A40 Spray Fire** | ❌ | modificatore di fuoco (richiede 2 esagoni bersaglio, da fare). |
+| **A40 Spray Fire** | ✅ | Sventagliata: un solo tiro colpisce anche un secondo esagono nemico adiacente (difesa a parte). Secondo esagono scelto automaticamente (adiacente, con nemico, a tiro/LOS di tutti i pezzi). |
 | **A41 Sustained Fire** | ✅ | +2 FP nell'assemblaggio, prereq: MG/mortaio spara; su un doppio un'arma si inceppa. |
 
-Dei cinque **modificatori di fuoco** ne sono ora attivi **3** (Mirato, Sostenuto,
-Incrociato), applicabili durante l'assemblaggio interattivo del fuoco (tasto destro
-su una carta). Restano **Sventagliata** (2 esagoni) e **Fuoco d'Assalto** (fuoco
-durante il movimento), che richiedono cambi al targeting/flusso.
+Dei cinque **modificatori di fuoco** ne sono ora attivi **4** (Mirato, Sostenuto,
+Incrociato, Sventagliata), applicabili durante l'assemblaggio interattivo del fuoco
+(tasto destro su una carta). Resta **Fuoco d'Assalto** (A26, fuoco durante il
+movimento), che richiede un cambio al flusso dell'ordine di Mossa.
 
 ---
 

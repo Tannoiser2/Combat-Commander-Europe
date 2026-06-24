@@ -163,6 +163,8 @@ var fire_group_ids: Array[String] = []
 # (consumate alla conferma, restituite all'annullamento).
 var fire_modifiers: Array[String] = []
 var fire_modifier_cards: Array = []
+# Sventagliata (A40): l'attacco colpisce anche un secondo esagono adiacente.
+var spray_active: bool = false
 
 # ─── Finestra di reazione: Fuoco di Opportunità del giocatore (A33) ───────────
 # Mentre l'IA muove, se il giocatore umano ha tiratori idonei si apre una finestra

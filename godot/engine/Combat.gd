@@ -73,7 +73,8 @@ static func resolve_fire(
 	state: GameState,
 	atk_dice: Vector2i, def_dice: Vector2i,
 	group_override: Array[Unit] = [],
-	fp_bonus: int = 0
+	fp_bonus: int = 0,
+	spray_q: int = -1, spray_r: int = -1
 ) -> FireResult:
 	var res := FireResult.new()
 	res.attacker_id = attacker.id
@@ -133,16 +134,50 @@ static func resolve_fire(
 	var attack_total := attack_fp + res.dice_roll
 	res.final_score = attack_total
 
-	# Copertura per il tiro di difesa (terreno + fortificazioni F101-F105).
-	var cover := Rules.cover_at(state, tq, tr, attacker.ordnance)
-	var def_roll := def_dice.x + def_dice.y
-
 	# ─── Fire Defense Roll per ogni difensore (O20.3.4) ──────────────────────
-	for t in state.men_at(tq, tr):
+	var def_roll := def_dice.x + def_dice.y
+	var cover := _resolve_hex_defenders(state, attacker, tq, tr, attack_total, def_roll, res)
+
+	# Sventagliata (A40 Spray Fire): lo stesso totale d'attacco colpisce anche un
+	# secondo esagono nemico adiacente; i suoi difensori tirano la difesa a parte.
+	var spray_cover := -1
+	if spray_q >= 0 and spray_r >= 0:
+		spray_cover = _resolve_hex_defenders(state, attacker, spray_q, spray_r, attack_total, def_roll, res)
+
+	# ─── Log ─────────────────────────────────────────────────────────────────
+	res.log_line = "%s (×%d) spara su (%d,%d): ATT %d (FP%d−h%d+%d) vs DIF (mor+cop%d+%d)" % [
+		attacker.unit_name, group.size(), tq, tr,
+		attack_total, fp, hind, res.dice_roll, cover, def_roll
+	]
+	if spray_cover >= 0:
+		res.log_line += " | sventagliata su (%d,%d) cop%d" % [spray_q, spray_r, spray_cover]
+	if res.eliminated.size() > 0:
+		res.log_line += " ⇒ ELIMINATE: %s" % ", ".join(res.eliminated)
+	if res.broken.size() > 0:
+		res.log_line += " ⇒ ROTTE: %s" % ", ".join(res.broken)
+	if res.suppressed.size() > 0:
+		res.log_line += " ⇒ SOPPRESSE: %s" % ", ".join(res.suppressed)
+	if res.eliminated.is_empty() and res.broken.is_empty() and res.suppressed.is_empty():
+		res.log_line += " ⇒ nessun effetto"
+
+	# Rimuove dallo stato le unità eliminate (contandole sul Casualty Track).
+	for uid in res.eliminated:
+		state.eliminate_unit(uid)
+
+	return res
+
+
+## Applica `attack_total` ai difensori nemici di un esagono (O20.3.4) e registra
+## gli effetti in `res`. Restituisce la copertura usata (per il log).
+static func _resolve_hex_defenders(
+	state: GameState, attacker: Unit, hq: int, hr: int,
+	attack_total: int, def_roll: int, res: FireResult
+) -> int:
+	var cover := Rules.cover_at(state, hq, hr, attacker.ordnance)
+	for t in state.men_at(hq, hr):
 		if t.faction == attacker.faction:
 			continue
-		# Morale del difensore + copertura + Comando del leader co-locato (3.3.1.2:
-		# un leader aumenta la Morale di squadre/team nel suo esagono, non la propria);
+		# Morale del difensore + copertura + Comando del leader co-locato (3.3.1.2);
 		# il Filo spinato (F106) abbassa di 1 la Morale di chi è nell'esagono.
 		var def_cmd := Rules.unit_command_bonus(state, t)
 		var defense := t.morale + cover + def_roll + def_cmd - Rules.wire_penalty(state, t)
@@ -159,26 +194,7 @@ static func resolve_fire(
 				t.suppress()
 				res.suppressed.append(t.id)
 		# attack_total < defense → nessun effetto
-
-	# ─── Log ─────────────────────────────────────────────────────────────────
-	res.log_line = "%s (×%d) spara su (%d,%d): ATT %d (FP%d−h%d+%d) vs DIF (mor+cop%d+%d)" % [
-		attacker.unit_name, group.size(), tq, tr,
-		attack_total, fp, hind, res.dice_roll, cover, def_roll
-	]
-	if res.eliminated.size() > 0:
-		res.log_line += " ⇒ ELIMINATE: %s" % ", ".join(res.eliminated)
-	if res.broken.size() > 0:
-		res.log_line += " ⇒ ROTTE: %s" % ", ".join(res.broken)
-	if res.suppressed.size() > 0:
-		res.log_line += " ⇒ SOPPRESSE: %s" % ", ".join(res.suppressed)
-	if res.eliminated.is_empty() and res.broken.is_empty() and res.suppressed.is_empty():
-		res.log_line += " ⇒ nessun effetto"
-
-	# Rimuove dallo stato le unità eliminate (contandole sul Casualty Track).
-	for uid in res.eliminated:
-		state.eliminate_unit(uid)
-
-	return res
+	return cover
 
 
 ## Verifica se un'unità può sparare legalmente.

@@ -332,6 +332,7 @@ func cancel_fire_target() -> void:
 	state.fire_target_r = -1
 	state.fire_eligible_ids.clear()
 	state.fire_group_ids.clear()
+	state.spray_active = false
 	var u := state.unit_by_id(state.selected_unit_id)
 	if u != null:
 		select_unit(u.id)  # ri-evidenzia i bersagli possibili
@@ -372,7 +373,14 @@ func confirm_fire() -> void:
 	var atk_fate := _draw_fate(state.human_faction)
 	var def_fate := _draw_fate(_ai_faction())
 	var atk_dice := _dice_of(atk_fate)
-	var result := Combat.resolve_fire(u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus)
+	var spray_q := -1
+	var spray_r := -1
+	if state.spray_active:
+		var sp := _spray_target()
+		spray_q = sp.x
+		spray_r = sp.y
+	var result := Combat.resolve_fire(
+		u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus, spray_q, spray_r)
 	_log(result.log_line)
 	# Fuoco Sostenuto (A41): su un doppio, un'arma (MG/mortaio) che spara si inceppa.
 	if atk_dice.x == atk_dice.y:
@@ -447,6 +455,9 @@ func apply_fire_modifier(hand_index: int) -> void:
 		return
 	var card: Card = hand[hand_index]
 	var nm := card.action_name
+	if nm == "SVENTAGLIATA":  # Spray Fire (A40): aggiunge un secondo esagono bersaglio
+		_apply_spray(card)
+		return
 	if not FIRE_MOD_NAMES.has(nm):
 		_log("«%s» non è un modificatore di fuoco (in questo contesto)." % (nm if nm != "" else "—"))
 		return
@@ -459,6 +470,60 @@ func apply_fire_modifier(hand_index: int) -> void:
 	state.fire_modifiers.append(nm)
 	state.fire_modifier_cards.append(card)
 	_log("Modificatore di fuoco: %s (+2 FP)." % nm)
+	emit_signal("state_changed")
+
+
+## Secondo esagono bersaglio della Sventagliata (A40): adiacente al bersaglio
+## primario, con un nemico, entro gittata e LOS di TUTTI i pezzi del gruppo.
+## Sceglie quello con più nemici. (-1,-1) se nessuno è idoneo.
+func _spray_target() -> Vector2i:
+	var tq := state.fire_target_q
+	var tr := state.fire_target_r
+	if tq < 0:
+		return Vector2i(-1, -1)
+	var group := _current_fire_group()
+	var best := Vector2i(-1, -1)
+	var best_n := 0
+	for n in HexGrid.neighbors(tq, tr):
+		if n.x < 0 or n.x >= state.map_cols or n.y < 0 or n.y >= state.map_rows:
+			continue
+		var enemies := 0
+		for t in state.men_at(n.x, n.y):
+			if t.faction != state.human_faction:
+				enemies += 1
+		if enemies == 0:
+			continue
+		var reachable := true
+		for g in group:
+			if HexGrid.distance(g.q, g.r, n.x, n.y) > Rules.range_with_command(state, g) \
+				or not HexGrid.has_los(g.q, g.r, n.x, n.y, state):
+				reachable = false
+				break
+		if reachable and enemies > best_n:
+			best_n = enemies
+			best = n
+	return best
+
+
+## Applica la Sventagliata: estende il fuoco al secondo esagono (no bonus FP).
+func _apply_spray(card: Card) -> void:
+	if state.fire_modifier_cards.has(card):
+		return
+	var has_man := false
+	for g in _current_fire_group():
+		if g.is_man():  # A40: i pezzi devono avere gittata «in scatola» (no ordnance)
+			has_man = true
+			break
+	if not has_man:
+		_log("Sventagliata: richiede squadre/team (non ordnance).")
+		return
+	var sp := _spray_target()
+	if sp.x < 0:
+		_log("Sventagliata: nessun esagono nemico adiacente al bersaglio e a tiro.")
+		return
+	state.spray_active = true
+	state.fire_modifier_cards.append(card)
+	_log("Sventagliata: colpirà anche (%d,%d)." % [sp.x, sp.y])
 	emit_signal("state_changed")
 
 
@@ -751,6 +816,7 @@ func _clear_fire_assembly() -> void:
 	state.fire_group_ids.clear()
 	state.fire_modifiers.clear()
 	state.fire_modifier_cards.clear()
+	state.spray_active = false
 
 
 func _discard_card(hand_index: int) -> void:
