@@ -10,6 +10,7 @@ var _fail := 0
 func _ready() -> void:
 	_test_move_loop()
 	_test_fire_transition_and_cancel()
+	_test_leader_group_move()
 	if _fail == 0:
 		print("\nPLAYTHROUGH: PASS")
 	else:
@@ -110,3 +111,58 @@ func _test_fire_transition_and_cancel() -> void:
 	_check(s.phase == Domain.Phase.PLAYER_TURN, "annullamento → ritorno a PLAYER_TURN")
 	_check(s.hand_of(s.human_faction).size() == hand_before, "mano invariata")
 	_check(s.hand_of(s.human_faction)[0].order == Domain.OrderType.FIRE, "carta FUOCO ancora in mano (non consumata)")
+
+
+# ─── Mossa di gruppo attivata dal leader (Comando 3.3) ────────────────────────
+
+func _test_leader_group_move() -> void:
+	print("· Mossa di gruppo: il leader attiva e muove le unità nel suo raggio")
+	Game.start_new_game(Domain.Faction.GERMAN, 2)
+	var s := Game.state
+	# Leader umano con Comando>0 che ha almeno un altro uomo muovibile nel raggio.
+	var leader: Unit = null
+	for u in s.units_of(s.human_faction):
+		if u.is_leader() and u.command > 0 and u.efficient and u.move > 0:
+			for v in s.units_of(s.human_faction):
+				if v.id != u.id and v.is_man() and v.efficient and v.move > 0 \
+						and HexGrid.distance(u.q, u.r, v.q, v.r) <= u.command:
+					leader = u
+					break
+		if leader != null:
+			break
+	_check(leader != null, "trovato un leader con Comando e unità nel raggio")
+	if leader == null:
+		return
+
+	s.hand_of(s.human_faction)[0] = _make_card(Domain.OrderType.MOVE, s.human_faction)
+	Game.select_unit(leader.id)
+	Game.play_card(0)
+	_check(s.current_order == Domain.OrderType.MOVE, "ordine MOSSA in corso")
+	_check(s.ordered_group.size() > 1, "gruppo attivato con %d unità" % s.ordered_group.size())
+	_check(s.ordered_group.has(leader.id), "il leader fa parte del gruppo")
+	_check(s.selected_unit_id == leader.id, "il leader è il mover attivo")
+	_check(s.highlighted_hexes.size() > 0, "esagoni di movimento del leader evidenziati")
+
+	# Muovo il leader di un passo.
+	if s.highlighted_hexes.size() > 0:
+		var p := String(s.highlighted_hexes[0]).split(",")
+		Game.click_hex_move(int(p[0]), int(p[1]))
+		_check(s.move_committed, "movimento impegnato dopo il primo passo")
+
+	# Passo a un altro membro del gruppo (cambio mover attivo).
+	var other_id := ""
+	for id in s.ordered_group:
+		if id != leader.id:
+			other_id = id
+			break
+	if other_id != "" and s.phase == Domain.Phase.PLAYER_MOVING:
+		Game.select_unit(other_id)
+		_check(s.selected_unit_id == other_id, "passaggio a un altro membro del gruppo")
+
+	# Concludo l'ordine: tutte le unità del gruppo risultano attivate.
+	if s.phase == Domain.Phase.PLAYER_MOVING:
+		Game.finish_move()
+	_check(s.phase == Domain.Phase.PLAYER_TURN, "ordine di gruppo concluso → PLAYER_TURN")
+	var ldr := s.unit_by_id(leader.id)
+	_check(ldr != null and ldr.activated, "leader marcato attivato (consumato dall'ordine)")
+	_check(s.ordered_group.is_empty(), "gruppo azzerato dopo la conclusione")
