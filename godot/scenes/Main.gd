@@ -120,7 +120,10 @@ func _guidance_text(s: GameState) -> String:
 					return "MOSSA — clicca un esagono giallo · clicca l'unità per annullare"
 				Domain.OrderType.FIRE:
 					if s.fire_target_q >= 0:
-						return "FUOCO — gruppo %d pezzi, FP ~%d · clicca i pezzi (arancio=incluso) · il bersaglio per sparare" % [s.fire_group_ids.size(), Game.projected_fire_fp()]
+						var msg := "FUOCO — gruppo %d, FP ~%d · pezzi (arancio) · dx carta = modificatore · bersaglio per sparare" % [s.fire_group_ids.size(), Game.projected_fire_fp()]
+						if not s.fire_modifiers.is_empty():
+							msg += "  [%s]" % ", ".join(s.fire_modifiers)
+						return msg
 					if not has_unit:
 						return "FUOCO — clicca l'unità che spara"
 					return "FUOCO — clicca un bersaglio nemico evidenziato · l'unità per annullare"
@@ -215,11 +218,16 @@ func _on_card_pressed(index: int) -> void:
 	Game.play_card(index)
 
 
-## Click destro su una carta = gioca l'AZIONE (banda inferiore) invece dell'ordine.
+## Click destro su una carta = gioca l'AZIONE; durante l'assemblaggio del fuoco
+## applica invece il modificatore di fuoco (Mirato/Sostenuto/Incrociato).
 func _on_card_input(event: InputEvent, index: int) -> void:
 	if event is InputEventMouseButton and event.pressed \
 			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
-		Game.play_action(index)
+		var s := Game.state
+		if s != null and s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+			Game.apply_fire_modifier(index)
+		else:
+			Game.play_action(index)
 
 
 ## Mostra/nasconde la fila carte (il pannello si riduce all'header) per liberare

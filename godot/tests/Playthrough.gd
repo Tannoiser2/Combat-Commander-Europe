@@ -12,6 +12,7 @@ func _ready() -> void:
 	_test_fire_transition_and_cancel()
 	_test_leader_group_move()
 	_test_fire_group_assembly()
+	_test_fire_modifiers()
 	if _fail == 0:
 		print("\nPLAYTHROUGH: PASS")
 	else:
@@ -221,3 +222,63 @@ func _test_fire_group_assembly() -> void:
 	Game.confirm_fire()
 	_check(s.phase == Domain.Phase.PLAYER_TURN, "dopo il fuoco → PLAYER_TURN")
 	_check(s.fire_target_q == -1 and s.fire_group_ids.is_empty(), "assemblaggio azzerato dopo il fuoco")
+
+
+func _mk_action_card(action_name: String) -> Card:
+	var c := Card.new()
+	c.faction = Domain.Faction.GERMAN
+	c.number = 1
+	c.order = Domain.OrderType.FIRE
+	c.action_name = action_name
+	return c
+
+
+func _test_fire_modifiers() -> void:
+	print("· Modificatori di fuoco: Mirato (+2), Sostenuto (+2), prerequisiti")
+	var s := GameState.new()
+	s.map_cols = 6
+	s.map_rows = 3
+	for q in 6:
+		for r in 3:
+			s.hexes["%d,%d" % [q, r]] = GameState.HexData.new(Domain.TerrainType.OPEN)
+	s.human_faction = Domain.Faction.GERMAN
+	var base := _mk_unit("b", Domain.Faction.GERMAN, Domain.UnitType.SQUAD, 0, 0, 6, 5)
+	var ld := _mk_unit("l", Domain.Faction.GERMAN, Domain.UnitType.LEADER, 0, 0, 4, 5)
+	ld.command = 2
+	var sq2 := _mk_unit("s2", Domain.Faction.GERMAN, Domain.UnitType.SQUAD, 1, 0, 6, 5)
+	var mg := Unit.new("mg", Domain.Faction.GERMAN, Domain.UnitType.WEAPON, Domain.UnitClass.MG, "mg")
+	mg.fp = 8
+	mg.range = 6
+	mg.q = 0
+	mg.r = 0
+	var tgt := _mk_unit("t", Domain.Faction.RUSSIAN, Domain.UnitType.SQUAD, 2, 0, 5, 5)
+	for u in [base, ld, sq2, mg, tgt]:
+		s.units[u.id] = u
+	Game.state = s
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.FIRE
+	s.selected_unit_id = "b"
+	s.german_hand = [_mk_action_card("FUOCO INCROCIATO"), _mk_action_card("FUOCO MIRATO"), _mk_action_card("FUOCO SOSTENUTO")]
+	s.selected_card_index = 0
+
+	Game.click_hex_fire(2, 0)
+	_check(s.fire_target_q == 2, "assemblaggio avviato")
+	var fp0 := Game.projected_fire_fp()
+
+	# Incrociato: il bersaglio NON è in movimento → rifiutato.
+	Game.apply_fire_modifier(0)
+	_check(s.fire_modifiers.is_empty(), "Fuoco Incrociato rifiutato (bersaglio non in movimento)")
+
+	# Mirato: c'è una squadra che spara → ok, +2 FP.
+	Game.apply_fire_modifier(1)
+	_check(s.fire_modifiers.has("FUOCO MIRATO"), "Fuoco Mirato applicato")
+	_check(Game.projected_fire_fp() == fp0 + 2, "Mirato: +2 FP previsto")
+
+	# Sostenuto: c'è una MG nel gruppo → ok, +2 FP.
+	Game.apply_fire_modifier(2)
+	_check(s.fire_modifiers.has("FUOCO SOSTENUTO"), "Fuoco Sostenuto applicato")
+	_check(Game.projected_fire_fp() == fp0 + 4, "Mirato+Sostenuto: +4 FP previsto")
+
+	Game.confirm_fire()
+	_check(s.phase == Domain.Phase.PLAYER_TURN, "dopo il fuoco coi modificatori → PLAYER_TURN")
+	_check(s.fire_modifiers.is_empty(), "modificatori azzerati dopo il fuoco")

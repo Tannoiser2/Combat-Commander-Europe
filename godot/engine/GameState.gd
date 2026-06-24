@@ -153,6 +153,11 @@ var fire_target_q: int = -1
 var fire_target_r: int = -1
 var fire_eligible_ids: Array[String] = []
 var fire_group_ids: Array[String] = []
+# Modificatori di fuoco (carte Azione) applicati all'attacco in assemblaggio:
+# `fire_modifiers` = nomi azione, `fire_modifier_cards` = riferimenti alle carte
+# (consumate alla conferma, restituite all'annullamento).
+var fire_modifiers: Array[String] = []
+var fire_modifier_cards: Array = []
 
 
 # ─── Log ─────────────────────────────────────────────────────────────────────
