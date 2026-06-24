@@ -16,6 +16,7 @@ class HexData:
 	var has_railway: bool = false  # ferrovia (tariffa strada in movimento)
 	var has_foxhole: bool = false  # buca/trincea (Trincerarsi): +3 copertura
 	var has_smoke: bool = false    # fumo (Granate Fumogene): hindrance
+	var has_blaze: bool = false    # incendio (E46): terreno impassabile
 	var fortification: int = 0     # Domain.Fort: trincea/casamatta/bunker/filo/mine
 
 	func _init(p_terrain: int, p_elev: int = 0) -> void:

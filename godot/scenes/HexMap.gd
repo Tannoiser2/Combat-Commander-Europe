@@ -151,6 +151,14 @@ func _draw() -> void:
 		draw_arc(oc, 11.0, 0, TAU, 20, Color.WHITE, 1.5)
 		_draw_text("%d" % obj.vp, oc, 12.0, Color(1, 0.95, 0.3), true)
 
+	# Incendio (E46): esagono in fiamme (riempimento arancio + simbolo)
+	for key in s.hexes:
+		var bhd: GameState.HexData = s.hexes[key]
+		if bhd.has_blaze:
+			var bp := String(key).split(",")
+			_draw_hex_fill(int(bp[0]), int(bp[1]), Color(0.95, 0.45, 0.1, 0.45))
+			_draw_text("✷", _hex_center(int(bp[0]), int(bp[1])), 14.0, Color(1, 0.85, 0.2), true)
+
 	# Fortificazioni: piccola etichetta in alto nell'esagono
 	for key in s.hexes:
 		var hd: GameState.HexData = s.hexes[key]

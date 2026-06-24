@@ -56,6 +56,7 @@ static func _state_to_dict(s: GameState) -> Dictionary:
 			"terrain": h.terrain, "elevation": h.elevation, "objective_id": h.objective_id,
 			"road": h.has_road, "trail": h.has_trail, "railway": h.has_railway,
 			"foxhole": h.has_foxhole, "smoke": h.has_smoke, "fort": h.fortification,
+			"blaze": h.has_blaze,
 		}
 	var sides := []
 	for sf in s.side_features:
@@ -116,6 +117,7 @@ static func _state_from_dict(d: Dictionary) -> GameState:
 		h.has_railway = bool(hd.get("railway", false)); h.has_foxhole = bool(hd.get("foxhole", false))
 		h.has_smoke = bool(hd.get("smoke", false))
 		h.fortification = int(hd.get("fort", 0))
+		h.has_blaze = bool(hd.get("blaze", false))
 		s.hexes[key] = h
 	var sides: Array[Dictionary] = []
 	for sf in d.get("side_features", []):

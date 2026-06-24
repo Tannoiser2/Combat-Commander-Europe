@@ -58,6 +58,7 @@ func _ready() -> void:
 	_test_elimination_vp()
 	_test_more_events()
 	_test_more_events2()
+	_test_blaze()
 	_test_melee_fortification_tie()
 	_test_objective_chits()
 	_test_assault_fire()
@@ -630,6 +631,24 @@ func _test_more_events() -> void:
 	s5.surrender_threshold[GER] = 5
 	Events.fire(s5, _ev("IMPETO"), GER)
 	_check(int(s5.surrender_threshold[GER]) == 6, "Impeto alza la soglia di resa di 1")
+
+
+func _test_blaze() -> void:
+	print("· Incendio (E46): esagono impassabile + sgombero")
+	var s := _new_state()
+	var u := _mk("u", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	s.units[u.id] = u
+	s.hex_at(1, 1).has_smoke = true
+	s.hex_at(1, 1).fortification = Domain.Fort.TRENCH
+	var c := _ev("INCENDIO")
+	c.random_hex_label = "B2"  # → (1,1)
+	Events.fire(s, c, GER)
+	_check(s.hex_at(1, 1).has_blaze, "Incendio accende l'esagono")
+	_check(not s.hex_at(1, 1).has_smoke and s.hex_at(1, 1).fortification == Domain.Fort.NONE,
+		"Incendio rimuove fumo e fortificazione")
+	_check(s.units.has("u") and (s.units["u"].q != 1 or s.units["u"].r != 1),
+		"Incendio sgombera l'unità in un esagono adiacente")
+	_check(HexGrid.step_cost(s, 2, 1, 1, 1) == -1, "Esagono in fiamme impassabile")
 
 
 func _test_melee_fortification_tie() -> void:

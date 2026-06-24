@@ -35,6 +35,7 @@ static func fire(state: GameState, card: Card, faction: int) -> Array[String]:
 		"IMPETO":                  _elan(state, faction, lines)
 		"PRIGIONIERI DI GUERRA":   _prisoners(state, faction, lines)
 		"POLVERE":                 _dust(state, card, lines)
+		"INCENDIO":                _blaze(state, card, lines)
 		"OBIETTIVO DELLA MISSIONE": _draw_objective_chit(state, lines, "Obiettivo della missione")
 		"OBIETTIVO STRATEGICO":    _draw_objective_chit(state, lines, "Obiettivo strategico")
 		"ZAPPATORI":
@@ -354,6 +355,57 @@ static func _enemy_near(state: GameState, u: Unit, faction: int) -> bool:
 			if m.faction != faction:
 				return true
 	return false
+
+
+## E46 Incendio: l'esagono casuale della carta prende fuoco (diventa impassabile),
+## perde fumo e fortificazioni, e le unità presenti sono spostate in un esagono
+## adiacente passabile (eliminate se non ce n'è).
+static func _blaze(state: GameState, card: Card, lines: Array[String]) -> void:
+	var qr := Domain.label_to_qr(card.random_hex_label)
+	var hd: GameState.HexData = state.hex_at(qr.x, qr.y)
+	if hd == null:
+		lines.append("Incendio: esagono non valido.")
+		return
+	if hd.has_blaze:
+		lines.append("Incendio: %s è già in fiamme." % card.random_hex_label)
+		return
+	hd.has_blaze = true
+	hd.has_smoke = false
+	hd.fortification = Domain.Fort.NONE
+	var occupants: Array = []
+	for u in state.units.values():
+		if u.q == qr.x and u.r == qr.y:
+			occupants.append(u)
+	var moved := 0
+	var killed := 0
+	for u in occupants:
+		var dest := _blaze_escape(state, qr.x, qr.y, u)
+		if dest.x >= 0:
+			u.q = dest.x
+			u.r = dest.y
+			moved += 1
+		else:
+			state.eliminate_unit(u.id)
+			killed += 1
+	lines.append("Incendio: %s in fiamme; %d unità spostate, %d eliminate." % [
+		card.random_hex_label, moved, killed])
+
+
+## Primo esagono adiacente passabile (non in fiamme, non impassabile, impilamento
+## rispettato) dove far fuggire un'unità dall'incendio. (-1,-1) se nessuno.
+static func _blaze_escape(state: GameState, q: int, r: int, u: Unit) -> Vector2i:
+	for nb in HexGrid.neighbors(q, r):
+		if nb.x < 0 or nb.x >= state.map_cols or nb.y < 0 or nb.y >= state.map_rows:
+			continue
+		var thd: GameState.HexData = state.hex_at(nb.x, nb.y)
+		if thd == null or thd.has_blaze:
+			continue
+		if int(Domain.TERRAIN_MOVE_COST.get(thd.terrain, 1)) >= 99:
+			continue
+		if u.is_man() and state.soldier_icons_at(nb.x, nb.y) + u.soldier_icons() > 7:
+			continue
+		return nb
+	return Vector2i(-1, -1)
 
 
 ## E53 Polvere: posa un marker di fumo (polvere) sull'esagono casuale della carta.
