@@ -204,7 +204,7 @@ static func _resolve_hex_defenders(
 static func resolve_artillery(
 	state: GameState, fp: int, cq: int, cr: int, rng: RandomNumberGenerator
 ) -> Dictionary:
-	var res := { "eliminated": [], "broken": [], "suppressed": [], "hexes": 0 }
+	var res := { "eliminated": [], "broken": [], "suppressed": [], "hexes": 0, "forts": 0 }
 	var blast: Array = [Vector2i(cq, cr)]
 	for n in HexGrid.neighbors(cq, cr):
 		blast.append(n)
@@ -212,6 +212,13 @@ static func resolve_artillery(
 		if h.x < 0 or h.x >= state.map_cols or h.y < 0 or h.y >= state.map_rows:
 			continue
 		res["hexes"] += 1
+		# Distruzione fortificazioni (O18.2.3.3): l'artiglieria pesante (FP≥20, cioè
+		# 88/105mm) spiana Trincea/Casamatta/Bunker/Filo/Mine PRIMA dei tiri di
+		# difesa, togliendo così la loro copertura ai difensori.
+		var hd: GameState.HexData = state.hex_at(h.x, h.y)
+		if hd != null and hd.fortification != Domain.Fort.NONE and fp >= 20:
+			hd.fortification = Domain.Fort.NONE
+			res["forts"] += 1
 		var here: Array = []
 		for u in state.units.values():
 			if u.q == h.x and u.r == h.y:
