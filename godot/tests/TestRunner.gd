@@ -56,6 +56,7 @@ func _ready() -> void:
 	_test_event_commissar()
 	_test_event_hero()
 	_test_elimination_vp()
+	_test_objective_chits()
 	_test_assault_fire()
 	_test_exit_vp()
 	_test_spray_fire()
@@ -581,6 +582,40 @@ func _test_elimination_vp() -> void:
 	Game.state = s
 	Game._update_objectives()
 	_check(s.vp_tracker == s.bonus_vp, "la bilancia VP include i VP non-obiettivo")
+
+
+func _test_objective_chits() -> void:
+	print("· Chit Obiettivo (7.3.2): VP sorteggiati e cumulativi")
+	var s := _new_state()
+	for i in 5:
+		s.objectives.append(Objective.new(i + 1, 0, i, 9))  # VP stampato 9 (verrà azzerato)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 42
+	var res := ObjectiveChits.assign(s, 4, rng)
+	_check(res["drawn"].size() == 4, "Estratti 4 chit")
+	var total := 0
+	for o in s.objectives:
+		total += o.vp
+	var dsum := 0
+	for v in res["drawn"]:
+		dsum += int(v)
+	_check(total == dsum, "VP totali obiettivi = somma dei chit (cumulativo)")
+	var ok_vals := true
+	for v in res["drawn"]:
+		if int(v) < 1 or int(v) > 3:
+			ok_vals = false
+	_check(ok_vals, "Ogni chit vale 1-3")
+
+	# count<=0 → nessun cambiamento ai VP stampati.
+	var s2 := _new_state()
+	s2.objectives.append(Objective.new(1, 0, 0, 7))
+	ObjectiveChits.assign(s2, 0, rng)
+	_check(s2.objectives[0].vp == 7, "Senza chit i VP stampati restano")
+
+	# Nessun obiettivo → nessun crash, nessun chit.
+	var s3 := _new_state()
+	var r3 := ObjectiveChits.assign(s3, 5, rng)
+	_check(r3["drawn"].is_empty(), "Nessun obiettivo: nessun chit assegnato")
 
 
 func _test_assault_fire() -> void:

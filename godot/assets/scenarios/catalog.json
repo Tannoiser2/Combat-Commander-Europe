@@ -13,6 +13,7 @@
   "mano_allies": 5,
   "sudden_death": 7,
   "vp_iniziali": 0,
+  "objective_chits": 5,
   "posture_axis": "recon",
   "posture_allies": "recon",
   "iniziativa": "axis",

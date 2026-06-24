@@ -49,6 +49,14 @@ static func setup(state: GameState, num: int) -> bool:
 	if not MapLoader.load_into(state, "res://assets/maps/%s.json" % map_id):
 		return false
 
+	# Chit Obiettivo (7.3.2): se lo scenario li richiede, i VP degli obiettivi
+	# vengono estratti a sorte (cumulativi) sostituendo quelli stampati sulla mappa.
+	var chits := int(e.get("objective_chits", 0))
+	if chits > 0:
+		var rng := RandomNumberGenerator.new()
+		rng.randomize()
+		ObjectiveChits.assign(state, chits, rng)
+
 	# ─── Parametri ──────────────────────────────────────────────────────────
 	state.scenario_number = num
 	state.scenario_name = String(e.get("nome", "Scenario %d" % num))
