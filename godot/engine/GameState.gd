@@ -135,6 +135,15 @@ var moving_unit_id: String = ""
 var moving_remaining_mp: int = 0
 var moving_card_index: int = -1
 
+# ─── Gruppo di comando (3.3) ─────────────────────────────────────────────────
+# Un ordine di Mossa dato a un leader attiva il leader e le unità idonee entro
+# il suo raggio di Comando: il giocatore le muove una alla volta nello stesso
+# ordine. `ordered_group` = id attivati; `group_mp` = id → PM rimasti per
+# ciascuno; `move_committed` = almeno un passo di movimento è già avvenuto.
+var ordered_group: Array[String] = []
+var group_mp: Dictionary = {}
+var move_committed: bool = false
+
 
 # ─── Log ─────────────────────────────────────────────────────────────────────
 

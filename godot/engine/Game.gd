@@ -88,25 +88,35 @@ func has_saved_game(path: String = SaveGame.SAVE_PATH) -> bool:
 func select_unit(unit_id: String) -> void:
 	if state == null:
 		return
-	# Durante una Mossa già avviata non si cambia soggetto (un'unità per ordine).
-	if state.phase == Domain.Phase.PLAYER_MOVING \
-			and state.current_order == Domain.OrderType.MOVE \
-			and state.moving_unit_id != "" and unit_id != state.moving_unit_id:
-		return
 	var u := state.unit_by_id(unit_id)
 	if u == null:
 		state.selected_unit_id = ""
 		state.highlighted_hexes.clear()
 		emit_signal("state_changed")
 		return
+
+	# ─── Mossa: gruppo di comando ────────────────────────────────────────────
+	# Alla prima selezione si forma il gruppo attorno all'unità ordinata (un
+	# leader trascina le unità nel suo raggio di Comando). Poi si può passare da
+	# un membro all'altro, ma non aggiungere unità a un ordine già avviato.
+	if state.phase == Domain.Phase.PLAYER_MOVING and state.current_order == Domain.OrderType.MOVE:
+		if state.ordered_group.is_empty():
+			if u.faction != state.human_faction or u.activated:
+				return
+			_form_move_group(u)
+		elif not state.ordered_group.has(unit_id):
+			return
+		state.selected_unit_id = unit_id
+		state.moving_unit_id = unit_id
+		_highlight_reachable(u)
+		emit_signal("state_changed")
+		return
+
+	# ─── Altri ordini ────────────────────────────────────────────────────────
 	state.selected_unit_id = unit_id
 	state.highlighted_hexes.clear()
-	# Evidenzia gli esagoni validi secondo l'ordine in corso.
 	if state.phase == Domain.Phase.PLAYER_MOVING:
 		match state.current_order:
-			Domain.OrderType.MOVE:
-				for h in HexGrid.reachable(u, state):
-					state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 			Domain.OrderType.FIRE:
 				for h in _fire_targets(u):
 					state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
@@ -115,6 +125,38 @@ func select_unit(unit_id: String) -> void:
 					if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
 						state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 	emit_signal("state_changed")
+
+
+## Forma il gruppo di comando per un ordine di Mossa (3.3): se l'unità ordinata
+## è un leader con Comando > 0, attiva sé stesso e tutte le unità idonee (uomini
+## efficienti e muovibili, non già attivate) entro il raggio di Comando.
+func _form_move_group(u: Unit) -> void:
+	state.ordered_group.clear()
+	state.group_mp.clear()
+	state.move_committed = false
+	var ids: Array[String] = []
+	if u.is_leader() and u.command > 0:
+		for v in state.units_of(state.human_faction):
+			if v.is_man() and v.efficient and v.move > 0 and not v.activated \
+					and HexGrid.distance(u.q, u.r, v.q, v.r) <= u.command:
+				ids.append(v.id)
+		if not ids.has(u.id):
+			ids.append(u.id)
+	else:
+		ids.append(u.id)
+	for id in ids:
+		state.ordered_group.append(id)
+		state.group_mp[id] = state.unit_by_id(id).move
+	if ids.size() > 1:
+		_log("Comando: %s attiva %d unità entro raggio %d." % [u.unit_name, ids.size(), u.command])
+
+
+## Evidenzia gli esagoni raggiungibili dal mover coi suoi PM rimasti nel gruppo.
+func _highlight_reachable(u: Unit) -> void:
+	state.highlighted_hexes.clear()
+	var budget := int(state.group_mp.get(u.id, u.move))
+	for h in HexGrid.reachable(u, state, budget):
+		state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 
 
 ## Esagoni nemici che l'unità può colpire (gittata + LOS + nemico presente).
@@ -285,14 +327,19 @@ func click_hex_advance(tq: int, tr: int) -> void:
 	_execute_advance(u, tq, tr)
 
 
-## Conclude l'ordine di Mossa in corso (PM esauriti o stop volontario del
-## giocatore): scarta la carta Mossa e restituisce il controllo al turno.
+## Conclude l'ordine di Mossa in corso: marca attivate TUTTE le unità del gruppo
+## (anche quelle non mosse: l'ordine le ha usate), scarta la carta e torna al
+## turno. Chiamata a PM esauriti dell'intero gruppo o per stop volontario.
 func finish_move() -> void:
 	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
 		return
 	if state.current_order != Domain.OrderType.MOVE:
 		return
-	var card_idx := state.moving_card_index if state.moving_card_index >= 0 else state.selected_card_index
+	var card_idx := state.selected_card_index if state.selected_card_index >= 0 else state.moving_card_index
+	for id in state.ordered_group:
+		var v := state.unit_by_id(id)
+		if v != null:
+			v.activated = true
 	state.moving_unit_id = ""
 	state.moving_remaining_mp = 0
 	state.moving_card_index = -1
@@ -304,12 +351,13 @@ func finish_move() -> void:
 		_change_phase(Domain.Phase.PLAYER_TURN)
 
 
-## Annulla un ordine non ancora avviato (la carta NON viene consumata) e torna
-## alla scelta. Una Mossa già avviata non si annulla: si conclude (finish_move).
+## Annulla un ordine non ancora "impegnato" (nessun passo di movimento, carta
+## NON consumata) e torna alla scelta. Se la Mossa ha già mosso qualcuno la si
+## conclude invece (finish_move); FIRE/ADVANCE non eseguiti restituiscono la carta.
 func cancel_order() -> void:
 	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
 		return
-	if state.current_order == Domain.OrderType.MOVE and state.moving_unit_id != "":
+	if state.current_order == Domain.OrderType.MOVE and state.move_committed:
 		finish_move()
 		return
 	if state.order_count > 0:
@@ -318,16 +366,47 @@ func cancel_order() -> void:
 	_change_phase(Domain.Phase.PLAYER_TURN)
 
 
+## Gesto unico «clic sull'unità attiva» dalla mappa: conclude o annulla l'ordine
+## a seconda che sia già stato impegnato (un movimento eseguito / un fuoco no).
+func conclude_order() -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
+		return
+	if state.current_order == Domain.OrderType.MOVE and state.move_committed:
+		finish_move()
+	else:
+		cancel_order()
+
+
+## Dopo che un mover del gruppo ha esaurito i PM (o è stato rotto): se restano
+## membri in grado di muovere, lascia scegliere il prossimo; altrimenti conclude.
+func _after_mover_done() -> void:
+	state.moving_unit_id = ""
+	state.selected_unit_id = ""
+	state.highlighted_hexes.clear()
+	if state.ordered_group.size() > 1 and _any_group_mover_left():
+		emit_signal("state_changed")  # il giocatore sceglie il prossimo membro
+	else:
+		finish_move()
+
+
+## C'è ancora almeno un membro del gruppo con PM residui e un esagono dove andare?
+func _any_group_mover_left() -> bool:
+	for id in state.ordered_group:
+		var v := state.unit_by_id(id)
+		if v == null or not v.efficient:
+			continue
+		var mp := int(state.group_mp.get(id, 0))
+		if mp > 0 and HexGrid.reachable(v, state, mp).size() > 0:
+			return true
+	return false
+
+
 # ─── Implementazioni interne ──────────────────────────────────────────────────
 
 func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
-	# Prima attivazione: inizializza PM rimasti
-	if state.moving_unit_id != u.id:
-		state.moving_unit_id = u.id
-		state.moving_remaining_mp = u.move
-		state.moving_card_index = state.selected_card_index
-
-	var cost := HexGrid.move_cost(u, tq, tr, state.moving_remaining_mp, state)
+	# PM rimasti del mover all'interno del gruppo di comando.
+	var remaining := int(state.group_mp.get(u.id, u.move))
+	var cost := HexGrid.move_cost(u, tq, tr, remaining, state)
 	if cost < 0:
 		_log("Esagono (%d,%d) irraggiungibile (PM insufficienti)" % [tq, tr])
 		return
@@ -340,23 +419,28 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	var old_r := u.r
 	u.q = tq
 	u.r = tr
-	state.moving_remaining_mp -= cost
+	remaining -= cost
+	state.group_mp[u.id] = remaining
+	state.move_committed = true
+	state.moving_unit_id = u.id
+	state.moving_card_index = state.selected_card_index
 	_log("%s si muove (%d,%d)→(%d,%d) [-%d PM, rimasti %d]" % [
-		u.unit_name, old_q, old_r, tq, tr, cost, state.moving_remaining_mp
+		u.unit_name, old_q, old_r, tq, tr, cost, remaining
 	])
 	emit_signal("unit_moved", u.id, tq, tr)
 
-	# Fuoco di Opportunità del difensore (A33): può interrompere il movimento.
+	# Fuoco di Opportunità del difensore (A33): può interrompere QUESTO mover.
 	if _op_fire(u, _ai_faction()):
+		state.group_mp[u.id] = 0
 		_check_end_conditions()
-		if state.phase != Domain.Phase.GAME_OVER:
-			finish_move()  # movimento interrotto: scarta la carta e torna al turno
-		else:
+		if state.phase == Domain.Phase.GAME_OVER:
 			emit_signal("state_changed")
+		else:
+			_after_mover_done()  # passa al prossimo membro o conclude l'ordine
 		return
 
-	# Aggiorna gli esagoni raggiungibili coi PM RIMASTI (non l'allowance pieno).
-	var reach := HexGrid.reachable(u, state, state.moving_remaining_mp)
+	# Aggiorna gli esagoni raggiungibili coi PM RIMASTI del mover.
+	var reach := HexGrid.reachable(u, state, remaining)
 	state.highlighted_hexes.clear()
 	for h in reach:
 		state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
@@ -365,9 +449,9 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	if state.phase == Domain.Phase.GAME_OVER:
 		emit_signal("state_changed")
 		return
-	# PM esauriti: la mossa si conclude da sola (carta scartata, ritorno al turno).
+	# PM del mover esauriti: passa al prossimo membro del gruppo o conclude.
 	if reach.is_empty():
-		finish_move()
+		_after_mover_done()
 	else:
 		emit_signal("state_changed")
 
@@ -464,6 +548,9 @@ func _clear_order_selection() -> void:
 	state.selected_unit_id = ""
 	state.current_order = -1
 	state.highlighted_hexes.clear()
+	state.ordered_group.clear()
+	state.group_mp.clear()
+	state.move_committed = false
 
 
 func _discard_card(hand_index: int) -> void:
@@ -553,6 +640,9 @@ func _end_player_turn() -> void:
 	state.current_order = -1
 	state.selected_unit_id = ""
 	state.highlighted_hexes.clear()
+	state.ordered_group.clear()
+	state.group_mp.clear()
+	state.move_committed = false
 	for u in state.units.values():
 		u.activated = false
 

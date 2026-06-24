@@ -31,6 +31,7 @@ const COL_CMD    := Color(1.0,  0.60, 0.0,  1.0)   ## arancio comando
 const COL_HIGHLIGHT := Color(1.0, 1.0, 0.0, 0.35)
 const COL_OBJECTIVE := Color(0.9, 0.2, 0.2, 0.55)
 const COL_SELECT := Color(0.0,  0.8,  1.0,  0.55)
+const COL_GROUP  := Color(1.0,  0.55, 0.0,  0.9)   ## contorno arancio del gruppo di comando
 
 ## Terreno → colore di tinta
 const TERRAIN_TINT := {
@@ -142,6 +143,14 @@ func _draw() -> void:
 	for key in s.highlighted_hexes:
 		var parts := String(key).split(",")
 		_draw_hex_fill(int(parts[0]), int(parts[1]), COL_HIGHLIGHT)
+
+	# Unità attivate dall'ordine del leader (gruppo di comando)
+	for gid in s.ordered_group:
+		if gid == s.selected_unit_id:
+			continue
+		var gv := s.unit_by_id(gid)
+		if gv:
+			_draw_hex_outline(gv.q, gv.r, COL_GROUP, 3.0)
 
 	# Esagono selezionato
 	if s.selected_unit_id != "":
@@ -336,15 +345,21 @@ func _on_click(mouse_pos: Vector2) -> void:
 	var units_here := s.units_at(clicked_q, clicked_r)
 
 	if s.phase == Domain.Phase.PLAYER_MOVING:
-		# Click sull'esagono della propria unità selezionata = concludi/annulla.
 		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
+		# Mossa di gruppo: cliccare un ALTRO membro attivato cambia il mover attivo.
+		if s.current_order == Domain.OrderType.MOVE:
+			for gid in s.ordered_group:
+				if gid == s.selected_unit_id:
+					continue
+				var gv := s.unit_by_id(gid)
+				if gv != null and gv.q == clicked_q and gv.r == clicked_r:
+					Game.select_unit(gid)
+					return
+		# Click sull'esagono dell'unità attiva = concludi/annulla l'ordine.
 		if sel != null and clicked_q == sel.q and clicked_r == sel.r:
-			if s.current_order == Domain.OrderType.MOVE and s.moving_unit_id != "":
-				Game.finish_move()
-			else:
-				Game.cancel_order()
+			Game.conclude_order()
 			return
-		# Clicco su esagono amico → cambia selezione; su evidenziato → muovi
+		# Click su esagono evidenziato = esegui l'ordine.
 		if s.selected_unit_id != "" and s.highlighted_hexes.has(key):
 			match s.current_order:
 				Domain.OrderType.MOVE:

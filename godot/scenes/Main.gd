@@ -108,10 +108,15 @@ func _guidance_text(s: GameState) -> String:
 			var has_unit := s.selected_unit_id != ""
 			match s.current_order:
 				Domain.OrderType.MOVE:
+					var n := s.ordered_group.size()
 					if not has_unit:
+						if n > 1:
+							return "MOSSA DI GRUPPO — scegli il prossimo membro (arancio) o «Fine Turno»"
 						return "MOSSA — clicca l'unità da muovere"
-					if s.moving_unit_id != "":
-						return "MOSSA — clicca un esagono giallo · clicca l'unità per fermarti"
+					if n > 1:
+						return "MOSSA DI GRUPPO (%d) — esagono giallo per muovere · membro arancio per cambiare · l'unità attiva per concludere" % n
+					if s.move_committed:
+						return "MOSSA — clicca un esagono giallo · clicca l'unità per concludere"
 					return "MOSSA — clicca un esagono giallo · clicca l'unità per annullare"
 				Domain.OrderType.FIRE:
 					if not has_unit:
