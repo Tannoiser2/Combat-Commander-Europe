@@ -306,9 +306,10 @@ func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, pre
 		return
 	var fp := _radio_fp(radio)
 	var res := Combat.resolve_artillery(state, fp, sr.x, sr.y, _rng)
-	_log(prefix + "Artiglieria (%s, FP%d) su (%d,%d): %d eliminate, %d rotte, %d soppresse." % [
+	var fort_txt := " %d fortif. distrutte." % int(res["forts"]) if int(res.get("forts", 0)) > 0 else ""
+	_log(prefix + "Artiglieria (%s, FP%d) su (%d,%d): %d eliminate, %d rotte, %d soppresse.%s" % [
 		"colpito" if hit else "mancato", fp, sr.x, sr.y,
-		res["eliminated"].size(), res["broken"].size(), res["suppressed"].size()])
+		res["eliminated"].size(), res["broken"].size(), res["suppressed"].size(), fort_txt])
 	for id in res["eliminated"]:
 		emit_signal("unit_eliminated", id)
 

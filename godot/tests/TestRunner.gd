@@ -679,6 +679,16 @@ func _test_artillery() -> void:
 	_check(s2.units["out"].efficient, "Impatto non tocca chi è fuori dal raggio")
 	_check(int(res["hexes"]) >= 5, "Impatto copre il centro e gli adiacenti in mappa")
 
+	# Distruzione fortificazioni (O18.2.3.3): pesante (FP≥20) spiana, leggera no.
+	var sf := _new_state()
+	sf.hex_at(2, 2).fortification = Domain.Fort.BUNKER
+	Combat.resolve_artillery(sf, 24, 2, 2, rng)
+	_check(sf.hex_at(2, 2).fortification == Domain.Fort.NONE, "Artiglieria pesante distrugge il Bunker")
+	var sf2 := _new_state()
+	sf2.hex_at(2, 2).fortification = Domain.Fort.BUNKER
+	Combat.resolve_artillery(sf2, 16, 2, 2, rng)
+	_check(sf2.hex_at(2, 2).fortification == Domain.Fort.BUNKER, "Artiglieria leggera (75mm) non spiana il Bunker")
+
 	# Integrazione: l'ordine ARTI con Radio+Leader conta come ordine.
 	var s3 := _new_state(6, 6)
 	s3.human_faction = GER
