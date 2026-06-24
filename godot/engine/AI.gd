@@ -37,6 +37,11 @@ static func choose_play(state: GameState, faction: int) -> Dictionary:
 			Domain.OrderType.MOVE:
 				if _has_movable(state, faction):
 					val = 30
+			Domain.OrderType.ARTY:
+				var art := best_artillery(state, faction)
+				if not art.is_empty():
+					val = 85 + 10 * int(art["score"])
+					params = art
 			_:
 				val = 0
 		if val > best_val:
@@ -44,6 +49,38 @@ static func choose_play(state: GameState, faction: int) -> Dictionary:
 			params["card_index"] = i
 			params["order"] = card.order
 			best = params
+	return best
+
+
+## Richiesta d'Artiglieria (O18): serve una Radio e un Leader (spotter) non rotti;
+## sceglie l'esagono nemico nella LOS dello spotter col maggior numero di nemici.
+## Vuoto se non realizzabile. `score` = numero di nemici nel mirino.
+static func best_artillery(state: GameState, faction: int) -> Dictionary:
+	var radio: Unit = null
+	var spotter: Unit = null
+	for u in state.units_of(faction):
+		if not u.efficient:
+			continue
+		if radio == null and u.unit_name.contains("Radio"):
+			radio = u
+		if spotter == null and u.is_leader():
+			spotter = u
+	if radio == null or spotter == null:
+		return {}
+	var best: Dictionary = {}
+	var best_n := 0
+	for other in state.units.values():
+		if other.faction == faction or not other.is_man():
+			continue
+		if not HexGrid.has_los(spotter.q, spotter.r, other.q, other.r, state):
+			continue
+		var n := 0
+		for t in state.men_at(other.q, other.r):
+			if t.faction != faction:
+				n += 1
+		if n > best_n:
+			best_n = n
+			best = { "spotter_id": spotter.id, "radio_id": radio.id, "q": other.q, "r": other.r, "score": n }
 	return best
 
 
