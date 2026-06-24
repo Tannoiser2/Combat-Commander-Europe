@@ -56,9 +56,34 @@ static func weapon_command_bonus(state: GameState, u: Unit) -> int:
 	return command_bonus_at(state, u.q, u.r, u.faction)
 
 
-## Gittata effettiva includendo il Comando del leader co-locato (3.3.1.2/.3).
+## Penalità del Filo spinato (F106.1): -1 a FP/Gittata/Morale per un'unità che
+## condivide l'esagono con un marker Filo (il Comando non ne è influenzato).
+static func wire_penalty(state: GameState, u: Unit) -> int:
+	var hd: GameState.HexData = state.hex_at(u.q, u.r)
+	return 1 if (hd != null and hd.fortification == Domain.Fort.WIRE) else 0
+
+
+## Copertura dell'esagono per il tiro di difesa (T78.3 + fortificazioni). La buca
+## somma +3 (comportamento attuale); Trincea/Casamatta/Bunker danno una copertura
+## ALTERNATIVA non cumulativa (+1 vs ordnance): si usa la migliore.
+static func cover_at(state: GameState, q: int, r: int, vs_ordnance: bool) -> int:
+	var hd: GameState.HexData = state.hex_at(q, r)
+	if hd == null:
+		return 0
+	var cov: int = Domain.TERRAIN_COVER.get(hd.terrain, 0)
+	if hd.has_foxhole:
+		cov += 3
+	var fc := int(Domain.FORT_COVER.get(hd.fortification, 0))
+	if fc > 0:
+		cov = maxi(cov, fc + (1 if vs_ordnance else 0))
+	return cov
+
+
+## Gittata effettiva includendo il Comando del leader co-locato (3.3.1.2/.3) e la
+## penalità del Filo spinato.
 static func range_with_command(state: GameState, u: Unit) -> int:
-	return u.range + (weapon_command_bonus(state, u) if u.is_weapon() else unit_command_bonus(state, u))
+	var cmd := weapon_command_bonus(state, u) if u.is_weapon() else unit_command_bonus(state, u)
+	return u.range + cmd - wire_penalty(state, u)
 
 
 ## Movimento effettivo includendo il Comando del leader co-locato (3.3.1.2).
@@ -67,11 +92,12 @@ static func move_with_command(state: GameState, u: Unit) -> int:
 
 
 ## FP di base per il fuoco includendo il Comando (3.3.1.2 squadre/team, 3.3.1.3
-## armi). L'ordnance non è mai modificata dal Comando.
+## armi) e la penalità del Filo. L'ordnance non è mai modificata dal Comando.
 static func fp_with_command(state: GameState, u: Unit) -> int:
 	if u.ordnance:
-		return u.fp
-	return u.fp + (weapon_command_bonus(state, u) if u.is_weapon() else unit_command_bonus(state, u))
+		return u.fp - wire_penalty(state, u)
+	var cmd := weapon_command_bonus(state, u) if u.is_weapon() else unit_command_bonus(state, u)
+	return u.fp + cmd - wire_penalty(state, u)
 
 
 # ─── Recupero (O22) ────────────────────────────────────────────────────────────

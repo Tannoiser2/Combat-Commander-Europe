@@ -17,9 +17,28 @@ static func play(state: GameState, card: Card, faction: int) -> Array[String]:
 		"TRINCERARSI":        _entrench(state, faction, lines)
 		"MIMETIZZAZIONE":     _camouflage(state, faction, lines)
 		"GRANATE FUMOGENE":   _smoke(state, card, lines)
+		"FILO SPINATO NASCOSTO":  _place_fort(state, faction, Domain.Fort.WIRE, lines)
+		"MINE NASCOSTE":          _place_fort(state, faction, Domain.Fort.MINES, lines)
+		"CASAMATTA NASCOSTA":     _place_fort(state, faction, Domain.Fort.PILLBOX, lines)
+		"TRINCERAMENTI NASCOSTI": _place_fort(state, faction, Domain.Fort.TRENCH, lines)
 		_:
 			lines.append("Azione «%s»: non ancora simulata." % card.action_name)
 	return lines
+
+
+## Posa una fortificazione (F100.3: max una per esagono) sull'esagono di una
+## propria unità che non ne ha già una. Versione semplificata della posa
+## «nascosta» (A35): qui è giocabile come azione normale, non solo allo scarto.
+static func _place_fort(state: GameState, faction: int, fort: int, lines: Array[String]) -> void:
+	for u in state.units_of(faction):
+		if not u.is_man():
+			continue
+		var hd: GameState.HexData = state.hex_at(u.q, u.r)
+		if hd != null and hd.fortification == Domain.Fort.NONE and not hd.has_foxhole:
+			hd.fortification = fort
+			lines.append("%s posato in (%d,%d)." % [Domain.FORT_NAMES.get(fort, "?"), u.q, u.r])
+			return
+	lines.append("%s: nessun esagono idoneo." % Domain.FORT_NAMES.get(fort, "?"))
 
 
 ## Ferite leggere: recupera un'unità rotta amica.
