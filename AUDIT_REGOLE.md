@@ -63,7 +63,7 @@ costruirlo a mano non esiste** — come era per il movimento prima di questa set
 | 11.2 Portage (trasporto 1↔1) | ❌ | le armi sono unità **indipendenti**: si muovono/sparano da sole, nessun legame uomo-arma, nessun trasferimento. |
 | 11.4 Broken Weapons / riparazione | ❌ | nessun recupero di armi rotte/inceppate dal Casualty Track. |
 | 11.6 Specialized Weapons | ❌ | nessuna arma speciale (lanciafiamme, ecc.). |
-| **12 Radios** | ❌ | saltate dal loader: nessuna radio in gioco. |
+| **12 Radios** | ✅🟡 | la Radio entra in gioco come unità WEAPON benigna (FP/gittata 0, immobile) e abilita la Richiesta d'Artiglieria (O18). Presente nei 7 scenari che la prevedono. Mancano: trasferimento/portage, lato «rotto» della radio (Battery Access). |
 | **13 Suppression** | ✅ | posa/effetti/rimozione; soppressa non spara, su pareggio in movimento si rompe. |
 
 ---

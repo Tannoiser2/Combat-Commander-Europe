@@ -19,7 +19,6 @@ enum Cat { LEADER, SQUAD, WEAPON, FOXHOLE, SKIP }
 ## Equipaggiamenti/fortificazioni non modellati come unità (per ora ignorati).
 const _SKIP := {
 	"Wire": true, "Mines": true, "Bunker": true, "Bunker Complex": true,
-	"Radio 75mm": true, "Radio 81mm": true, "Radio 88mm": true, "Radio 105mm": true,
 	"Flamethrower": true, "Satchel Charge": true, "Molotov Cocktail": true,
 }
 
@@ -136,6 +135,8 @@ static func _is_leader(label: String) -> bool:
 static func _is_weapon(label: String) -> bool:
 	if label == "Weapon Team":
 		return false
+	if label.begins_with("Radio"):
+		return true  # le Radio sono unità WEAPON benigne (abilitano l'artiglieria O18)
 	return label.ends_with("MG") or label.contains("Mortar") \
 		or label.contains("Gun") or label.contains("Howitzer") or label.contains("'75")
 
@@ -153,7 +154,9 @@ static func build_unit(id: String, faction: int, label: String, q: int, r: int, 
 		u.art_name = _leader_art_file(label)
 	elif cat == Cat.WEAPON:
 		u = _weapon(id, faction, label, nat)
-		u.art_name = _art_for(folder, label)
+		# La Radio non ha un counter proprio: usa l'arte stand-in di una MG pesante
+		# (presente in tutte le nazioni).
+		u.art_name = "Heavy MG" if label.begins_with("Radio") else _art_for(folder, label)
 	else:
 		u = _squad(id, faction, label, nat)
 		u.art_name = _art_for(folder, label)
@@ -254,6 +257,18 @@ static func _squad_fallback(label: String) -> Dictionary:
 # ─── Armi ────────────────────────────────────────────────────────────────────
 
 static func _weapon(id: String, faction: int, label: String, nat: String) -> Unit:
+	# Radio: non è un'arma da fuoco. È un'unità benigna (FP/gittata 0, immobile)
+	# che serve solo ad abilitare la Richiesta d'Artiglieria (O18).
+	if label.begins_with("Radio"):
+		var ru := _mk(id, faction, Domain.UnitType.WEAPON, Domain.UnitClass.MG, label)
+		ru.fp = 0
+		ru.range = 0
+		ru.move = 0
+		ru.morale = 0
+		ru.command = 0
+		ru.ordnance = false
+		ru.move_penalty = 0
+		return ru
 	var s := _weapon_stats(nat, label)
 	var cls := _weapon_class(label)
 	var u := _mk(id, faction, Domain.UnitType.WEAPON, cls, label)

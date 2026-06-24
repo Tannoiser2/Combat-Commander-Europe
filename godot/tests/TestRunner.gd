@@ -58,6 +58,7 @@ func _ready() -> void:
 	_test_elimination_vp()
 	_test_more_events()
 	_test_more_events2()
+	_test_radio_unit()
 	_test_artillery()
 	_test_blaze()
 	_test_melee_fortification_tie()
@@ -634,6 +635,26 @@ func _test_more_events() -> void:
 	_check(int(s5.surrender_threshold[GER]) == 6, "Impeto alza la soglia di resa di 1")
 
 
+func _test_radio_unit() -> void:
+	print("· Radio: entra in gioco come unità benigna (abilita O18)")
+	_check(UnitChart.category("Radio 105mm") == UnitChart.Cat.WEAPON,
+		"La Radio è categoria WEAPON (non più SKIP)")
+	var r := UnitChart.build_unit("R1", GER, "Radio 105mm", 1, 1)
+	_check(r != null and r.unit_name.contains("Radio"), "La Radio ha un nome che la identifica")
+	_check(r.fp == 0 and r.range == 0 and r.move == 0, "La Radio non spara e non si muove")
+	_check(not r.is_man() and not r.is_leader(), "La Radio è un'arma, non un uomo/leader")
+
+	# Integrazione: in uno scenario con Radio, essa entra in gioco.
+	var s := GameState.new()
+	if ScenarioLoader.setup(s, 4):  # Closed for Renovation: Radio 75mm alleata
+		var has_radio := false
+		for u in s.units.values():
+			if u.unit_name.contains("Radio"):
+				has_radio = true
+				break
+		_check(has_radio, "Scenario 4: la Radio entra in gioco")
+
+
 func _test_artillery() -> void:
 	print("· Artiglieria (O18): deriva e impatto a 7 esagoni")
 	var s := _new_state()
@@ -1153,7 +1174,7 @@ func _test_unit_chart() -> void:
 	_check(UnitChart.category("Lt. Schrader") == UnitChart.Cat.LEADER, "Lt. → leader")
 	_check(UnitChart.category("Heavy MG") == UnitChart.Cat.WEAPON, "Heavy MG → arma")
 	_check(UnitChart.category("Weapon Team") == UnitChart.Cat.SQUAD, "Weapon Team → squadra")
-	_check(UnitChart.category("Radio 105mm") == UnitChart.Cat.SKIP, "Radio → ignorata")
+	_check(UnitChart.category("Radio 105mm") == UnitChart.Cat.WEAPON, "Radio → arma (abilita O18)")
 	# nation_code (incluse le nazioni minori)
 	_check(UnitChart.nation_code("american") == "US", "american → US")
 	_check(UnitChart.nation_code("canadian") == "GB", "canadian → GB")
