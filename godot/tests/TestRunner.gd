@@ -58,6 +58,7 @@ func _ready() -> void:
 	_test_elimination_vp()
 	_test_more_events()
 	_test_more_events2()
+	_test_melee_fortification_tie()
 	_test_objective_chits()
 	_test_assault_fire()
 	_test_exit_vp()
@@ -629,6 +630,31 @@ func _test_more_events() -> void:
 	s5.surrender_threshold[GER] = 5
 	Events.fire(s5, _ev("IMPETO"), GER)
 	_check(int(s5.surrender_threshold[GER]) == 6, "Impeto alza la soglia di resa di 1")
+
+
+func _test_melee_fortification_tie() -> void:
+	print("· Corpo a corpo: pareggio in Bunker/Casamatta (F101/F104)")
+	# Pareggio in Bunker → vince il difensore (ultimo occupante solitario).
+	var s := _new_state()
+	s.hex_at(2, 2).fortification = Domain.Fort.BUNKER
+	var atk := _mk("a", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	var dfn := _mk("d", RUS, SQUAD, RIFLE, 2, 2, 5, 7)
+	s.units[atk.id] = atk
+	s.units[dfn.id] = dfn
+	var r := Rules.resolve_melee(s, [atk], [dfn], Vector2i(3, 3), Vector2i(3, 3))
+	_check(r.winner == RUS, "Pareggio in Bunker: vince il difensore")
+	_check(not s.units.has("a") and s.units.has("d"),
+		"Pareggio in Bunker: eliminato solo l'attaccante")
+
+	# Pareggio in aperto → entrambi eliminati (comportamento standard).
+	var s2 := _new_state()
+	var a2 := _mk("a2", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	var d2 := _mk("d2", RUS, SQUAD, RIFLE, 2, 2, 5, 7)
+	s2.units[a2.id] = a2
+	s2.units[d2.id] = d2
+	var r2 := Rules.resolve_melee(s2, [a2], [d2], Vector2i(3, 3), Vector2i(3, 3))
+	_check(r2.winner == -1 and not s2.units.has("a2") and not s2.units.has("d2"),
+		"Pareggio in aperto: entrambi eliminati")
 
 
 func _test_more_events2() -> void:

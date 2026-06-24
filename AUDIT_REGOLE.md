@@ -141,7 +141,7 @@ Assenti (~13), tra cui: **Deploy (E52)**, **Reinforcements (E68)**, Booby Trap
 | T88 Hills / elevazione | 🟡 | elevazione base nella LOS; mancano cresta (T88.3), downhill +1FP, blind hex. |
 | T83 Cliff, T86 Gully, T89 Marsh, T80 Bridge, T92 Railway | ❌/🟡 | per lo più non modellati o solo come costo. |
 | T79/T94 Blaze & Smoke (incendio/fumo) | 🟡 | fumo come hindrance via azione/evento; nessuna propagazione incendio. |
-| F100–F106 Fortificazioni | ✅🟡 | Buca (Dig In, +3) ✅; **Trincea/Casamatta/Bunker** = copertura alternativa 4/5/6 (+1 vs ordnance) ✅; **Filo spinato** = −1 a FP/Gittata/Morale + stop al movimento entrando/uscendo ✅; **Mine** = attacco 6 FP a chi entra/esce ✅. Posa via le azioni «…NASCOSTO/E» (semplificata, non solo allo scarto). Restano: tie-break melee in Bunker/Casamatta, Booby trap, posa storica «nascosta». |
+| F100–F106 Fortificazioni | ✅🟡 | Buca (Dig In, +3) ✅; **Trincea/Casamatta/Bunker** = copertura alternativa 4/5/6 (+1 vs ordnance) ✅; **Filo spinato** = −1 a FP/Gittata/Morale + stop al movimento entrando/uscendo ✅; **Mine** = attacco 6 FP a chi entra/esce ✅; **tie-break melee** in Bunker/Casamatta (in pareggio vince il difensore, F101/F104) ✅. Posa via le azioni «…NASCOSTO/E» (semplificata, non solo allo scarto). Restano: Booby trap, posa storica «nascosta». |
 
 ---
 
