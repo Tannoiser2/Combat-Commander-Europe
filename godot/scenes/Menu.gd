@@ -1,40 +1,25 @@
-## Schermata iniziale: elenco dei 24 scenari + scelta della fazione.
+## Schermata iniziale: elenco scenari a sinistra; a destra anteprima della MAPPA
+## (tabellone) e dell'ARTWORK pittorico dello scenario selezionato, più la scelta
+## della fazione. UI costruita via codice.
 extends Control
 
-## Scenari giocabili. Lo scenario 1 è curato a mano; 2..24 usano il loader
-## generico (catalogo + ordini di battaglia) con fazioni stand-in.
-const IMPLEMENTED := {
-	1: true, 2: true, 3: true, 4: true, 5: true, 6: true, 7: true, 8: true,
-	9: true, 10: true, 11: true, 12: true, 13: true, 14: true, 15: true,
-	16: true, 17: true, 18: true, 19: true, 20: true, 21: true, 22: true,
-	23: true, 24: true,
-}
-
-@onready var list: VBoxContainer = $Scroll/List
-@onready var faction_panel: Panel = $FactionPanel
-@onready var scenario_label: Label = $FactionPanel/VBox/ScenarioLabel
-@onready var play_ger: Button = $FactionPanel/VBox/Factions/PlayGerman
-@onready var play_rus: Button = $FactionPanel/VBox/Factions/PlayRussian
-@onready var back_btn: Button = $FactionPanel/VBox/BackBtn
-
-var _selected_num: int = 0
 var _scenarios: Array = []
+var _selected_num: int = 0
+
+var _list: VBoxContainer
+var _title: Label
+var _subtitle: Label
+var _map_tex: TextureRect
+var _art_tex: TextureRect
+var _play_ger: Button
+var _play_rus: Button
 
 
 func _ready() -> void:
-	faction_panel.visible = false
 	_scenarios = _load_scenarios()
-	_build_list()
-	play_ger.pressed.connect(_start.bind(Domain.Faction.GERMAN))
-	play_rus.pressed.connect(_start.bind(Domain.Faction.RUSSIAN))
-	back_btn.pressed.connect(_close_faction)
-	# Pulsante editor mappe (in alto a destra)
-	var ed := Button.new()
-	ed.text = "✎ Editor mappe"
-	ed.position = Vector2(-160, 12)
-	ed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	ed.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/MapEditor.tscn"))
-	add_child(ed)
+	_build_ui()
+	if _scenarios.size() > 0:
+		_select(int(_scenarios[0].get("numero", 1)))
 
 
 func _load_scenarios() -> Array:
@@ -46,37 +31,164 @@ func _load_scenarios() -> Array:
 	return data if data is Array else []
 
 
+# ─── Costruzione UI ───────────────────────────────────────────────────────────
+
+func _build_ui() -> void:
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	var bg := ColorRect.new()
+	bg.color = Color(0.09, 0.11, 0.13)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(bg)
+
+	var title := Label.new()
+	title.text = "COMBAT COMMANDER: EUROPE"
+	title.add_theme_font_size_override("font_size", 30)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	title.offset_top = 14
+	title.offset_bottom = 60
+	add_child(title)
+
+	# Colonna sinistra: lista scenari (scroll).
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.offset_left = 24
+	scroll.offset_top = 74
+	scroll.offset_right = -748
+	scroll.offset_bottom = -24
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
+	_list = VBoxContainer.new()
+	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list.add_theme_constant_override("separation", 5)
+	scroll.add_child(_list)
+	_build_list()
+
+	# Colonna destra: dettaglio (titolo, Mappa + Artwork, fazioni).
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.anchor_left = 1.0
+	panel.anchor_right = 1.0
+	panel.offset_left = -708
+	panel.offset_top = 74
+	panel.offset_right = -24
+	panel.offset_bottom = -24
+	add_child(panel)
+	var pad := MarginContainer.new()
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(m, 16)
+	panel.add_child(pad)
+	var inner := VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 10)
+	pad.add_child(inner)
+
+	_title = Label.new()
+	_title.add_theme_font_size_override("font_size", 22)
+	inner.add_child(_title)
+	_subtitle = Label.new()
+	_subtitle.add_theme_font_size_override("font_size", 14)
+	_subtitle.modulate = Color(0.8, 0.82, 0.86)
+	inner.add_child(_subtitle)
+
+	# Mappa + Artwork affiancati (occupano lo spazio centrale).
+	var imgs := HBoxContainer.new()
+	imgs.add_theme_constant_override("separation", 14)
+	imgs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	inner.add_child(imgs)
+	_map_tex = _make_preview(imgs, "MAPPA")
+	_art_tex = _make_preview(imgs, "ARTWORK")
+
+	# Fazioni + avvio.
+	var hint := Label.new()
+	hint.text = "Con quale fazione vuoi giocare?"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	inner.add_child(hint)
+	var fac := HBoxContainer.new()
+	fac.alignment = BoxContainer.ALIGNMENT_CENTER
+	fac.add_theme_constant_override("separation", 20)
+	inner.add_child(fac)
+	_play_ger = Button.new()
+	_play_ger.text = "⚔ Germania"
+	_play_ger.custom_minimum_size = Vector2(190, 52)
+	_play_ger.pressed.connect(_start.bind(Domain.Faction.GERMAN))
+	fac.add_child(_play_ger)
+	_play_rus = Button.new()
+	_play_rus.text = "★ Unione Sovietica"
+	_play_rus.custom_minimum_size = Vector2(190, 52)
+	_play_rus.pressed.connect(_start.bind(Domain.Faction.RUSSIAN))
+	fac.add_child(_play_rus)
+
+	# Editor mappe (in alto a destra).
+	var ed := Button.new()
+	ed.text = "✎ Editor mappe"
+	ed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	ed.offset_left = -170
+	ed.offset_top = 12
+	ed.offset_right = -16
+	ed.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/MapEditor.tscn"))
+	add_child(ed)
+
+
+## Riquadro etichetta + immagine (mantiene le proporzioni). Restituisce il TextureRect.
+func _make_preview(parent: Control, caption: String) -> TextureRect:
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 4)
+	parent.add_child(box)
+	var cap := Label.new()
+	cap.text = caption
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cap.add_theme_font_size_override("font_size", 13)
+	box.add_child(cap)
+	var tr := TextureRect.new()
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tr.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(tr)
+	return tr
+
+
 func _build_list() -> void:
-	for child in list.get_children():
+	for child in _list.get_children():
 		child.queue_free()
 	for sc in _scenarios:
 		var num := int(sc.get("numero", 0))
 		var titolo: String = sc.get("titolo", "—")
 		var luogo: String = sc.get("luogo", "")
 		var data: String = sc.get("data", "")
-		var playable: bool = IMPLEMENTED.get(num, false)
-
 		var btn := Button.new()
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.custom_minimum_size = Vector2(0, 46)
-		var tag := "" if playable else "   [in arrivo]"
-		btn.text = "%2d.  %s%s\n      %s — %s" % [num, titolo, tag, luogo, data]
-		btn.disabled = not playable
-		if playable:
-			btn.pressed.connect(_select_scenario.bind(num, titolo))
-		list.add_child(btn)
+		btn.text = "%2d.  %s\n      %s — %s" % [num, titolo, luogo, data]
+		btn.pressed.connect(_select.bind(num))
+		_list.add_child(btn)
 
 
-func _select_scenario(num: int, titolo: String) -> void:
+# ─── Selezione / avvio ────────────────────────────────────────────────────────
+
+func _select(num: int) -> void:
 	_selected_num = num
-	scenario_label.text = "Scenario %d — %s" % [num, titolo]
-	faction_panel.visible = true
+	var sc := {}
+	for s in _scenarios:
+		if int(s.get("numero", 0)) == num:
+			sc = s
+			break
+	_title.text = "Scenario %d — %s" % [num, sc.get("titolo", "")]
+	_subtitle.text = "%s · %s" % [sc.get("luogo", ""), sc.get("data", "")]
+	_map_tex.texture = _load_tex("res://assets/maps_img/map%d.jpg" % num)
+	_art_tex.texture = _load_tex("res://assets/artwork/scenario_%02d.jpg" % num)
 
 
-func _close_faction() -> void:
-	faction_panel.visible = false
+func _load_tex(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		return load(path) as Texture2D
+	return null
 
 
 func _start(faction: int) -> void:
+	if _selected_num <= 0:
+		return
 	Game.start_new_game(faction, _selected_num)
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
