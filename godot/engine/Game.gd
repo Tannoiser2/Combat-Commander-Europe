@@ -185,6 +185,7 @@ func play_card(hand_index: int) -> void:
 	var hand := state.hand_of(state.human_faction)
 	if hand_index < 0 or hand_index >= hand.size():
 		return
+	state.last_impact_hexes.clear()  # un nuovo ordine rimuove il marker d'impatto
 	var card: Card = hand[hand_index]
 
 	# Limite di Ordini per turno (5.1): MOVE/FIRE/ADVANCE/RECOVER/ROUT contano come
@@ -314,6 +315,11 @@ func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, pre
 	if sr.x < 0:
 		_log(prefix + "Artiglieria: la granata è uscita dalla mappa — nessun effetto.")
 		return
+	# Marker visivo: i 7 esagoni dell'area d'impatto (centro + adiacenti in mappa).
+	state.last_impact_hexes = [Vector2i(sr.x, sr.y)]
+	for nb in HexGrid.neighbors(sr.x, sr.y):
+		if nb.x >= 0 and nb.x < state.map_cols and nb.y >= 0 and nb.y < state.map_rows:
+			state.last_impact_hexes.append(nb)
 	if smoke:
 		# Barrage fumogeno (O18.2.3.1): posa fumo sui 7 esagoni, niente esplosivo.
 		var ns := Combat.resolve_smoke_barrage(state, sr.x, sr.y)

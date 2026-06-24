@@ -158,6 +158,11 @@ func _draw() -> void:
 			var sp := String(key).split(",")
 			_draw_hex_fill(int(sp[0]), int(sp[1]), Color(0.82, 0.82, 0.86, 0.62))
 
+	# Ultimo impatto d'artiglieria: anello rosso sui 7 esagoni colpiti (O18)
+	for ih in s.last_impact_hexes:
+		var ic := _hex_center(int(ih.x), int(ih.y))
+		draw_arc(ic, _hsize() * 0.62, 0, TAU, 24, Color(0.95, 0.15, 0.1, 0.9), 2.5)
+
 	# Incendio (E46): esagono in fiamme (riempimento arancio + simbolo)
 	for key in s.hexes:
 		var bhd: GameState.HexData = s.hexes[key]
