@@ -57,6 +57,7 @@ func _ready() -> void:
 	_test_event_hero()
 	_test_elimination_vp()
 	_test_more_events()
+	_test_more_events2()
 	_test_objective_chits()
 	_test_assault_fire()
 	_test_exit_vp()
@@ -628,6 +629,42 @@ func _test_more_events() -> void:
 	s5.surrender_threshold[GER] = 5
 	Events.fire(s5, _ev("IMPETO"), GER)
 	_check(int(s5.surrender_threshold[GER]) == 6, "Impeto alza la soglia di resa di 1")
+
+
+func _test_more_events2() -> void:
+	print("· Eventi: Prigionieri/Polvere/Obiettivo-missione/strategico")
+	# E66 Prigionieri di guerra: rotta a contatto col nemico → eliminata.
+	var s := _new_state()
+	var br := _mk("b", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	br.break_unit()
+	s.units[br.id] = br
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 2, 2, 5, 7)  # stesso esagono = a contatto
+	Events.fire(s, _ev("PRIGIONIERI DI GUERRA"), GER)
+	_check(not s.units.has("b"), "Prigionieri elimina la rotta a contatto col nemico")
+	# Senza nemico vicino non elimina nulla.
+	var s2 := _new_state()
+	var lone := _mk("b2", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	lone.break_unit()
+	s2.units[lone.id] = lone
+	Events.fire(s2, _ev("PRIGIONIERI DI GUERRA"), GER)
+	_check(s2.units.has("b2"), "Prigionieri: nessuna eliminazione senza nemico vicino")
+
+	# E53 Polvere: fumo sull'esagono della carta (B2 → 1,1).
+	var s3 := _new_state()
+	var dust := _ev("POLVERE")
+	dust.random_hex_label = "B2"
+	Events.fire(s3, dust, GER)
+	_check(s3.hex_at(1, 1).has_smoke, "Polvere posa il fumo sull'esagono indicato")
+
+	# E65 Obiettivo della missione: un chit (1-3 VP) si somma a un obiettivo.
+	var s4 := _new_state()
+	s4.objectives.append(Objective.new(1, 0, 0, 0))
+	s4.objectives.append(Objective.new(2, 1, 0, 0))
+	Events.fire(s4, _ev("OBIETTIVO DELLA MISSIONE"), GER)
+	var total := 0
+	for o in s4.objectives:
+		total += o.vp
+	_check(total >= 1 and total <= 3, "Obiettivo della missione aggiunge un chit (1-3 VP)")
 
 
 func _test_objective_chits() -> void:
