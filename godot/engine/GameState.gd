@@ -172,6 +172,8 @@ var assault_fired: bool = false
 var artillery_radio_id: String = ""
 var artillery_spotter_id: String = ""
 var artillery_smoke: bool = false  # barrage fumogeno invece che esplosivo (O18.2.1.1)
+# Ultimo impatto d'artiglieria (per il marker visivo sulla mappa): esagoni colpiti.
+var last_impact_hexes: Array = []
 
 # ─── Finestra di reazione: Fuoco di Opportunità del giocatore (A33) ───────────
 # Mentre l'IA muove, se il giocatore umano ha tiratori idonei si apre una finestra
