@@ -58,13 +58,16 @@ func _build_ui() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
-	# Colonna sinistra: elenco compatto dei 24 scenari (entra tutto).
+	# Colonna sinistra STRETTA: elenco dei 24 scenari (lascia spazio ad artwork+mappa).
 	var scroll := ScrollContainer.new()
-	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scroll.offset_left = 16
+	scroll.anchor_left = 0.0
+	scroll.anchor_right = 0.0
+	scroll.anchor_top = 0.0
+	scroll.anchor_bottom = 1.0
+	scroll.offset_left = 12
+	scroll.offset_right = 214
 	scroll.offset_top = 16
-	scroll.offset_right = -724
-	scroll.offset_bottom = -48  # spazio per versione + Changelog in basso
+	scroll.offset_bottom = -44  # spazio per versione + Changelog in basso
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 	_list = VBoxContainer.new()
@@ -73,48 +76,55 @@ func _build_ui() -> void:
 	scroll.add_child(_list)
 	_build_list()
 
-	# Colonna destra: pila Mappa (piccola) → Ordine di Battaglia → Artwork (grande).
+	# ARTWORK al centro, a PIENA ALTEZZA: l'elemento dominante (cambia con lo scenario).
+	_art_tex = TextureRect.new()
+	_art_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_art_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_art_tex.anchor_left = 0.0
+	_art_tex.anchor_right = 1.0
+	_art_tex.anchor_top = 0.0
+	_art_tex.anchor_bottom = 1.0
+	_art_tex.offset_left = 224
+	_art_tex.offset_right = -332
+	_art_tex.offset_top = 16
+	_art_tex.offset_bottom = -16
+	add_child(_art_tex)
+
+	# Colonna destra: MAPPA in alto (affiancata all'artwork) e, SOTTO, l'ORDINE DI
+	# BATTAGLIA su due colonne. Anch'essi cambiano con lo scenario selezionato.
 	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.anchor_left = 1.0
 	panel.anchor_right = 1.0
-	panel.offset_left = -708
+	panel.anchor_top = 0.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = -320
+	panel.offset_right = -12
 	panel.offset_top = 16
-	panel.offset_right = -16
 	panel.offset_bottom = -16
 	add_child(panel)
 	var pad := MarginContainer.new()
 	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		pad.add_theme_constant_override(m, 12)
+		pad.add_theme_constant_override(m, 10)
 	panel.add_child(pad)
 	var inner := VBoxContainer.new()
 	inner.add_theme_constant_override("separation", 10)
 	pad.add_child(inner)
 
-	# Mappa (piccola, in alto).
+	# Mappa (in alto).
 	_map_tex = TextureRect.new()
 	_map_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_map_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_map_tex.custom_minimum_size = Vector2(0, 188)
+	_map_tex.custom_minimum_size = Vector2(0, 178)
 	inner.add_child(_map_tex)
 
-	# Ordine di Battaglia su due colonne: i due avversari. Cliccando una colonna
-	# si avvia la partita con quella fazione.
+	# Ordine di Battaglia (sotto la mappa): una colonna per avversario; cliccando
+	# una colonna si avvia la partita con quella fazione.
 	var ob := HBoxContainer.new()
-	ob.add_theme_constant_override("separation", 10)
+	ob.add_theme_constant_override("separation", 8)
+	ob.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	inner.add_child(ob)
-	var axis_box := _ob_column(true)
-	var allies_box := _ob_column(false)
-	ob.add_child(axis_box)
-	ob.add_child(allies_box)
-
-	# Artwork (grande): prende tutta l'altezza rimanente.
-	_art_tex = TextureRect.new()
-	_art_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_art_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_art_tex.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_art_tex.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(_art_tex)
+	ob.add_child(_ob_column(true))
+	ob.add_child(_ob_column(false))
 
 	# Versione + Changelog (sempre presenti, in basso a sinistra).
 	var ver := Label.new()
@@ -165,7 +175,10 @@ func _ob_column(axis: bool) -> Control:
 	margin.add_child(col)
 	box.add_child(margin)
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(0, 42)
+	btn.custom_minimum_size = Vector2(0, 44)
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.tooltip_text = "Clicca per giocare con questa fazione"
 	btn.pressed.connect(_start.bind(Domain.Faction.GERMAN if axis else Domain.Faction.RUSSIAN))
 	col.add_child(btn)
 	var forces := VBoxContainer.new()
@@ -204,25 +217,54 @@ func _select(num: int) -> void:
 	_map_tex.texture = _load_tex("res://assets/maps_img/map%d.jpg" % num)
 	_art_tex.texture = _load_tex("res://assets/artwork/scenario_%02d.jpg" % num)
 	var cat := _catalog_entry(num)
-	_fill_ob(_axis_btn, _ob_axis, String(cat.get("fazione_axis", "german")), cat.get("forze_axis", []))
-	_fill_ob(_allies_btn, _ob_allies, String(cat.get("fazione_allies", "russian")), cat.get("forze_allies", []))
+	_fill_ob(_axis_btn, _ob_axis, String(cat.get("fazione_axis", "german")), cat.get("forze_axis", []), Domain.Faction.GERMAN)
+	_fill_ob(_allies_btn, _ob_allies, String(cat.get("fazione_allies", "russian")), cat.get("forze_allies", []), Domain.Faction.RUSSIAN)
 
 
-## Riempie una colonna OB: il pulsante-fazione («Gioca con …») e l'elenco forze.
-func _fill_ob(btn: Button, forces: VBoxContainer, nation: String, forze: Array) -> void:
+## Riempie una colonna OB: il pulsante-fazione e l'elenco forze, ognuna con la
+## PEDINA reale (segnalino) accanto al conteggio.
+func _fill_ob(btn: Button, forces: VBoxContainer, nation: String, forze: Array, faction: int) -> void:
 	if btn == null:
 		return
-	btn.text = "Gioca: %s" % String(NATION_LABEL.get(nation, nation.capitalize()))
+	btn.text = String(NATION_LABEL.get(nation, nation.capitalize()))
 	for child in forces.get_children():
 		child.queue_free()
+	var nat := UnitChart.nation_code(nation)
 	for u in forze:
 		var n := int(u.get("n", 1))
 		var tipo: String = u.get("tipo", "")
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 5)
+		var tex := _counter_for(faction, tipo, nat)
+		if tex != null:
+			var ic := TextureRect.new()
+			ic.texture = tex
+			ic.custom_minimum_size = Vector2(30, 30)
+			ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			row.add_child(ic)
 		var lbl := Label.new()
-		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.add_theme_font_size_override("font_size", 11)
 		lbl.modulate = Color(0.84, 0.86, 0.9)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		lbl.text = "%d × %s" % [n, tipo]
-		forces.add_child(lbl)
+		row.add_child(lbl)
+		forces.add_child(row)
+
+
+## Texture del segnalino per un'unità dell'OB (stessa logica della mappa).
+func _counter_for(faction: int, tipo: String, nat: String) -> Texture2D:
+	var c := UnitChart.category(tipo)
+	if c == UnitChart.Cat.SKIP or c == UnitChart.Cat.FOXHOLE:
+		return null
+	var u := UnitChart.build_unit("ob", faction, tipo, 0, 0, nat)
+	if u == null or u.art_name == "":
+		return null
+	var folder: String = u.nation_art if u.nation_art != "" else String(Domain.FACTION_ART_DIR.get(u.faction, ""))
+	var path := "res://assets/counters/%s/%s.png" % [folder, u.art_name]
+	return load(path) if ResourceLoader.exists(path) else null
 
 
 ## Pannello del changelog (centrato), aperto dal pulsante «Changelog». Legge
