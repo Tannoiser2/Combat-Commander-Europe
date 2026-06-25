@@ -10,6 +10,17 @@ const ELEV_STEP := 0.55
 const BASE_H := 0.25
 const SKIRT_FRAC := 0.5  ## allargamento della base dei rilievi per livello (pendio)
 
+# Modelli 3D reali (Kenney «City Builder», CC0) per i decori del terreno; se non
+# disponibili si ripiega sulle mesh procedurali. Vedi assets/models3d/CREDITS.md.
+const MODEL_HOUSES := [
+	"res://assets/models3d/building-small-a.glb",
+	"res://assets/models3d/building-small-b.glb",
+	"res://assets/models3d/building-small-c.glb",
+]
+const MODEL_TREES := "res://assets/models3d/grass-trees.glb"
+const MODEL_GRASS := "res://assets/models3d/grass.glb"
+var _model_cache: Dictionary = {}  ## path → PackedScene (o null se assente)
+
 var _world := 1.0 / 59.2
 var _ox := 129.0
 var _oy := 69.0
@@ -887,25 +898,83 @@ func _mat(col: Color) -> StandardMaterial3D:
 # ─── Volumi 3D: alberi, edifici, macerie ──────────────────────────────────────
 
 func _decorate(hd: GameState.HexData, q: int, r: int, top: Vector3) -> void:
+	var yaw := 60.0 * float((q * 2 + r) % 6)
 	match hd.terrain:
 		Domain.TerrainType.WOODS:
-			_add_tree(top, _jit(q, r, 0), 1.0)
-			_add_tree(top, _jit(q, r, 1), 0.85)
-			_add_tree(top, _jit(q, r, 2), 0.7)
-			_add_bush(top, _jit(q, r, 4), 0.8)
+			if not _spawn_model_fit(_model(MODEL_TREES), top, 1.55, yaw):
+				_add_tree(top, _jit(q, r, 0), 1.0)
+				_add_tree(top, _jit(q, r, 1), 0.85)
+				_add_tree(top, _jit(q, r, 2), 0.7)
+				_add_bush(top, _jit(q, r, 4), 0.8)
 		Domain.TerrainType.ORCHARD:
-			_add_tree(top, _jit(q, r, 0), 0.8)
-			_add_tree(top, _jit(q, r, 3), 0.72)
-			_add_bush(top, _jit(q, r, 5), 0.7)
+			if not _spawn_model_fit(_model(MODEL_TREES), top, 1.2, yaw):
+				_add_tree(top, _jit(q, r, 0), 0.8)
+				_add_tree(top, _jit(q, r, 3), 0.72)
+				_add_bush(top, _jit(q, r, 5), 0.7)
 		Domain.TerrainType.FIELD:
-			_add_bush(top, _jit(q, r, 0), 0.9)
-			_add_bush(top, _jit(q, r, 2), 0.75)
-			_add_bush(top, _jit(q, r, 4), 0.8)
+			if not _spawn_model_fit(_model(MODEL_GRASS), top, 1.5, yaw):
+				_add_bush(top, _jit(q, r, 0), 0.9)
+				_add_bush(top, _jit(q, r, 2), 0.75)
+				_add_bush(top, _jit(q, r, 4), 0.8)
 		Domain.TerrainType.BUILDING:
-			_add_building(top, q, r)
+			var house: PackedScene = _model(MODEL_HOUSES[(q * 3 + r) % MODEL_HOUSES.size()])
+			if not _spawn_model_fit(house, top, 1.35, 90.0 * float((q + r) % 4)):
+				_add_building(top, q, r)
 		Domain.TerrainType.RUBBLE:
 			_add_box(top + Vector3(0.2, 0.1, -0.1), Vector3(0.4, 0.2, 0.4), Color(0.45, 0.43, 0.40))
 			_add_box(top + Vector3(-0.25, 0.07, 0.2), Vector3(0.3, 0.14, 0.3), Color(0.5, 0.47, 0.44))
+
+
+## PackedScene del modello (con cache); null se il file non è importato/presente.
+func _model(path: String) -> PackedScene:
+	if not _model_cache.has(path):
+		_model_cache[path] = load(path) as PackedScene if ResourceLoader.exists(path) else null
+	return _model_cache[path]
+
+
+## Istanzia un modello centrato sull'esagono `pos`, auto-scalato così che il suo
+## ingombro orizzontale entri in `footprint` e con la base appoggiata su `pos.y`.
+## Restituisce false se il modello non è disponibile (→ ripiego procedurale).
+func _spawn_model_fit(scene: PackedScene, pos: Vector3, footprint: float, yaw_deg: float) -> bool:
+	if scene == null:
+		return false
+	var inst := scene.instantiate()
+	var aabb := _merged_aabb(inst, Transform3D.IDENTITY)
+	if aabb.size == Vector3.ZERO:
+		inst.queue_free()
+		return false
+	var span := maxf(aabb.size.x, aabb.size.z)
+	var sc := footprint / span if span > 0.001 else 1.0
+	var holder := Node3D.new()
+	holder.position = pos
+	holder.rotation = Vector3(0.0, deg_to_rad(yaw_deg), 0.0)
+	holder.scale = Vector3(sc, sc, sc)
+	add_child(holder)
+	# Trasla il modello così che il suo centro orizzontale e la base vadano a 0.
+	inst.position = Vector3(
+		-(aabb.position.x + aabb.size.x * 0.5),
+		-aabb.position.y,
+		-(aabb.position.z + aabb.size.z * 0.5))
+	holder.add_child(inst)
+	return true
+
+
+## AABB unito di tutte le mesh sotto `node`, nello spazio del genitore.
+func _merged_aabb(node: Node, xform: Transform3D) -> AABB:
+	var t := xform
+	if node is Node3D:
+		t = xform * (node as Node3D).transform
+	var result := AABB()
+	var got := false
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		result = t * (node as MeshInstance3D).mesh.get_aabb()
+		got = true
+	for c in node.get_children():
+		var ca := _merged_aabb(c, t)
+		if ca.size != Vector3.ZERO:
+			result = result.merge(ca) if got else ca
+			got = true
+	return result
 
 
 func _jit(q: int, r: int, i: int) -> Vector3:

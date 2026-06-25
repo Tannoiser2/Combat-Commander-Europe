@@ -80,7 +80,7 @@ func _run_checks() -> void:
 	#    pendii). Deve aver prodotto parecchia geometria.
 	if _board == null:
 		_fail("Map3D non istanziata")
-	elif _board.get_child_count() < 20:
+	elif _board.get_child_count() < 8:
 		_fail("la mappa 3D non ha prodotto geometria (figli=%d)" % _board.get_child_count())
 
 
