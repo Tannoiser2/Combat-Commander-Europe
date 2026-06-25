@@ -231,6 +231,28 @@ func men_at(q: int, r: int) -> Array[Unit]:
 	return units_at(q, r).filter(func(u): return u.is_man())
 
 
+## Arma (11.2) trasportata dall'unità `man_id`, oppure null se non ne porta.
+func weapon_carried_by(man_id: String) -> Unit:
+	if man_id == "":
+		return null
+	for u in units.values():
+		if u.is_weapon() and u.carrier_id == man_id:
+			return u
+	return null
+
+
+## Sposta un'unità in (q,r) portando con sé l'eventuale arma trasportata (11.1).
+## Unico punto da usare per muovere le pedine, così l'arma resta sempre col
+## proprietario (mossa umana, avanzata, IA).
+func set_unit_pos(u: Unit, new_q: int, new_r: int) -> void:
+	u.q = new_q
+	u.r = new_r
+	var w := weapon_carried_by(u.id)
+	if w != null:
+		w.q = new_q
+		w.r = new_r
+
+
 ## Somma dei "soldier icons" nell'esagono (impilamento: max 7).
 func soldier_icons_at(q: int, r: int) -> int:
 	var total := 0
@@ -292,6 +314,11 @@ func eliminate_unit(uid: String) -> void:
 				bonus_vp -= v  # i Russi guadagnano
 			else:
 				bonus_vp += v  # i Tedeschi guadagnano
+		# 11.3: un'arma trasportata segue il proprietario eliminato (eliminata anch'essa).
+		if u.is_man():
+			var w := weapon_carried_by(uid)
+			if w != null:
+				units.erase(w.id)
 	units.erase(uid)
 
 
@@ -310,6 +337,11 @@ func exit_unit_for_vp(uid: String) -> int:
 			bonus_vp += v  # i Tedeschi guadagnano
 		else:
 			bonus_vp -= v  # i Russi guadagnano
+	# 11.3: l'arma trasportata lascia la mappa col proprietario.
+	if u.is_man():
+		var w := weapon_carried_by(uid)
+		if w != null:
+			units.erase(w.id)
 	units.erase(uid)
 	return v
 

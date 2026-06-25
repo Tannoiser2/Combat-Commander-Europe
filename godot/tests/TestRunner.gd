@@ -42,6 +42,7 @@ func _ready() -> void:
 	_test_reachable_stops_at_wire()
 	_test_reachable_costs()
 	_test_fire_preview()
+	_test_weapon_portage()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -390,6 +391,41 @@ func _test_fire_preview() -> void:
 	s.fire_group_ids.append("sh2")
 	pv = Game.fire_preview()
 	_check(int(pv["fp"]) == 7, "due pezzi nel gruppo: FP 6 + 1 = 7")
+
+
+func _test_weapon_portage() -> void:
+	print("· Armi: possesso, trasporto, malus PM, trasferimento, eliminazione (11)")
+	var s := _new_state(8, 1)
+	s.human_faction = GER
+	var squad := _mk("sq", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	squad.move = 4
+	var mg := _mk("mg", GER, Domain.UnitType.WEAPON, RIFLE, 0, 0, 8, 7)
+	mg.move_penalty = -2
+	s.units[squad.id] = squad
+	s.units[mg.id] = mg
+	# 11.2: l'arma co-locata è affidata alla squadra al setup.
+	Game._assign_initial_carriers(s)
+	_check(mg.carrier_id == "sq", "setup: l'arma è affidata alla squadra co-locata")
+	_check(s.weapon_carried_by("sq") == mg, "weapon_carried_by trova l'arma del portatore")
+	# 11.1: malus PM dell'arma sul portatore (4 - 2 = 2).
+	_check(Rules.move_allowance(s, squad) == 2, "allowance = move 4 + malus -2 = 2")
+	# 11.1: l'arma segue il portatore quando si sposta.
+	s.set_unit_pos(squad, 3, 0)
+	_check(mg.q == 3 and mg.r == 0, "l'arma si sposta col portatore")
+	# 11.3: trasferimento a un compagno co-locato per 1 PM.
+	var squad2 := _mk("sq2", GER, SQUAD, RIFLE, 3, 0, 6, 7)
+	s.units[squad2.id] = squad2
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	s.selected_unit_id = "sq"
+	s.group_mp["sq"] = 2
+	Game.state = s
+	Game.transfer_weapon()
+	_check(mg.carrier_id == "sq2", "trasferimento: l'arma passa al compagno")
+	_check(int(s.group_mp["sq"]) == 1, "il trasferimento costa 1 PM")
+	# 11.3: eliminato il portatore, l'arma è eliminata con lui.
+	s.eliminate_unit("sq2")
+	_check(s.unit_by_id("mg") == null, "eliminato il portatore, l'arma sparisce")
 
 
 func _test_sudden_death_initiative() -> void:

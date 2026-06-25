@@ -168,6 +168,10 @@ func _help_text() -> String:
 		+ "[b]Avanzata / Artiglieria[/b]\n" \
 		+ " - Avanzata: clicca un esagono adiacente (può scatenare il corpo a corpo).\n" \
 		+ " - Artiglieria: serve Radio + spotter; clicca il bersaglio nella LOS. «S» alterna fumo/esplosivo.\n\n" \
+		+ "[b]Armi[/b]\n" \
+		+ " - Ogni arma è «portata» da un'unità (vedi la scheda); spara insieme al portatore.\n" \
+		+ " - Durante una Mossa, «G» passa l'arma a un compagno nello stesso esagono, o ne raccoglie una a terra (1 PM).\n" \
+		+ " - Un'arma a terra (senza portatore) ha un anello giallo sulla mappa.\n\n" \
 		+ "[b]Passare / finire il turno[/b]\n" \
 		+ " - Premi «Fine Turno» per concludere e passare all'avversario (anche a ordini finiti).\n\n" \
 		+ "[b]Tasti rapidi[/b]\n" \
@@ -245,6 +249,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			if _help != null:
 				_help.visible = not _help.visible
 			get_viewport().set_input_as_handled()
+		KEY_G:  # trasferisci/raccogli l'arma trasportata (11.3)
+			if Game.state != null and Game.state.phase == Domain.Phase.PLAYER_MOVING \
+					and Game.state.current_order == Domain.OrderType.MOVE:
+				Game.transfer_weapon()
+				_refresh_ui()
+				get_viewport().set_input_as_handled()
 		KEY_3:  # mostra la mappa 3D
 			_set_3d(true)
 			get_viewport().set_input_as_handled()
@@ -322,11 +332,12 @@ func _guidance_text(s: GameState) -> String:
 							return "MOSSA DI GRUPPO — scegli il prossimo membro (arancio) o «Fine Turno»"
 						return "MOSSA — clicca l'unità (o il leader) da muovere"
 					var pm := int(s.group_mp.get(s.selected_unit_id, 0))
+					var wtip := "  ·  «G» = passa arma" if s.weapon_carried_by(s.selected_unit_id) != null else ""
 					if n > 1:
-						return "MOSSA DI GRUPPO (%d) — PM %d · il numero sull'esagono = costo · membro arancio per cambiare · l'unità attiva per concludere" % [n, pm]
+						return "MOSSA DI GRUPPO (%d) — PM %d · il numero sull'esagono = costo · membro arancio per cambiare · l'unità attiva per concludere%s" % [n, pm, wtip]
 					if s.move_committed:
-						return "MOSSA — PM %d · clicca un esagono (il numero = costo) · l'unità per concludere" % pm
-					return "MOSSA — PM %d · clicca un esagono (il numero = costo) · l'unità per annullare" % pm
+						return "MOSSA — PM %d · clicca un esagono (il numero = costo) · l'unità per concludere%s" % [pm, wtip]
+					return "MOSSA — PM %d · clicca un esagono (il numero = costo) · l'unità per annullare%s" % [pm, wtip]
 				Domain.OrderType.FIRE:
 					if s.fire_target_q >= 0:
 						var pv := Game.fire_preview()
@@ -375,11 +386,22 @@ func _refresh_unit_info() -> void:
 		lines += "   Comando %d" % u.command
 	if u.is_weapon():
 		lines += "   (malus mov. %d)" % u.move_penalty
+		# Portage (11.2): chi tiene quest'arma, o se è a terra.
+		var carrier := s.unit_by_id(u.carrier_id) if u.carrier_id != "" else null
+		if carrier != null:
+			lines += "\n[color=#bfe0b0]Portata da: %s[/color]" % carrier.unit_name
+		else:
+			lines += "\n[color=#ffc080]Arma a terra — «G» per raccoglierla[/color]"
+	elif u.is_man():
+		# Arma eventualmente trasportata da quest'unità.
+		var wpn := s.weapon_carried_by(u.id)
+		if wpn != null:
+			lines += "\n[color=#bfe0b0]Arma: %s (malus PM %d)[/color]" % [wpn.unit_name, wpn.move_penalty]
 	# PM rimasti quando l'unità fa parte del gruppo che sta muovendo.
 	if s.phase == Domain.Phase.PLAYER_MOVING and s.current_order == Domain.OrderType.MOVE \
 			and s.group_mp.has(u.id):
 		lines += "\n[color=#ffd24a]PM rimasti: %d / %d[/color]" % [
-			int(s.group_mp[u.id]), Rules.move_with_command(s, u)]
+			int(s.group_mp[u.id]), Rules.move_allowance(s, u)]
 	var stato: Array[String] = []
 	if not u.efficient: stato.append("rotta")
 	if u.suppressed: stato.append("soppressa")

@@ -42,6 +42,9 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 		state.scenario_number = 1
 		state.scenario_name = Scenario1.SCENARIO_NAME
 
+	# Portage (11.2): ogni arma è affidata a un uomo co-locato della sua fazione.
+	_assign_initial_carriers(state)
+
 	# Costruisce e mescola i mazzi reali delle due nazioni (slot Asse/Alleati).
 	state.german_deck = Cards.build_deck(state.axis_nation)
 	state.russian_deck = Cards.build_deck(state.allied_nation)
@@ -55,6 +58,23 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 		Domain.FACTION_NAMES.get(state.initiative_holder, "?")
 	])
 	_change_phase(Domain.Phase.PLAYER_TURN)
+
+
+## Assegna ogni arma a un uomo co-locato della stessa fazione (11.2): all'avvio
+## le pedine arma sono "sopra" il loro trasportatore. Ogni uomo porta al più
+## un'arma; si preferisce una squadra/team a un leader, così il leader resta libero.
+func _assign_initial_carriers(s: GameState) -> void:
+	for w in s.units.values():
+		if not w.is_weapon() or w.carrier_id != "":
+			continue
+		var best: Unit = null
+		for m in s.men_at(w.q, w.r):
+			if m.faction != w.faction or s.weapon_carried_by(m.id) != null:
+				continue
+			if best == null or (best.is_leader() and not m.is_leader()):
+				best = m
+		if best != null:
+			w.carrier_id = best.id
 
 
 ## Salva la partita corrente sul file di salvataggio. true se riuscito.
@@ -146,7 +166,7 @@ func _form_move_group(u: Unit) -> void:
 		ids.append(u.id)
 	for id in ids:
 		state.ordered_group.append(id)
-		state.group_mp[id] = Rules.move_with_command(state, state.unit_by_id(id))
+		state.group_mp[id] = Rules.move_allowance(state, state.unit_by_id(id))
 	if ids.size() > 1:
 		_log("Comando: %s attiva %d unità entro raggio %d." % [u.unit_name, ids.size(), u.command])
 
@@ -940,6 +960,52 @@ func click_hex_advance(tq: int, tr: int) -> void:
 	_execute_advance(u, tq, tr)
 
 
+## Trasferimento/raccolta arma (11.3): durante una Mossa, spendendo 1 PM, il
+## mover passa l'arma che porta a un compagno co-locato; se non porta nulla,
+## raccoglie un'arma a terra (senza portatore) nell'esagono. Tasto «G».
+## (Semplificazione: il malus PM dell'arma resta quello calcolato a inizio mossa.)
+func transfer_weapon() -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING \
+			or state.current_order != Domain.OrderType.MOVE:
+		return
+	var u := state.unit_by_id(state.selected_unit_id)
+	if u == null or not u.is_man():
+		return
+	if int(state.group_mp.get(u.id, 0)) < 1:
+		_log("Trasferimento arma: serve almeno 1 PM.")
+		return
+	var carried := state.weapon_carried_by(u.id)
+	if carried != null:
+		# Dà l'arma a un compagno co-locato senza arma (preferendo un non-leader).
+		var target: Unit = null
+		for m in state.men_at(u.q, u.r):
+			if m.id == u.id or m.faction != u.faction or state.weapon_carried_by(m.id) != null:
+				continue
+			if target == null or (target.is_leader() and not m.is_leader()):
+				target = m
+		if target == null:
+			_log("Nessun compagno libero a cui passare %s." % carried.unit_name)
+			return
+		carried.carrier_id = target.id
+		state.group_mp[u.id] = int(state.group_mp[u.id]) - 1
+		_log("%s passa %s a %s (-1 PM)." % [u.unit_name, carried.unit_name, target.unit_name])
+	else:
+		# Raccoglie un'arma a terra (senza portatore) nello stesso esagono.
+		var pick: Unit = null
+		for w in state.units_at(u.q, u.r):
+			if w.is_weapon() and w.carrier_id == "" and w.faction == u.faction:
+				pick = w
+				break
+		if pick == null:
+			_log("Nessun'arma a terra da raccogliere qui.")
+			return
+		pick.carrier_id = u.id
+		state.group_mp[u.id] = int(state.group_mp[u.id]) - 1
+		_log("%s raccoglie %s (-1 PM)." % [u.unit_name, pick.unit_name])
+	_highlight_reachable(u)  # i PM sono cambiati: aggiorna l'anteprima
+	emit_signal("state_changed")
+
+
 ## Conclude l'ordine di Mossa in corso: marca attivate TUTTE le unità del gruppo
 ## (anche quelle non mosse: l'ordine le ha usate), scarta la carta e torna al
 ## turno. Chiamata a PM esauriti dell'intero gruppo o per stop volontario.
@@ -1030,8 +1096,7 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 
 	var old_q := u.q
 	var old_r := u.r
-	u.q = tq
-	u.r = tr
+	state.set_unit_pos(u, tq, tr)  # porta con sé l'eventuale arma (11.1)
 	remaining -= cost
 	state.group_mp[u.id] = remaining
 	state.move_committed = true
@@ -1095,13 +1160,13 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 		if u.is_man() and state.soldier_icons_at(tq, tr) + u.soldier_icons() > 7:
 			_log("Impilamento: max 7 figure in (%d,%d)" % [tq, tr])
 			return
-		u.q = tq; u.r = tr
+		state.set_unit_pos(u, tq, tr)  # porta con sé l'eventuale arma (11.1)
 		u.activated = true
 		_log("%s avanza in (%d,%d)" % [u.unit_name, tq, tr])
 		emit_signal("unit_moved", u.id, tq, tr)
 	else:
 		# Corpo a corpo: attaccanti = unità amiche che entrano; difensori = nemici.
-		u.q = tq; u.r = tr
+		state.set_unit_pos(u, tq, tr)  # porta con sé l'eventuale arma (11.1)
 		u.activated = true
 		var attackers := state.men_at(tq, tr).filter(
 			func(m: Unit) -> bool: return m.faction == u.faction
@@ -1498,8 +1563,7 @@ func _ai_artillery(faction: int, play: Dictionary) -> void:
 
 ## Avanzata dell'IA in (tq,tr); se vi sono nemici risolve il corpo a corpo (O21).
 func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
-	u.q = tq
-	u.r = tr
+	state.set_unit_pos(u, tq, tr)  # porta con sé l'eventuale arma (11.1)
 	u.activated = true
 	emit_signal("unit_moved", u.id, tq, tr)
 	var defenders := state.men_at(tq, tr).filter(
@@ -1572,8 +1636,7 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
 	if best != Vector2i(u.q, u.r):
 		var oq := u.q
 		var orr := u.r
-		u.q = best.x
-		u.r = best.y
+		state.set_unit_pos(u, best.x, best.y)  # porta con sé l'eventuale arma (11.1)
 		emit_signal("unit_moved", u.id, best.x, best.y)
 		# Mine (F103) sull'IA che si muove: se colpita, il movimento si ferma.
 		if _mine_attack_on_move(u, oq, orr):

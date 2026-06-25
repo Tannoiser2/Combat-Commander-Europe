@@ -379,6 +379,10 @@ func _draw_counter(u: Unit, center: Vector2) -> void:
 	if u.suppressed:
 		draw_rect(rect, Color(1.0, 0.0, 0.0, 0.35))
 
+	# Arma a terra (senza portatore, 11.3): anello giallo = raccoglibile con «G».
+	if u.is_weapon() and u.carrier_id == "":
+		draw_arc(center, sz * 0.62, 0, TAU, 22, Color(1.0, 0.85, 0.2, 0.95), 2.5)
+
 
 func _draw_text(txt: String, pos: Vector2, size: float, color: Color, centered: bool) -> void:
 	if _font == null:
