@@ -182,28 +182,30 @@ func select_unit(unit_id: String) -> void:
 	emit_signal("state_changed")
 
 
-## Forma il gruppo di comando per un ordine di Mossa (3.3): se l'unità ordinata
-## è un leader con Comando > 0, attiva sé stesso e tutte le unità idonee (uomini
-## efficienti e muovibili, non già attivate) entro il raggio di Comando.
+## Forma il gruppo di comando per un ordine di Mossa (3.3.1.2). L'ordine è dato
+## "tramite" un leader: chiunque sia l'unità cliccata, se è comandata da un leader
+## efficiente e disponibile, lo stesso ordine attiva il leader e TUTTE le unità
+## idonee (uomini efficienti e muovibili, non già attivate) entro il suo raggio di
+## Comando. Un'unità non comandata si muove da sola (un ordine per sé).
 func _form_move_group(u: Unit) -> void:
 	state.ordered_group.clear()
 	state.group_mp.clear()
 	state.move_committed = false
 	var ids: Array[String] = []
-	if u.is_leader() and u.command > 0:
+	var leader := Rules.commanding_leader(state, u, true)
+	if leader != null:
 		for v in state.units_of(state.human_faction):
 			if v.is_man() and v.move > 0 and Rules.can_be_ordered(v) \
-					and HexGrid.distance(u.q, u.r, v.q, v.r) <= u.command:
+					and HexGrid.distance(leader.q, leader.r, v.q, v.r) <= leader.command:
 				ids.append(v.id)
-		if not ids.has(u.id):
-			ids.append(u.id)
-	else:
+	# L'unità cliccata fa sempre parte del gruppo (anche se non c'è leader).
+	if not ids.has(u.id):
 		ids.append(u.id)
 	for id in ids:
 		state.ordered_group.append(id)
 		state.group_mp[id] = Rules.move_allowance(state, state.unit_by_id(id))
-	if ids.size() > 1:
-		_log("Comando: %s attiva %d unità entro raggio %d." % [u.unit_name, ids.size(), u.command])
+	if ids.size() > 1 and leader != null:
+		_log("Comando: %s attiva %d unità entro raggio %d." % [leader.unit_name, ids.size(), leader.command])
 
 
 ## Evidenzia gli esagoni raggiungibili dal mover coi suoi PM rimasti nel gruppo.

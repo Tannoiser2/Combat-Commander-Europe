@@ -39,6 +39,30 @@ static func has_command_at(state: GameState, q: int, r: int, faction: int) -> bo
 	return false
 
 
+## Miglior leader efficiente della fazione di `u` che la comanda (3.3.1.2):
+## `u` stessa se è un leader con Comando, altrimenti il leader col Comando più
+## alto entro il suo raggio dalla posizione di `u`. null se nessuno la comanda.
+## `require_orderable` = true scarta i leader già attivati/soppressi (per emettere
+## un nuovo ordine); false li accetta (es. dirigere un gruppo di fuoco).
+static func commanding_leader(state: GameState, u: Unit, require_orderable: bool = false) -> Unit:
+	if u == null:
+		return null
+	if u.is_leader() and u.efficient and u.command > 0:
+		if not require_orderable or can_be_ordered(u):
+			return u
+	var best: Unit = null
+	for L in state.units_of(u.faction):
+		if not (L.is_leader() and L.efficient and L.command > 0):
+			continue
+		if require_orderable and not can_be_ordered(L):
+			continue
+		if HexGrid.distance(L.q, L.r, u.q, u.r) > L.command:
+			continue
+		if best == null or L.command > best.command:
+			best = L
+	return best
+
+
 ## Bonus di Comando per una Squadra/Team co-locata con un leader efficiente
 ## (3.3.1.2): si applica a FP, Gittata, Movimento e Morale. Non vale per leader
 ## né per le armi (i leader non influenzano sé stessi o altri leader, 3.3.1.1).
