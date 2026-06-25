@@ -106,6 +106,7 @@ func _ready() -> void:
 	_test_unit_chart()
 	_test_scenarios_load()
 	_test_scenario_fidelity()
+	_test_scenario_rules()
 	_test_setup_depth()
 	_test_surrender()
 	_test_sudden_death_roll()
@@ -1648,6 +1649,21 @@ func _test_fire_ready() -> void:
 	Game._compute_fire_ready()
 	_check(s.fire_ready_ids.has("A"), "una squadra con bersaglio è pronta a sparare")
 	_check(not s.fire_ready_ids.has("F"), "una squadra senza bersaglio non è pronta")
+
+
+func _test_scenario_rules() -> void:
+	print("· Regole scenario: special_rules.json caricato e mostrabile (24 scenari)")
+	_check(not ScenarioRules.title(1).is_empty(), "lo scenario 1 ha un titolo")
+	_check(not ScenarioRules.rules(1).is_empty(), "lo scenario 1 ha regole speciali")
+	_check(not ScenarioRules.setup_note(1).is_empty(), "lo scenario 1 ha la nota di setup")
+	var bb := ScenarioRules.as_bbcode(1)
+	_check(bb.contains("Schieramento") and bb.contains("Regole speciali"),
+		"as_bbcode produce le sezioni Schieramento e Regole speciali")
+	var missing := 0
+	for n in range(1, 25):
+		if ScenarioRules.entry(n).is_empty():
+			missing += 1
+	_check(missing == 0, "tutti e 24 gli scenari hanno una voce di regole")
 
 
 func _test_order_feasible() -> void:

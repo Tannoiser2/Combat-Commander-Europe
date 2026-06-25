@@ -17,6 +17,8 @@ var _ob_allies: VBoxContainer
 var _axis_btn: Button
 var _allies_btn: Button
 var _changelog: Panel
+var _rules_panel: Panel
+var _rules_label: RichTextLabel
 
 ## Nazione (stringa catalogo) → nome mostrato.
 const NATION_LABEL := {
@@ -151,6 +153,20 @@ func _build_ui() -> void:
 			_changelog.visible = not _changelog.visible)
 	add_child(clog_btn)
 	_build_changelog_panel()
+
+	# Pulsante «Regole scenario»: mostra setup e regole speciali del selezionato.
+	var rules_btn := Button.new()
+	rules_btn.text = "Regole scenario"
+	rules_btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	rules_btn.offset_left = 210
+	rules_btn.offset_top = -42
+	rules_btn.offset_right = 360
+	rules_btn.offset_bottom = -12
+	rules_btn.pressed.connect(func() -> void:
+		if _rules_panel != null:
+			_rules_panel.visible = not _rules_panel.visible)
+	add_child(rules_btn)
+	_build_rules_panel()
 	# Nota: l'«Editor mappe» è stato spostato nella colonna laterale in partita.
 
 
@@ -211,6 +227,8 @@ func _select(num: int) -> void:
 	var cat := _catalog_entry(num)
 	_fill_ob(_axis_btn, _ob_axis, String(cat.get("fazione_axis", "german")), cat.get("forze_axis", []), Domain.Faction.GERMAN)
 	_fill_ob(_allies_btn, _ob_allies, String(cat.get("fazione_allies", "russian")), cat.get("forze_allies", []), Domain.Faction.RUSSIAN)
+	if _rules_label != null:
+		_rules_label.text = ScenarioRules.as_bbcode(num)
 
 
 ## Riempie una colonna OB: il pulsante-fazione e l'elenco forze, ognuna con la
@@ -261,6 +279,46 @@ func _counter_for(faction: int, tipo: String, nat: String) -> Texture2D:
 
 ## Pannello del changelog (centrato), aperto dal pulsante «Changelog». Legge
 ## res://assets/changelog.md.
+## Pannello (overlay) con setup e regole speciali dello scenario selezionato.
+func _build_rules_panel() -> void:
+	_rules_panel = Panel.new()
+	_rules_panel.visible = false
+	_rules_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_rules_panel.offset_left = -420
+	_rules_panel.offset_top = -320
+	_rules_panel.offset_right = 420
+	_rules_panel.offset_bottom = 320
+	var pad := MarginContainer.new()
+	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(m, 16)
+	_rules_panel.add_child(pad)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	pad.add_child(v)
+	var head := HBoxContainer.new()
+	var t := Label.new()
+	t.text = "Regole dello scenario"
+	t.add_theme_font_size_override("font_size", 18)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	var close := Button.new()
+	close.text = "Chiudi"
+	close.pressed.connect(func() -> void: _rules_panel.visible = false)
+	head.add_child(close)
+	v.add_child(head)
+	var sc := ScrollContainer.new()
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(sc)
+	_rules_label = RichTextLabel.new()
+	_rules_label.bbcode_enabled = true
+	_rules_label.fit_content = true
+	_rules_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.add_child(_rules_label)
+	add_child(_rules_panel)
+
+
 func _build_changelog_panel() -> void:
 	_changelog = Panel.new()
 	_changelog.visible = false
