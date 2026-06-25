@@ -24,6 +24,9 @@ var _fx: Node3D            ## layer effetti transitori (tracer, flash); non azze
 var _last_unit_pos := {}   ## id unità → Vector2i(q,r) noto (per animare lo spostamento)
 var _pending_slide := {}   ## id unità → Vector3 posizione mondo di partenza dello slittamento
 var _pieces := []          ## [{id, node}] pedine correnti (per il click preciso sulle pile)
+var _tip: PanelContainer   ## pannello informativo al passaggio del mouse
+var _tip_label: RichTextLabel
+var _hover_hex := Vector2i(-9999, -9999)
 var _press_pos := Vector2.ZERO
 var _dragged := false
 var _touches := {}        ## indice dito → posizione (per il pinch a due dita)
@@ -46,6 +49,7 @@ func _ready() -> void:
 	add_child(_dynamic)
 	_fx = Node3D.new()
 	add_child(_fx)
+	_build_tooltip()
 	_refresh_dynamic(s)
 	_camera.current = true
 	_update_camera()
@@ -60,6 +64,85 @@ func _ready() -> void:
 func _on_state_changed() -> void:
 	if Game.state != null and active:
 		_refresh_dynamic(Game.state)
+
+
+# ─── Pannello informativo (hover) ─────────────────────────────────────────────
+
+func _build_tooltip() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	_tip = PanelContainer.new()
+	_tip.visible = false
+	_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mc := MarginContainer.new()
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		mc.add_theme_constant_override(side, 8)
+	_tip.add_child(mc)
+	_tip_label = RichTextLabel.new()
+	_tip_label.bbcode_enabled = true
+	_tip_label.fit_content = true
+	_tip_label.scroll_active = false
+	_tip_label.custom_minimum_size = Vector2(240, 0)
+	_tip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mc.add_child(_tip_label)
+	layer.add_child(_tip)
+
+
+## Aggiorna il pannello informativo per l'esagono sotto il cursore.
+func _update_tooltip(vpos: Vector2) -> void:
+	if not active or Game.state == null or _tip == null:
+		_hide_tooltip()
+		return
+	var hx := _pick_hex(vpos)
+	if hx.x < 0:
+		_hide_tooltip()
+		return
+	if hx != _hover_hex:
+		_hover_hex = hx
+		_tip_label.text = _hex_info_text(Game.state, hx.x, hx.y)
+	_tip.visible = true
+	_tip.reset_size()
+	var vs := get_viewport().get_visible_rect().size
+	var pos := vpos + Vector2(18.0, 14.0)
+	pos.x = minf(pos.x, vs.x - _tip.size.x - 4.0)
+	pos.y = minf(pos.y, vs.y - _tip.size.y - 4.0)
+	_tip.position = pos
+
+
+func _hide_tooltip() -> void:
+	_hover_hex = Vector2i(-9999, -9999)
+	if _tip != null:
+		_tip.visible = false
+
+
+## Testo informativo dell'esagono: terreno + copertura + marker + unità presenti.
+func _hex_info_text(s: GameState, q: int, r: int) -> String:
+	var txt := "[b]Esagono (%d,%d)[/b]" % [q, r]
+	var hd: GameState.HexData = s.hex_at(q, r)
+	if hd != null:
+		var terr: String = Domain.TERRAIN_NAMES.get(hd.terrain, "?")
+		var cov := Rules.cover_at(s, q, r, false)
+		txt += "\n[color=#9fd]%s (cop. %d)[/color]" % [terr, cov]
+		var feats: Array[String] = []
+		if hd.elevation > 0:
+			feats.append("quota %d" % hd.elevation)
+		if hd.fortification != Domain.Fort.NONE:
+			feats.append(Domain.FORT_NAMES.get(hd.fortification, "?"))
+		if hd.has_foxhole: feats.append("buca")
+		if hd.has_smoke: feats.append("fumo")
+		if hd.has_blaze: feats.append("incendio")
+		if hd.has_road: feats.append("strada")
+		if feats.size() > 0:
+			txt += "\n[color=#cc9]%s[/color]" % ", ".join(feats)
+	for u in s.units_at(q, r):
+		var fac: String = Domain.FACTION_SHORT.get(u.faction, "?")
+		var st: Array[String] = []
+		if not u.efficient: st.append("rotta")
+		if u.suppressed: st.append("soppr.")
+		if u.activated: st.append("att.")
+		var stxt := "  [i]%s[/i]" % ", ".join(st) if st.size() > 0 else ""
+		txt += "\n• %s (%s) PdF%d G%d M%d%s" % [u.unit_name, fac, u.fp, u.range, u.move, stxt]
+	return txt
 
 
 ## Lo spostamento di un'unità: memorizza la posizione di partenza così che, al
@@ -875,6 +958,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if mb.pressed:
 				_press_pos = mb.position
 				_dragged = false
+				_hide_tooltip()
 			elif not _dragged:
 				# Prima prova il click preciso sulla pedina; altrimenti l'esagono.
 				var pid := _pick_piece(mb.position)
@@ -886,11 +970,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom(0.9)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_zoom(1.0 / 0.9)
-	elif event is InputEventMouseMotion \
-			and ((event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
-		if _touches.size() >= 2:
-			return
+	elif event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
-		if mm.position.distance_to(_press_pos) > 5.0:
-			_dragged = true
-		_orbit(mm.relative)
+		if (mm.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			if _touches.size() >= 2:
+				return
+			if mm.position.distance_to(_press_pos) > 5.0:
+				_dragged = true
+			_hide_tooltip()
+			_orbit(mm.relative)
+		else:
+			# Senza pulsanti premuti: aggiorna il pannello informativo (hover).
+			_update_tooltip(mm.position)
