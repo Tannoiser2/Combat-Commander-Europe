@@ -22,7 +22,11 @@ var _center := Vector3.ZERO
 var _dynamic: Node3D
 var _press_pos := Vector2.ZERO
 var _dragged := false
+var _touches := {}        ## indice dito → posizione (per il pinch a due dita)
+var _pinch_dist := 0.0
 var active := true   ## Main lo mette a false quando la 3D è nascosta (no refresh)
+
+const ORBIT_SPEED := 0.004   ## sensibilità rotazione (più basso = più lento)
 
 @onready var _camera: Camera3D = $Camera3D
 
@@ -439,29 +443,67 @@ func _pick_hex(vpos: Vector2) -> Vector2i:
 	return best
 
 
+func _zoom(factor: float) -> void:
+	_cam_dist = clampf(_cam_dist * factor, 6.0, 200.0)
+	_update_camera()
+
+
+func _orbit(rel: Vector2) -> void:
+	_cam_yaw -= rel.x * ORBIT_SPEED
+	_cam_pitch = clampf(_cam_pitch - rel.y * ORBIT_SPEED, 0.2, 1.45)
+	_update_camera()
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	# Gesti del trackpad: pinch (magnify) e pan a due dita.
+	if event is InputEventMagnifyGesture:
+		_zoom(1.0 / maxf(0.2, (event as InputEventMagnifyGesture).factor))
+		return
+	if event is InputEventPanGesture:
+		_zoom(1.0 + (event as InputEventPanGesture).delta.y * 0.04)
+		return
+	# Touch screen: 1 dito = ruota, 2 dita = pinch-zoom.
+	if event is InputEventScreenTouch:
+		var st := event as InputEventScreenTouch
+		if st.pressed:
+			_touches[st.index] = st.position
+		else:
+			_touches.erase(st.index)
+		if _touches.size() < 2:
+			_pinch_dist = 0.0
+		return
+	if event is InputEventScreenDrag:
+		var sd := event as InputEventScreenDrag
+		_touches[sd.index] = sd.position
+		if _touches.size() >= 2:
+			var pts: Array = _touches.values()
+			var d: float = (pts[0] as Vector2).distance_to(pts[1])
+			if _pinch_dist > 0.0 and d > 1.0:
+				_zoom(_pinch_dist / d)
+			_pinch_dist = d
+		else:
+			_orbit(sd.relative)
+		return
+	# Mouse (desktop).
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
 				_press_pos = mb.position
 				_dragged = false
-			else:
-				if not _dragged:  # clic (non trascinamento) → seleziona/ordina
-					var hx := _pick_hex(mb.position)
-					if hx.x >= 0:
-						Game.click_hex(hx.x, hx.y)
+			elif not _dragged:
+				var hx := _pick_hex(mb.position)
+				if hx.x >= 0:
+					Game.click_hex(hx.x, hx.y)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_cam_dist = maxf(8.0, _cam_dist - 2.0)
-			_update_camera()
+			_zoom(0.9)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_cam_dist = minf(160.0, _cam_dist + 2.0)
-			_update_camera()
+			_zoom(1.0 / 0.9)
 	elif event is InputEventMouseMotion \
 			and ((event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		if _touches.size() >= 2:
+			return
 		var mm := event as InputEventMouseMotion
 		if mm.position.distance_to(_press_pos) > 5.0:
 			_dragged = true
-		_cam_yaw -= mm.relative.x * 0.01
-		_cam_pitch = clampf(_cam_pitch - mm.relative.y * 0.01, 0.2, 1.45)
-		_update_camera()
+		_orbit(mm.relative)
