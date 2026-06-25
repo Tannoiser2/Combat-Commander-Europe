@@ -210,8 +210,8 @@ enum Phase {
 const PHASE_LABELS := {
 	Phase.PLAYER_TURN:     "Il tuo turno — seleziona carta e unità",
 	Phase.PLAYER_MOVING:   "In movimento — clicca esagono adiacente",
-	Phase.REACTION_WINDOW: "⏳ Finestra di reazione...",
-	Phase.AI_OPP_FIRE:     "⚡ Fuoco di Opportunità IA!",
+	Phase.REACTION_WINDOW: "Finestra di reazione...",
+	Phase.AI_OPP_FIRE:     "Fuoco di Opportunità IA!",
 	Phase.AI_TURN:         "Turno IA in corso...",
 	Phase.GAME_OVER:       "PARTITA TERMINATA",
 }
