@@ -30,6 +30,13 @@ var _help: Panel = null
 var _log_collapsed := false
 var _log_reopen_btn: Button = null
 
+# «Passa» (O15): pulsante nell'header + finestra per scegliere le carte da scartare.
+var _pass_btn: Button = null
+var _pass_dialog: Panel = null
+var _pass_cards: HBoxContainer = null
+var _pass_confirm: Button = null
+var _pass_marked: Dictionary = {}  # indice carta → true se da scartare
+
 
 func _ready() -> void:
 	# Se si arriva qui senza passare dal menù, avvia una partita predefinita.
@@ -41,6 +48,7 @@ func _ready() -> void:
 	_build_los_button()
 	_build_help_panel()
 	_build_log_reopen()
+	_build_pass_ui()
 	log_toggle_btn.pressed.connect(_toggle_log)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	_refresh_ui()
@@ -182,9 +190,10 @@ func _help_text() -> String:
 		+ " - Durante una Mossa, «G» passa l'arma a un compagno nello stesso esagono, o ne raccoglie una a terra (1 PM).\n" \
 		+ " - Un'arma a terra (senza portatore) ha un anello giallo sulla mappa.\n\n" \
 		+ "[b]Passare / finire il turno[/b]\n" \
-		+ " - Premi «Fine Turno» per concludere e passare all'avversario (anche a ordini finiti).\n\n" \
+		+ " - «Passa» (tasto «P»): non dai ordini — scegli quali carte scartare e ne ripeschi altrettante (O15).\n" \
+		+ " - «Fine Turno»: concludi e passa all'avversario (anche a ordini finiti).\n\n" \
 		+ "[b]Tasti rapidi[/b]\n" \
-		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = carte    R = registro    V = LOS\n" \
+		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = carte    R = registro    V = LOS    P = passa\n" \
 		+ " - X = esci dal bordo nemico (VP)    S = fumo/esplosivo    SPAZIO = non sparare\n" \
 		+ " - F5 = salva    F9 = carica    M = muto    H = questo aiuto"
 
@@ -285,6 +294,135 @@ func _toggle_los_mode() -> void:
 	_refresh_ui()
 
 
+## «Passa» (O15): pulsante nell'header della mano (accanto a «Fine Turno») e
+## finestra modale per scegliere quali carte scartare prima di passare. Passare
+## non dà ordini: si scarta a piacere e si ripesca altrettante carte.
+func _build_pass_ui() -> void:
+	_pass_btn = Button.new()
+	_pass_btn.text = "Passa"
+	_pass_btn.custom_minimum_size = Vector2(110, 0)
+	_pass_btn.tooltip_text = "Passa senza dare ordini: scegli quante carte scartare e ripescare (tasto «P»)"
+	_pass_btn.pressed.connect(_open_pass_dialog)
+	var header: HBoxContainer = $HandPanel/VBox/Header
+	header.add_child(_pass_btn)
+	header.move_child(_pass_btn, end_turn_btn.get_index())  # appena prima di «Fine Turno»
+
+	_pass_dialog = Panel.new()
+	_pass_dialog.visible = false
+	_pass_dialog.set_anchors_preset(Control.PRESET_CENTER)
+	_pass_dialog.offset_left = -340
+	_pass_dialog.offset_top = -190
+	_pass_dialog.offset_right = 340
+	_pass_dialog.offset_bottom = 190
+	var vb := VBoxContainer.new()
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vb.add_theme_constant_override("separation", 10)
+	vb.offset_left = 16
+	vb.offset_top = 14
+	vb.offset_right = -16
+	vb.offset_bottom = -14
+	var title := Label.new()
+	title.text = "Passa il turno (O15)"
+	title.add_theme_font_size_override("font_size", 20)
+	vb.add_child(title)
+	var desc := Label.new()
+	desc.text = "Seleziona le carte da scartare: ne ripeschi altrettante. Passare non dà ordini."
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vb.add_child(desc)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_pass_cards = HBoxContainer.new()
+	_pass_cards.add_theme_constant_override("separation", 10)
+	scroll.add_child(_pass_cards)
+	vb.add_child(scroll)
+	var actions := HBoxContainer.new()
+	actions.alignment = BoxContainer.ALIGNMENT_END
+	actions.add_theme_constant_override("separation", 10)
+	_pass_confirm = Button.new()
+	_pass_confirm.pressed.connect(_on_pass_confirm)
+	var cancel := Button.new()
+	cancel.text = "Annulla"
+	cancel.pressed.connect(_close_pass_dialog)
+	actions.add_child(cancel)
+	actions.add_child(_pass_confirm)
+	vb.add_child(actions)
+	_pass_dialog.add_child(vb)
+	add_child(_pass_dialog)
+
+
+func _open_pass_dialog() -> void:
+	var s := Game.state
+	if s == null or s.phase != Domain.Phase.PLAYER_TURN:
+		return
+	_pass_marked.clear()
+	_refresh_pass_cards()
+	_update_pass_confirm()
+	_pass_dialog.visible = true
+
+
+func _close_pass_dialog() -> void:
+	if _pass_dialog != null:
+		_pass_dialog.visible = false
+
+
+## Riempie la finestra con le carte in mano: ogni carta è la coppia di badge
+## (Ordine sopra, Azione sotto) con sotto una casella «scarta».
+func _refresh_pass_cards() -> void:
+	for child in _pass_cards.get_children():
+		child.queue_free()
+	var s := Game.state
+	var hand := s.hand_of(s.human_faction)
+	for i in hand.size():
+		var card: Card = hand[i]
+		var order_name: String = Domain.ORDER_LABELS.get(card.order, card.order_label)
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 2)
+		var ord_path := ""
+		if Domain.ORDER_BADGE.has(card.order):
+			ord_path = "res://assets/badges/orders/%s.png" % Domain.ORDER_BADGE[card.order]
+		var act_path := ""
+		if Domain.ACTION_BADGE.has(card.action_name):
+			act_path = "res://assets/badges/actions/%s.png" % Domain.ACTION_BADGE[card.action_name]
+		var ob := _make_badge(ord_path, order_name, true, 132.0)
+		ob.disabled = true  # qui i badge sono solo anteprima, non si giocano
+		ob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ab := _make_badge(act_path, card.action_name, true, 132.0)
+		ab.disabled = true
+		ab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.add_child(ob)
+		col.add_child(ab)
+		var chk := CheckBox.new()
+		chk.text = "scarta"
+		chk.button_pressed = bool(_pass_marked.get(i, false))
+		chk.toggled.connect(_on_pass_card_toggled.bind(i))
+		col.add_child(chk)
+		_pass_cards.add_child(col)
+
+
+func _on_pass_card_toggled(pressed: bool, index: int) -> void:
+	_pass_marked[index] = pressed
+	_update_pass_confirm()
+
+
+func _update_pass_confirm() -> void:
+	var n := 0
+	for v in _pass_marked.values():
+		if v:
+			n += 1
+	_pass_confirm.text = "Scarta e passa (%d)" % n if n > 0 else "Passa senza scartare"
+
+
+func _on_pass_confirm() -> void:
+	var indices: Array = []
+	for k in _pass_marked.keys():
+		if _pass_marked[k]:
+			indices.append(int(k))
+	_close_pass_dialog()
+	Game.pass_turn(indices)
+	_refresh_ui()
+
+
 func _connect_signals() -> void:
 	Game.state_changed.connect(_refresh_ui)
 	Game.log_added.connect(_on_log_added)
@@ -327,6 +465,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		KEY_V:  # Modalità LOS: verifica la linea di vista tra due esagoni
 			_toggle_los_mode()
+			get_viewport().set_input_as_handled()
+		KEY_P:  # Passa (O15): scegli quante carte scartare, poi cedi il turno
+			if _pass_dialog != null and _pass_dialog.visible:
+				_close_pass_dialog()
+			else:
+				_open_pass_dialog()
 			get_viewport().set_input_as_handled()
 		KEY_G:  # trasferisci/raccogli l'arma trasportata (11.3)
 			if Game.state != null and Game.state.phase == Domain.Phase.PLAYER_MOVING \
@@ -378,6 +522,9 @@ func _refresh_ui() -> void:
 		s.german_deck.size(), s.russian_deck.size()
 	]
 	end_turn_btn.disabled = not _is_player_phase(s.phase)
+	# Passare si può solo nella fase ordini (non a metà di una mossa/fuoco).
+	if _pass_btn != null:
+		_pass_btn.disabled = s.phase != Domain.Phase.PLAYER_TURN
 	hint_label.text = _guidance_text(s)
 	_refresh_hand()
 	_refresh_unit_info()
@@ -397,10 +544,10 @@ func _guidance_text(s: GameState) -> String:
 			var ord := "  (ordini %d/%d)" % [s.order_count, s.max_orders]
 			var arty := "  · Artiglieria pronta" if Game.has_artillery_available() else ""
 			if s.order_count >= s.max_orders:
-				return "Ordini esauriti%s — gioca un'Azione (dx) o premi «Fine Turno»" % ord
+				return "Ordini esauriti%s — gioca un'Azione (dx), «Passa» o «Fine Turno»" % ord
 			if s.selected_unit_id != "":
 				return "Unità scelta%s — gioca una carta:  Sx = ordine · Dx = azione%s" % [ord, arty]
-			return "Il tuo turno%s — clicca un'unità, poi gioca una carta ordine%s" % [ord, arty]
+			return "Il tuo turno%s — clicca un'unità e gioca un ordine, oppure «Passa» (P)%s" % [ord, arty]
 		Domain.Phase.PLAYER_MOVING:
 			var has_unit := s.selected_unit_id != ""
 			if Game.can_exit_selected():
@@ -561,6 +708,10 @@ func _on_log_added(line: String) -> void:
 func _on_phase_changed(phase: int) -> void:
 	phase_label.text = Domain.PHASE_LABELS.get(phase, "—")
 	end_turn_btn.disabled = not _is_player_phase(phase)
+	if _pass_btn != null:
+		_pass_btn.disabled = phase != Domain.Phase.PLAYER_TURN
+	if phase != Domain.Phase.PLAYER_TURN:
+		_close_pass_dialog()
 	if Game.state:
 		hint_label.text = _guidance_text(Game.state)
 
