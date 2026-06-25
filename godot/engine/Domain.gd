@@ -233,6 +233,42 @@ const ORDER_LABELS := {
 	OrderType.ARTY_DENIED: "Artiglieria negata",
 }
 
+## Badge grafici (res://assets/badges/): Ordine per tipo, Azione per nome.
+## Mappature ricavate dalle immagini ufficiali (cartella BADGE del repo).
+const ORDER_BADGE := {
+	OrderType.ADVANCE:     "O_02",
+	OrderType.ARTY_DENIED: "O_03",
+	OrderType.ARTY:        "O_04",
+	OrderType.PASS:        "O_05",  # "Command Confusion" (ORDINI CONTRADDITTORI)
+	OrderType.FIRE:        "O_06",
+	OrderType.MOVE:        "O_07",
+	OrderType.RECOVER:     "O_08",
+	OrderType.ROUT:        "O_09",
+}
+const ACTION_BADGE := {
+	"IMBOSCATA": "A_25",
+	"FUOCO D'ASSALTO": "A_26",
+	"BUONA MIRA": "A_27",
+	"ORDINI CONTRADDITTORI": "A_28",
+	"MIMETIZZAZIONE": "A_29",
+	"FUOCO INCROCIATO": "A_30",
+	"DEMOLIZIONI": "A_31",
+	"TRINCERARSI": "A_32",
+	"BOMBE A MANO": "A_34",
+	"TRINCERAMENTI NASCOSTI": "A_35_1",
+	"MINE NASCOSTE": "A_35_2",
+	"CASAMATTA NASCOSTA": "A_35_3",
+	"UNITA' NASCOSTA": "A_35_4",
+	"FILO SPINATO NASCOSTO": "A_35_5",
+	"FERITE LEGGERE": "A_36",
+	"FUOCO MIRATO": "A_37",
+	"LOTTA SENZA QUARTIERE": "A_38",
+	"GRANATE FUMOGENE": "A_39",
+	"SVENTAGLIATA DI FUOCO": "A_40",
+	"FUOCO SOSTENUTO": "A_41",
+}
+
+
 ## Mappa la stringa orderType del JSON dei mazzi all'enum OrderType.
 const ORDER_TYPE_FROM_STRING := {
 	"move":        OrderType.MOVE,
