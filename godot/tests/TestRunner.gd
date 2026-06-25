@@ -1228,6 +1228,17 @@ func _test_actions() -> void:
 	_check(r.broken.is_empty(), "una unità mimetizzata resiste meglio")
 	_check(not def.concealed, "il fuoco rivela la mimetizzazione")
 
+	# Sparare rivela il TIRATORE: una unità mimetizzata che fa fuoco si scopre.
+	var s3b := _new_state()
+	var hidden_shooter := _mk("ger-h", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	var foe := _mk("rus-f", RUS, SQUAD, RIFLE, 0, 1, 5, 7)
+	s3b.units[hidden_shooter.id] = hidden_shooter
+	s3b.units[foe.id] = foe
+	Actions.play(s3b, _act("MIMETIZZAZIONE"), GER)
+	_check(hidden_shooter.concealed, "la pedina è mimetizzata prima di sparare")
+	Combat.resolve_fire(hidden_shooter, 0, 1, s3b, Vector2i(3, 3), Vector2i(2, 2))
+	_check(not hidden_shooter.concealed, "sparare rivela il tiratore (perde la mimetizzazione)")
+
 	# Granate fumogene → fumo → hindrance lungo la LOS
 	var s4 := _new_state()
 	var c4 := _act("GRANATE FUMOGENE")
