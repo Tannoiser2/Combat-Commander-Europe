@@ -89,6 +89,9 @@ var hand_size: Dictionary = {
 var phase: int = Domain.Phase.PLAYER_TURN
 var active_faction: int = Domain.Faction.GERMAN
 var human_faction: int = Domain.Faction.GERMAN
+## Difensore dello scenario (postura "defend"): riceve +1 VP a ogni Tempo!
+## (6.1.2). -1 se nessuno dei due lati difende (es. scontro recon/recon).
+var defender_faction: int = -1
 var scenario_number: int = 1
 var scenario_name: String = ""
 ## Nazioni reali dei due lati (per mazzo, statistiche e arte). Lo slot "german_*"

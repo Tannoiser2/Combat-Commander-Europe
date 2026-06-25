@@ -79,7 +79,7 @@ static func _state_to_dict(s: GameState) -> Dictionary:
 		"scenario_number": s.scenario_number, "scenario_name": s.scenario_name,
 		"axis_nation": s.axis_nation, "allied_nation": s.allied_nation,
 		"human_faction": s.human_faction, "active_faction": s.active_faction,
-		"initiative_holder": s.initiative_holder,
+		"initiative_holder": s.initiative_holder, "defender_faction": s.defender_faction,
 		# Turno / tempo / VP
 		"phase": s.phase, "turn_number": s.turn_number, "order_count": s.order_count,
 		"max_orders": s.max_orders, "ai_max_orders": s.ai_max_orders,
@@ -130,6 +130,7 @@ static func _state_from_dict(d: Dictionary) -> GameState:
 	s.axis_nation = String(d.get("axis_nation", "german")); s.allied_nation = String(d.get("allied_nation", "russian"))
 	s.human_faction = int(d.get("human_faction", 0)); s.active_faction = int(d.get("active_faction", 0))
 	s.initiative_holder = int(d.get("initiative_holder", 0))
+	s.defender_faction = int(d.get("defender_faction", -1))
 	s.phase = int(d.get("phase", Domain.Phase.PLAYER_TURN)); s.turn_number = int(d.get("turn_number", 1))
 	s.order_count = int(d.get("order_count", 0)); s.max_orders = int(d.get("max_orders", 2)); s.ai_max_orders = int(d.get("ai_max_orders", 2))
 	s.time_marker = int(d.get("time_marker", 0)); s.sudden_death_space = int(d.get("sudden_death_space", 7))

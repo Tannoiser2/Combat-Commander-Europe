@@ -48,6 +48,7 @@ func _ready() -> void:
 	_test_ai_choose_play()
 	_test_fate_draw_and_reshuffle()
 	_test_fate_time()
+	_test_time_defender_vp()
 	_test_fate_sniper()
 	_test_fate_jam()
 	_test_los_hexside()
@@ -494,6 +495,31 @@ func _test_fate_time() -> void:
 	var lines := Fate.apply_consequence(s, _fate_card(1, 1, "time"), RUS)
 	_check(s.time_marker == 3, "TEMPO! avanza la traccia del tempo")
 	_check(lines.size() > 0, "la conseguenza produce un messaggio di log")
+
+
+func _test_time_defender_vp() -> void:
+	print("· TEMPO!: +1 VP al Difensore dello scenario (6.1.2)")
+	# Difensore Asse (GER) → +1 alla bilancia (positiva = Germania).
+	var sg := _new_state()
+	sg.defender_faction = GER
+	sg.sudden_death_space = 7
+	var b0 := sg.bonus_vp
+	Fate.apply_consequence(sg, _fate_card(1, 1, "time"), RUS)
+	_check(sg.bonus_vp == b0 + 1, "Difensore Asse → +1 alla bilancia VP")
+	# Difensore Alleati (RUS) → -1.
+	var sr := _new_state()
+	sr.defender_faction = RUS
+	sr.sudden_death_space = 7
+	var r0 := sr.bonus_vp
+	Fate.apply_consequence(sr, _fate_card(1, 1, "time"), GER)
+	_check(sr.bonus_vp == r0 - 1, "Difensore Alleati → -1 alla bilancia VP")
+	# Nessun difensore (scontro recon/recon) → il Tempo! non assegna VP.
+	var sn := _new_state()
+	sn.defender_faction = -1
+	sn.sudden_death_space = 7
+	var n0 := sn.bonus_vp
+	Fate.apply_consequence(sn, _fate_card(1, 1, "time"), GER)
+	_check(sn.bonus_vp == n0, "Senza difensore il Tempo! non dà VP")
 
 
 func _test_fate_sniper() -> void:

@@ -56,16 +56,18 @@ static func apply_consequence(
 
 # ─── Conseguenze ─────────────────────────────────────────────────────────────
 
-## Tempo!: avanza la traccia del tempo, +1 VP al difensore (euristica: la
-## fazione senza iniziativa) e rimescola mazzo+scarti di entrambe le fazioni.
+## Tempo!: avanza la traccia del tempo, +1 VP al DIFENSORE dello scenario
+## (6.1.2 passo 3; nessun VP se lo scontro non ha un difensore) e rimescola
+## mazzo+scarti di entrambe le fazioni.
 static func _consequence_time(state: GameState, lines: Array[String]) -> void:
 	state.time_marker += 1
 	lines.append("TEMPO! La traccia avanza a %d/%d" % [state.time_marker, state.sudden_death_space])
-	var defender := Domain.Faction.RUSSIAN if state.initiative_holder == Domain.Faction.GERMAN else Domain.Faction.GERMAN
-	if defender == Domain.Faction.GERMAN:
+	if state.defender_faction == Domain.Faction.GERMAN:
 		state.bonus_vp += 1
-	else:
+		lines.append("TEMPO!: +1 VP al Difensore (Asse).")
+	elif state.defender_faction == Domain.Faction.RUSSIAN:
 		state.bonus_vp -= 1
+		lines.append("TEMPO!: +1 VP al Difensore (Alleati).")
 	_reshuffle(state, Domain.Faction.GERMAN)
 	_reshuffle(state, Domain.Faction.RUSSIAN)
 	# Passo 4 (6.1.2): rimuovi UN marker fumo.
