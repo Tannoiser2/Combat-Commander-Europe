@@ -311,7 +311,7 @@ func exit_unit_for_vp(uid: String) -> int:
 	return v
 
 
-## Valore in VP di un'unità eliminata (7.1): Squadra 2, Team 1 (non distinto qui),
+## Valore in VP di un'unità eliminata (7.1): Squadra 2, Team 1,
 ## Leader (non Eroe) 1 + Comando, Eroe 0, Arma 0.
 static func elimination_vp(u: Unit) -> int:
 	if u.hero:
@@ -320,7 +320,9 @@ static func elimination_vp(u: Unit) -> int:
 		return 1 + u.command
 	if u.is_weapon():
 		return 0
-	return 2  # squadra (i Team non sono distinti nel modello attuale)
+	if u.type == Domain.UnitType.TEAM:
+		return 1
+	return 2  # squadra
 
 
 ## Vero se le perdite della fazione hanno raggiunto la sua soglia di resa (6.3).

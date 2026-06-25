@@ -60,12 +60,14 @@ func is_man() -> bool:
 	return type != Domain.UnitType.WEAPON
 
 
-## "Soldier icons" ai fini dell'impilamento (max 7/esagono, regola 8.1):
-## squadra = 4, leader = 1, arma = 0 (le armi non contano come figure).
+## "Soldier icons" ai fini dell'impilamento (max 7/esagono, regola 8.2):
+## squadra = 4, team = 2, leader = 1, arma = 0 (le armi non contano come figure).
 func soldier_icons() -> int:
 	match type:
 		Domain.UnitType.SQUAD:
 			return 4
+		Domain.UnitType.TEAM:
+			return 2
 		Domain.UnitType.LEADER:
 			return 1
 		_:

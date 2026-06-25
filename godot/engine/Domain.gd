@@ -52,7 +52,8 @@ const FORT_NAMES := {
 
 # ─── Tipi di unità ───────────────────────────────────────────────────────────
 
-enum UnitType { SQUAD, LEADER, WEAPON }
+# TEAM in coda per non alterare gli ordinali esistenti (compatibilità SaveGame).
+enum UnitType { SQUAD, LEADER, WEAPON, TEAM }
 enum UnitClass { RIFLE, ELITE, CONSCRIPT, MG, MORTAR, AT }
 
 const UNIT_CLASS_LABEL := {
