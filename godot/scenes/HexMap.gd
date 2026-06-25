@@ -16,6 +16,18 @@ var _map_image_id: String = ""   ## id immagine attualmente caricata
 var _terrain_debug: bool = false  ## true = mostra le tinte del terreno (tasto T)
 var _los_drag: int = -1            ## estremità LOS trascinata (0=A, 1=B, -1=nessuna)
 
+# ─── Zoom & pan (vista 2D) ────────────────────────────────────────────────────
+# Di default la mappa si auto-inquadra. Appena l'utente usa rotella o
+# trascinamento, la vista diventa "personalizzata" e non viene più ri-adattata
+# automaticamente (finché non cambia mappa o si preme «0» per reinquadrare).
+var _fit_scale: float = 1.0        ## scala di auto-fit corrente (per i limiti di zoom)
+var _view_custom: bool = false     ## true se l'utente ha zoomato/spostato
+var _panning: bool = false         ## trascinamento in corso
+var _press_pos: Vector2 = Vector2.ZERO  ## posizione del tasto sinistro premuto
+var _press_moved: bool = false     ## il sinistro si è mosso oltre la soglia (→ pan, non clic)
+const _DRAG_THRESHOLD := 6.0       ## px oltre cui un trascinamento non è un clic
+const _ZOOM_STEP := 1.15           ## fattore di zoom per tacca di rotella
+
 ## Pedine
 const CW := 62.0   ## Larghezza pedina uomo
 const CH := 58.0   ## Altezza pedina uomo
@@ -91,21 +103,53 @@ func _refresh_map() -> void:
 		_map_image_id = Game.state.map_image
 		var path := "res://assets/maps_img/%s.jpg" % _map_image_id
 		_map_texture = load(path) as Texture2D
+		_view_custom = false  # nuova mappa → riparti dall'auto-inquadratura
 	_update_view()
 
 
-## Calcola scala e origine per far entrare l'immagine sotto la barra superiore.
+## Calcola scala e origine per inquadrare l'immagine nell'area visibile (sotto la
+## top bar, a sinistra della colonna laterale, sopra la mano). Se l'utente ha
+## zoomato/spostato (`_view_custom`) la vista resta com'è: si aggiorna solo il
+## valore di auto-fit usato per i limiti di zoom.
 func _update_view() -> void:
 	if _map_texture == null:
 		return
 	var vp := get_viewport_rect().size
-	var top := 46.0
-	var bottom := 44.0
-	var avail := Vector2(maxi(1, int(vp.x)), maxf(100.0, vp.y - top - bottom))
+	var top := 82.0      # top bar (stat + guida)
+	var bottom := 96.0   # pannello della mano in basso
+	var right := 350.0   # colonna laterale a destra
+	var avail := Vector2(maxf(200.0, vp.x - right), maxf(120.0, vp.y - top - bottom))
 	var iw := float(_map_texture.get_width())
 	var ih := float(_map_texture.get_height())
-	view_scale = minf(avail.x / iw, avail.y / ih)
-	view_origin = Vector2((vp.x - iw * view_scale) * 0.5, top)
+	_fit_scale = minf(avail.x / iw, avail.y / ih)
+	if _view_custom:
+		return
+	view_scale = _fit_scale
+	view_origin = Vector2(
+		(avail.x - iw * view_scale) * 0.5,
+		top + (avail.y - ih * view_scale) * 0.5)
+
+
+## Zoom centrato su un punto-schermo (la rotella): l'esagono sotto il cursore
+## resta fermo mentre la scala cambia, entro i limiti rispetto all'auto-fit.
+func _zoom_at(screen_pos: Vector2, factor: float) -> void:
+	if _map_texture == null:
+		return
+	var img_pt := (screen_pos - view_origin) / view_scale  # punto immagine sotto il cursore
+	var new_scale := clampf(view_scale * factor, _fit_scale * 0.5, _fit_scale * 6.0)
+	if is_equal_approx(new_scale, view_scale):
+		return
+	view_scale = new_scale
+	view_origin = screen_pos - img_pt * new_scale
+	_view_custom = true
+	queue_redraw()
+
+
+## Reinquadra la mappa (auto-fit), annullando zoom/spostamenti dell'utente.
+func reset_view() -> void:
+	_view_custom = false
+	_update_view()
+	queue_redraw()
 
 
 ## Raggio esagono a schermo.
@@ -447,15 +491,59 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		_handle_key(event as InputEventKey)
 		return
+	# Zoom con la rotella: attivo in qualunque modalità (anche LOS).
+	if event is InputEventMouseButton:
+		var w := event as InputEventMouseButton
+		if w.pressed and w.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_at(w.position, _ZOOM_STEP)
+			get_viewport().set_input_as_handled()
+			return
+		if w.pressed and w.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_at(w.position, 1.0 / _ZOOM_STEP)
+			get_viewport().set_input_as_handled()
+			return
+	# Spostamento (pan) col tasto centrale o destro: sempre disponibile.
+	if _handle_pan(event):
+		return
 	# In Modalità LOS i click/trascinamenti spostano le estremità, non le pedine.
 	if Game.state != null and Game.state.los_mode:
 		_los_input(event)
 		return
-	if not (event is InputEventMouseButton):
-		return
-	var mb := event as InputEventMouseButton
-	if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
-		_on_click(mb.position)
+	# Tasto sinistro: distingue clic (seleziona) da trascinamento (sposta la mappa).
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				_press_pos = mb.position
+				_press_moved = false
+			elif not _press_moved:
+				_on_click(mb.position)  # rilascio senza trascinamento = clic
+	elif event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
+		if (mm.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			if not _press_moved and mm.position.distance_to(_press_pos) > _DRAG_THRESHOLD:
+				_press_moved = true
+			if _press_moved:
+				view_origin += mm.relative
+				_view_custom = true
+				queue_redraw()
+
+
+## Pan col tasto centrale o destro (premuto e trascinato). Restituisce true se
+## ha consumato l'evento. Tenuto separato dal sinistro per non interferire con
+## la selezione delle pedine.
+func _handle_pan(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_MIDDLE or mb.button_index == MOUSE_BUTTON_RIGHT:
+			_panning = mb.pressed
+			return true
+	elif event is InputEventMouseMotion and _panning:
+		view_origin += (event as InputEventMouseMotion).relative
+		_view_custom = true
+		queue_redraw()
+		return true
+	return false
 
 
 ## Input della Modalità LOS: premendo si afferra l'estremità più vicina e la si
@@ -495,6 +583,9 @@ func _handle_key(k: InputEventKey) -> void:
 	if k.keycode == KEY_T:
 		_terrain_debug = not _terrain_debug
 		queue_redraw()
+	# 0 = reinquadra la mappa (annulla zoom/spostamento)
+	elif k.keycode == KEY_0:
+		reset_view()
 
 
 ## Linea di mira dal tiratore al bersaglio, con punta di freccia sull'esagono

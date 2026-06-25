@@ -157,10 +157,14 @@ func _help_text() -> String:
 	return "[b]COME SI GIOCA[/b]   (pulsante «Comandi» o tasto «H» per chiudere)\n\n" \
 		+ "[b]Selezione[/b]\n" \
 		+ " - Clicca un'unità per selezionarla; ri-clicca l'esagono per scorrere le pedine impilate.\n" \
-		+ " - In basso a sinistra compare la scheda dell'unità.\n\n" \
+		+ " - Nella colonna a destra compare la scheda dell'unità/esagono.\n\n" \
+		+ "[b]Mappa[/b]\n" \
+		+ " - Rotella del mouse = zoom (sul punto sotto il cursore).\n" \
+		+ " - Trascina (sinistro su area vuota, o tasto centrale/destro) = sposta la mappa.\n" \
+		+ " - «0» = reinquadra (annulla zoom e spostamento).\n\n" \
 		+ "[b]Carte (in basso)[/b]\n" \
-		+ " - Click [b]SINISTRO[/b] = gioca la metà [color=#7fb0ff]ORDINE[/color] (banda blu in alto: Muovere, Fuoco, Avanzata...).\n" \
-		+ " - Click [b]DESTRO[/b] = gioca la metà [color=#ffae5a]AZIONE[/color] (banda arancio in basso: Granate, Cecchino, modificatori...).\n\n" \
+		+ " - Ogni carta ha due badge: [color=#7fb0ff]ORDINE[/color] in alto, [color=#ffae5a]AZIONE[/color] in basso.\n" \
+		+ " - Clicca il badge che vuoi giocare: è acceso quando è giocabile, spento quando no.\n\n" \
 		+ "[b]Mossa[/b]\n" \
 		+ " - Un leader trascina le unità entro il suo Comando (alone arancione).\n" \
 		+ " - Il numero sull'esagono = Punti Movimento per entrarci (verde = pochi, rosso = molti).\n" \
@@ -181,7 +185,7 @@ func _help_text() -> String:
 		+ " - «Fine Turno»: concludi e passa all'avversario (anche a ordini finiti).\n\n" \
 		+ "[b]Tasti rapidi[/b]\n" \
 		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = carte    R = pannello laterale    V = LOS    P = passa\n" \
-		+ " - X = esci dal bordo nemico (VP)    S = fumo/esplosivo    SPAZIO = non sparare\n" \
+		+ " - rotella = zoom    trascina = sposta    0 = reinquadra    X = esci dal bordo nemico (VP)    S = fumo/esplosivo    SPAZIO = non sparare\n" \
 		+ " - F5 = salva    F9 = carica    M = muto    H = questo aiuto"
 
 
