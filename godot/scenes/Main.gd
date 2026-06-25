@@ -38,6 +38,7 @@ func _ready() -> void:
 	_connect_signals()
 	_build_legend()
 	_build_view3d_button()
+	_build_los_button()
 	_build_help_panel()
 	_build_log_reopen()
 	log_toggle_btn.pressed.connect(_toggle_log)
@@ -49,6 +50,7 @@ func _ready() -> void:
 
 
 var _v3d: SubViewportContainer = null
+var _los_btn: Button = null
 var _board3d: Node = null
 var _view3d_btn: Button = null
 
@@ -252,6 +254,20 @@ func _toggle_log() -> void:
 ## Attiva/disattiva la "Modalità LOS": uno strumento per verificare la linea di
 ## vista tra due esagoni (estremità trascinabili, linea colorata). Inizializza le
 ## estremità così la linea è subito visibile; funziona sia in 2D sia in 3D.
+## Pulsante «LOS» (in alto a destra, a fianco di «Vista 3D») per attivare la
+## Modalità LOS senza dover ricordare il tasto «V».
+func _build_los_button() -> void:
+	_los_btn = Button.new()
+	_los_btn.text = "LOS"
+	_los_btn.tooltip_text = "Modalità LOS: verifica la linea di vista tra due esagoni (anche col tasto «V»)"
+	_los_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_los_btn.offset_left = -296
+	_los_btn.offset_top = 40
+	_los_btn.offset_right = -158
+	_los_btn.pressed.connect(_toggle_los_mode)
+	add_child(_los_btn)
+
+
 func _toggle_los_mode() -> void:
 	var s := Game.state
 	if s == null:
@@ -262,6 +278,9 @@ func _toggle_los_mode() -> void:
 		var a := Vector2i(u.q, u.r) if u != null else Vector2i(int(s.map_cols / 2), int(s.map_rows / 2))
 		s.los_a = a
 		s.los_b = Vector2i(clampi(a.x + 3, 0, s.map_cols - 1), a.y)
+	if _los_btn != null:
+		_los_btn.text = "LOS: ON" if s.los_mode else "LOS"
+		_los_btn.modulate = Color(0.5, 1.0, 0.6) if s.los_mode else Color(1, 1, 1)
 	Game.emit_signal("state_changed")
 	_refresh_ui()
 
