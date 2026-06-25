@@ -225,6 +225,24 @@ func _fire_targets(u: Unit) -> Array[Vector2i]:
 	return targets
 
 
+## Riempie `fire_ready_ids` con le unità del giocatore che possono sparare adesso
+## (ordinabili, con potenza di fuoco e almeno un bersaglio valido). Serve a
+## evidenziare sulla mappa "chi può sparare" appena si dà un ordine di Fuoco. Le
+## armi sparano col loro portatore, quindi qui si considerano gli uomini (e
+## l'ordnance, che spara da sola).
+func _compute_fire_ready() -> void:
+	state.fire_ready_ids.clear()
+	for u in state.units_of(state.human_faction):
+		if not Rules.can_be_ordered(u):
+			continue
+		if not (u.is_man() or u.ordnance):
+			continue
+		if Rules.range_with_command(state, u) <= 0 and not u.is_man():
+			continue
+		if not _fire_targets(u).is_empty():
+			state.fire_ready_ids.append(u.id)
+
+
 func deselect() -> void:
 	if state == null:
 		return
@@ -266,6 +284,9 @@ func play_card(hand_index: int) -> void:
 			state.assault_fired = false  # Fuoco d'Assalto disponibile una volta per ordine
 			state.selected_card_index = hand_index
 			state.highlighted_hexes.clear()
+			# Col Fuoco: evidenzia subito le unità che possono sparare (≥1 bersaglio).
+			if card.order == Domain.OrderType.FIRE:
+				_compute_fire_ready()
 			_change_phase(Domain.Phase.PLAYER_MOVING)
 			# Se un'unità idonea è già selezionata la si mantiene, evidenziando subito
 			# i bersagli (flusso naturale: unità → carta → bersaglio). Altrimenti si
@@ -1310,6 +1331,7 @@ func _clear_fire_assembly() -> void:
 	state.fire_group_ids.clear()
 	state.fire_modifiers.clear()
 	state.fire_modifier_cards.clear()
+	state.fire_ready_ids.clear()
 	state.spray_active = false
 
 

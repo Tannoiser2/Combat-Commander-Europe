@@ -93,6 +93,8 @@ func _ready() -> void:
 	_test_initial_carriers_relocate()
 	_test_scenario1_no_orphan_weapons()
 	_test_loader_weapons_with_squads()
+	_test_fire_command_group()
+	_test_fire_ready()
 	_test_actions()
 	_test_grenade()
 	_test_melee_tie()
@@ -1616,6 +1618,35 @@ func _test_move_command_group() -> void:
 	Game.select_unit("C")
 	_check(s2.ordered_group.size() == 1 and s2.ordered_group.has("C"),
 		"una squadra fuori comando si muove da sola")
+
+
+func _test_fire_command_group() -> void:
+	print("· Fuoco: il leader estende il gruppo al suo raggio di comando (3.3.1.2)")
+	var s := _new_state(8, 3)
+	s.human_faction = GER
+	# Comando e gittate enormi: l'inclusione dipende solo da co-locazione/comando.
+	s.units["L"] = _mk("L", GER, LEADER, ELITE, 1, 1, 1, 8, 99, 99)
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 0, 1, 6, 7, 99)
+	s.units["B"] = _mk("B", GER, SQUAD, RIFLE, 2, 1, 6, 7, 99)  # non co-locata con A
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 6, 1, 5, 7)
+	var ids: Array = []
+	for g in Combat.fire_group(s.units["A"], 6, 1, s):
+		ids.append(g.id)
+	_check(ids.has("A"), "il pezzo che spara fa parte del gruppo")
+	_check(ids.has("B"), "il leader aggiunge una squadra non co-locata ma in comando")
+
+
+func _test_fire_ready() -> void:
+	print("· Fuoco: fire_ready elenca solo le unità con un bersaglio valido")
+	var s := _new_state(8, 3)
+	s.human_faction = GER
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 0, 1, 6, 7, 99)  # gittata 99 → colpisce
+	s.units["F"] = _mk("F", GER, SQUAD, RIFLE, 0, 0, 6, 7, 1)   # gittata 1 → non arriva
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 6, 1, 5, 7)
+	Game.state = s
+	Game._compute_fire_ready()
+	_check(s.fire_ready_ids.has("A"), "una squadra con bersaglio è pronta a sparare")
+	_check(not s.fire_ready_ids.has("F"), "una squadra senza bersaglio non è pronta")
 
 
 func _weapon(id: String, faction: int, q: int, r: int) -> Unit:
