@@ -61,6 +61,7 @@ func _ready() -> void:
 	_test_radio_unit()
 	_test_artillery()
 	_test_click_hex()
+	_test_stack_cycle()
 	_test_artillery_available()
 	_test_ai_artillery()
 	_test_blaze()
@@ -775,6 +776,27 @@ func _test_click_hex() -> void:
 	_check(s.selected_unit_id == "g", "click_hex su unità amica la seleziona")
 	Game.click_hex(0, 0)
 	_check(s.selected_unit_id == "", "click_hex su esagono vuoto deseleziona")
+
+
+func _test_stack_cycle() -> void:
+	print("· Impilamento: ciclo di selezione a clic ripetuti")
+	var s := _new_state()
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_TURN
+	s.units["a"] = _mk("a", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	s.units["b"] = _mk("b", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	s.units["c"] = _mk("c", GER, LEADER, ELITE, 2, 2, 1, 8)
+	Game.state = s
+	Game.click_hex(2, 2)
+	_check(s.selected_unit_id == "a", "1° clic: prima pedina")
+	Game.click_hex(2, 2)
+	_check(s.selected_unit_id == "b", "2° clic: seconda pedina")
+	Game.click_hex(2, 2)
+	_check(s.selected_unit_id == "c", "3° clic: terza pedina")
+	Game.click_hex(2, 2)
+	_check(s.selected_unit_id == "", "4° clic: deseleziona dopo l'ultima")
+	Game.click_hex(2, 2)
+	_check(s.selected_unit_id == "a", "5° clic: riparte dalla prima")
 
 
 func _test_artillery_available() -> void:
