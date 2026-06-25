@@ -143,7 +143,8 @@ static func best_advance(state: GameState, faction: int) -> Dictionary:
 				func(m: Unit) -> bool: return m.faction != faction)
 			if defenders.is_empty():
 				continue
-			var atk := u.effective_fp() + (1 if u.fp_boxed else 0) + u.command
+			# O16.4: nessun bonus di Comando nel corpo a corpo.
+			var atk := u.effective_fp() + (1 if u.fp_boxed else 0)
 			var deff := 0
 			for d in defenders:
 				deff += d.effective_fp() + (1 if d.fp_boxed else 0)

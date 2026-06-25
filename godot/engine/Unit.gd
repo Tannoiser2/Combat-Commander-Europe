@@ -124,5 +124,5 @@ func clone() -> Unit:
 	u.q = q; u.r = r
 	u.efficient = efficient; u.suppressed = suppressed
 	u.activated = activated; u.veteran = veteran
-	u.concealed = concealed
+	u.concealed = concealed; u.hero = hero
 	return u

@@ -36,6 +36,9 @@ func _ready() -> void:
 	_test_recover_suppression()
 	_test_can_be_ordered()
 	_test_team_vs_squad()
+	_test_clone_preserves_hero()
+	_test_ai_advance_no_command()
+	_test_reachable_stops_at_wire()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -299,6 +302,38 @@ func _test_team_vs_squad() -> void:
 	var built := UnitChart.build_unit("wt", GER, "Weapon Team", 0, 0)
 	_check(built.type == Domain.UnitType.TEAM, "UnitChart costruisce 'Weapon Team' come TEAM")
 	_check(built.is_man() and not built.is_weapon(), "un Team è un uomo, non un'arma")
+
+
+func _test_clone_preserves_hero() -> void:
+	print("· Unit.clone preserva lo stato Eroe")
+	var h := _mk("hero", GER, Domain.UnitType.LEADER, RIFLE, 0, 0)
+	h.hero = true
+	_check(h.clone().hero, "clone() copia il flag hero (immunità al Casualty Track)")
+
+
+func _test_ai_advance_no_command() -> void:
+	print("· IA: niente Comando nella stima della melee (O16.4)")
+	var s := _new_state()
+	# Attaccante con FP 1 ma Comando 5; difensore con FP 2 adiacente.
+	var atk := _mk("rus", RUS, SQUAD, RIFLE, 1, 1, 1, 7, 6, 5)
+	var foe := _mk("ger", GER, SQUAD, RIFLE, 2, 1, 2, 7)
+	s.units[atk.id] = atk
+	s.units[foe.id] = foe
+	_check(AI.best_advance(s, RUS).is_empty(),
+		"FP 1 vs 2: l'IA non avanza nonostante il Comando 5 (il Comando non conta in melee)")
+
+
+func _test_reachable_stops_at_wire() -> void:
+	print("· Anteprima movimento: Filo ferma l'espansione (F106)")
+	var s := _new_state(5, 1)  # 1 riga = corridoio (ogni esagono solo sx/dx)
+	var u := _mk("u", GER, SQUAD, RIFLE, 0, 0)
+	u.move = 4
+	s.units[u.id] = u
+	_check(HexGrid.reachable(u, s).has(Vector2i(3, 0)), "corridoio libero: (3,0) raggiungibile")
+	s.hex_at(1, 0).fortification = Domain.Fort.WIRE
+	var r1 := HexGrid.reachable(u, s)
+	_check(r1.has(Vector2i(1, 0)), "si può entrare nell'esagono con Filo")
+	_check(not r1.has(Vector2i(2, 0)), "il Filo ferma il movimento: niente oltre (1,0)")
 
 
 func _test_can_be_ordered() -> void:
