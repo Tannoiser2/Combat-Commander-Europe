@@ -134,21 +134,30 @@ static func has_los(
 	return true
 
 
-## Ostacolo cumulativo (hindrance) lungo la LOS: somma degli hindrance del
-## terreno negli esagoni intermedi. Riduce la potenza di fuoco.
+## Hindrance lungo la LOS (10.3.3): NON cumulativo — si usa il modificatore
+## SINGOLO più grande, non la somma (due Brush = −3, non −6). Considera il
+## terreno degli esagoni intermedi e il fumo, che ostacola anche entrando/
+## uscendo (10.3.4): quindi conta anche sull'esagono del tiratore e del bersaglio.
+const SMOKE_HINDRANCE := 3   ## modello a fumo booleano: valore rappresentativo
+
 static func los_hindrance(q1: int, r1: int, q2: int, r2: int, state: GameState) -> int:
+	var best := 0
+	# Fumo sull'esagono del tiratore o del bersaglio (10.3.4).
+	for p in [Vector2i(q1, r1), Vector2i(q2, r2)]:
+		var ehd: GameState.HexData = state.hex_at(p.x, p.y)
+		if ehd != null and ehd.has_smoke:
+			best = maxi(best, SMOKE_HINDRANCE)
 	var dist := distance(q1, r1, q2, r2)
 	if dist <= 1:
-		return 0
+		return best
 	var path := line(q1, r1, q2, r2)
-	var total := 0
 	for i in range(1, dist):
 		var hd: GameState.HexData = state.hex_at(path[i].x, path[i].y)
 		if hd != null:
-			total += int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0))
+			best = maxi(best, int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0)))
 			if hd.has_smoke:
-				total += 1
-	return total
+				best = maxi(best, SMOKE_HINDRANCE)
+	return best
 
 
 # ─── BFS — esagoni raggiungibili ─────────────────────────────────────────────

@@ -145,12 +145,13 @@ const TERRAIN_COVER := {
 	TerrainType.BRIDGE:   2,
 }
 
-## Ostacolo (hindrance): ogni esagono di questo tipo ATTRAVERSATO dalla LOS
-## riduce la potenza di fuoco (cumulativo), senza bloccare la vista.
+## Ostacolo (hindrance): valori dalla Terrain Chart ufficiale (colonna LOS).
+## NON cumulativo (10.3.3): lungo la LOS conta il modificatore singolo più grande.
 const TERRAIN_HINDRANCE := {
-	TerrainType.ORCHARD: 1,
+	TerrainType.BRUSH:   3,
+	TerrainType.ORCHARD: 2,
 	TerrainType.FIELD:   1,
-	TerrainType.BRUSH:   1,
+	TerrainType.MARSH:   1,
 }
 
 ## Blocco della LOS: true = questo terreno interrompe la linea di vista.

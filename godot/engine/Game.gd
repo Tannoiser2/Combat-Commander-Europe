@@ -878,10 +878,8 @@ func projected_fire_fp() -> int:
 	fp += 2 * state.fire_modifiers.size()  # modificatori applicati (+2 ciascuno)
 	var u := state.unit_by_id(state.selected_unit_id)
 	if u != null and not u.ordnance:
+		# Hindrance non cumulativo; fumo già incluso in los_hindrance (10.3.3/.4).
 		var hind := HexGrid.los_hindrance(u.q, u.r, state.fire_target_q, state.fire_target_r, state)
-		var hd: GameState.HexData = state.hex_at(state.fire_target_q, state.fire_target_r)
-		if hd != null and hd.has_smoke:
-			hind += 1
 		fp = maxi(1, fp - hind)
 	return fp
 
