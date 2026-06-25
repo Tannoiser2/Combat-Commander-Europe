@@ -96,6 +96,11 @@ static func resolve_fire(
 		res.log_line = "Nessuna linea di vista verso (%d,%d)" % [tq, tr]
 		return res
 
+	# Sparare rivela la posizione: il tiratore perde la mimetizzazione (anche se
+	# l'ordnance poi manca il Targeting Roll). I pezzi di supporto del gruppo di
+	# fuoco sono rivelati più sotto, una volta formato il gruppo.
+	attacker.concealed = false
+
 	# Ostacolo (hindrance) lungo la LOS. Per le armi normali riduce la potenza di
 	# fuoco; per l'ordnance modifica invece il Targeting Roll (O20.2.3/10.3.1).
 	var hd: GameState.HexData = state.hex_at(tq, tr)
@@ -118,6 +123,9 @@ static func resolve_fire(
 	# ─── Potenza di fuoco del gruppo (O20.3.1.2) ─────────────────────────────
 	# Gruppo esplicito (scelto dal giocatore) o, in assenza, quello automatico.
 	var group := group_override if not group_override.is_empty() else fire_group(attacker, tq, tr, state)
+	# Anche i pezzi di supporto che sparano si rivelano (perdono la mimetizzazione).
+	for gu in group:
+		gu.concealed = false
 	# FP del pezzo base = migliore FP già comprensivo del Comando del leader
 	# co-locato (3.3.1.2 squadre/team, 3.3.1.3 armi), + 1 per ogni pezzo
 	# aggiuntivo (NON la somma di tutti gli FP). L'ordnance non è mai modificata.
