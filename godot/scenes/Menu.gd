@@ -1,7 +1,8 @@
-## Schermata iniziale: a sinistra l'elenco compatto dei 24 scenari; a destra, in
-## pila, l'anteprima della MAPPA (piccola, in alto), l'Ordine di Battaglia su due
-## colonne (i due avversari — si sceglie con chi giocare) e infine l'ARTWORK
-## pittorico, che prende tutta l'altezza rimanente. UI costruita via codice.
+## Schermata iniziale: a sinistra l'elenco compatto dei 24 scenari; al centro
+## l'ARTWORK pittorico a piena altezza; a destra, in una colonna ampia,
+## l'anteprima della MAPPA (grande, in alto) e sotto l'Ordine di Battaglia su
+## due colonne con le pedine reali (i due avversari — si sceglie con chi
+## giocare). UI costruita via codice.
 extends Control
 
 var _scenarios: Array = []     ## scenari.json (numero, titolo, luogo, data)
@@ -85,7 +86,7 @@ func _build_ui() -> void:
 	_art_tex.anchor_top = 0.0
 	_art_tex.anchor_bottom = 1.0
 	_art_tex.offset_left = 224
-	_art_tex.offset_right = -332
+	_art_tex.offset_right = -492
 	_art_tex.offset_top = 16
 	_art_tex.offset_bottom = -16
 	add_child(_art_tex)
@@ -97,7 +98,7 @@ func _build_ui() -> void:
 	panel.anchor_right = 1.0
 	panel.anchor_top = 0.0
 	panel.anchor_bottom = 1.0
-	panel.offset_left = -320
+	panel.offset_left = -480
 	panel.offset_right = -12
 	panel.offset_top = 16
 	panel.offset_bottom = -16
@@ -114,7 +115,7 @@ func _build_ui() -> void:
 	_map_tex = TextureRect.new()
 	_map_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_map_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_map_tex.custom_minimum_size = Vector2(0, 178)
+	_map_tex.custom_minimum_size = Vector2(0, 300)
 	inner.add_child(_map_tex)
 
 	# Ordine di Battaglia (sotto la mappa): una colonna per avversario; cliccando
@@ -166,9 +167,9 @@ func _ob_column(axis: bool) -> Control:
 	margin.add_child(col)
 	box.add_child(margin)
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(0, 44)
+	btn.custom_minimum_size = Vector2(0, 48)
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_font_size_override("font_size", 16)
 	btn.tooltip_text = "Clicca per giocare con questa fazione"
 	btn.pressed.connect(_start.bind(Domain.Faction.GERMAN if axis else Domain.Faction.RUSSIAN))
 	col.add_child(btn)
@@ -230,12 +231,12 @@ func _fill_ob(btn: Button, forces: VBoxContainer, nation: String, forze: Array, 
 		if tex != null:
 			var ic := TextureRect.new()
 			ic.texture = tex
-			ic.custom_minimum_size = Vector2(30, 30)
+			ic.custom_minimum_size = Vector2(42, 42)
 			ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			row.add_child(ic)
 		var lbl := Label.new()
-		lbl.add_theme_font_size_override("font_size", 11)
+		lbl.add_theme_font_size_override("font_size", 13)
 		lbl.modulate = Color(0.84, 0.86, 0.9)
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL

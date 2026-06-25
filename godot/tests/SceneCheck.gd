@@ -43,6 +43,17 @@ func _initialize() -> void:
 	# 2) Zoom & pan della mappa 2D.
 	_check_view(inst.get_node_or_null("HexMap"))
 
+	# 3) Schermata iniziale: deve istanziarsi senza errori (UI costruita via codice).
+	var menu_scene: PackedScene = load("res://scenes/Menu.tscn")
+	if menu_scene == null:
+		_fail("Menu.tscn non caricata")
+	else:
+		var menu: Node = menu_scene.instantiate()
+		if menu == null:
+			_fail("Menu.tscn instantiate ha restituito null")
+		else:
+			get_root().add_child(menu)
+
 	print("SCENE_RESULT: ", "PASS" if _ok else "FAIL")
 	quit(0 if _ok else 1)
 
