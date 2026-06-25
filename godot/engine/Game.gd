@@ -458,10 +458,7 @@ func click_hex(q: int, r: int) -> void:
 				Domain.OrderType.ARTY:
 					click_hex_artillery(q, r)
 		else:
-			var own_here := units_here.filter(
-				func(u: Unit) -> bool: return u.faction == s.human_faction and not u.activated)
-			if own_here.size() > 0:
-				select_unit(own_here[0].id)
+			_cycle_select(units_here, false)
 	elif s.phase == Domain.Phase.REACTION_WINDOW:
 		for sid in s.opfire_shooter_ids:
 			var sv := s.unit_by_id(sid)
@@ -470,12 +467,32 @@ func click_hex(q: int, r: int) -> void:
 				return
 		opfire_decline()
 	elif s.phase == Domain.Phase.PLAYER_TURN:
-		var own := units_here.filter(
-			func(u: Unit) -> bool: return u.faction == s.human_faction and not u.activated)
-		if own.size() > 0:
-			select_unit(own[0].id)
-		else:
+		_cycle_select(units_here, true)
+
+
+## Ciclo di selezione nell'impilamento: a clic ripetuti sullo stesso esagono
+## scorre le pedine amiche non attivate (per scegliere quella voluta); dopo
+## l'ultima, se `allow_deselect`, deseleziona, altrimenti riparte dalla prima.
+func _cycle_select(units_here: Array, allow_deselect: bool) -> void:
+	var sel_list: Array = units_here.filter(
+		func(u: Unit) -> bool: return u.faction == state.human_faction and not u.activated)
+	if sel_list.is_empty():
+		if allow_deselect:
 			deselect()
+		return
+	var idx := -1
+	for i in sel_list.size():
+		if sel_list[i].id == state.selected_unit_id:
+			idx = i
+			break
+	if idx < 0:
+		select_unit(sel_list[0].id)
+	elif idx + 1 < sel_list.size():
+		select_unit(sel_list[idx + 1].id)
+	elif allow_deselect:
+		deselect()
+	else:
+		select_unit(sel_list[0].id)
 
 
 ## Giocatore clicca su un esagono durante la fase di movimento.

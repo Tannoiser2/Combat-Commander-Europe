@@ -252,17 +252,20 @@ func _add_pieces(s: GameState) -> void:
 		var arr: Array = by_hex[k]
 		for i in arr.size():
 			var u: Unit = arr[i]
+			var sel := u.id == s.selected_unit_id
 			var top_y := _top_y(s, u.q, u.r)
 			var ci := _hex_img(u.q, u.r)
 			var off := Vector3(0.16 * i - 0.12, 0.12 * i, -0.16 * i + 0.12)
-			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off
+			# La pedina selezionata si solleva sopra l'impilamento per essere vista.
+			var lift := 0.7 if sel else 0.0
+			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off + Vector3(0.0, lift, 0.0)
 			var tex := _counter_tex(u)
 			if tex != null:
 				var sp := Sprite3D.new()
 				sp.texture = tex
 				sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 				sp.shaded = false
-				sp.pixel_size = 1.5 / float(tex.get_height())
+				sp.pixel_size = (1.85 if sel else 1.5) / float(tex.get_height())
 				sp.position = base + Vector3(0.0, 0.75, 0.0)
 				_dynamic.add_child(sp)
 			else:
