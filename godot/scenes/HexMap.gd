@@ -38,7 +38,7 @@ const COL_CMD_AURA := Color(1.0, 0.55, 0.0, 0.10)      ## alone tenue del raggio
 const COL_MP_TEXT := Color(0.06, 0.06, 0.06, 0.97)     ## numero costo PM (scuro, leggibile)
 
 ## Fortificazioni: lettera e colore del badge
-const FORT_LETTERS := { 1: "T", 2: "C", 3: "B", 4: "≋", 5: "✸" }  # Trincea/Casamatta/Bunker/Filo/Mine
+const FORT_LETTERS := { 1: "T", 2: "C", 3: "B", 4: "#", 5: "*" }  # Trincea/Casamatta/Bunker/Filo/Mine
 const FORT_COLORS := {
 	1: Color(0.7, 0.9, 1.0),   # Trincea
 	2: Color(0.8, 0.8, 0.85),  # Casamatta
@@ -171,7 +171,7 @@ func _draw() -> void:
 		if bhd.has_blaze:
 			var bp := String(key).split(",")
 			_draw_hex_fill(int(bp[0]), int(bp[1]), Color(0.95, 0.45, 0.1, 0.45))
-			_draw_text("✷", _hex_center(int(bp[0]), int(bp[1])), 14.0, Color(1, 0.85, 0.2), true)
+			_draw_text("*", _hex_center(int(bp[0]), int(bp[1])), 16.0, Color(1, 0.85, 0.2), true)
 
 	# Fortificazioni: piccola etichetta in alto nell'esagono
 	for key in s.hexes:
@@ -436,7 +436,7 @@ func _draw_fire_readout(target_center: Vector2) -> void:
 	var txt := "FP %d" % int(pv.get("fp", 0))
 	var col := Color(0.95, 0.95, 0.5)
 	if int(pv.get("defense", -1)) >= 0:
-		txt += "  vs DIF %d  →  %s" % [int(pv["defense"]), pv.get("verdict", "")]
+		txt += "  vs DIF %d  ->  %s" % [int(pv["defense"]), pv.get("verdict", "")]
 		match String(pv.get("verdict", "")):
 			"favorevole":  col = Color(0.4, 1.0, 0.4)
 			"sfavorevole": col = Color(1.0, 0.45, 0.4)

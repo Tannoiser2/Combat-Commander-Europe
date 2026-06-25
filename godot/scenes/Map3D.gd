@@ -531,7 +531,7 @@ func _add_fire_readout(s: GameState) -> void:
 	var txt := "FP %d" % int(pv.get("fp", 0))
 	var col := Color(1.0, 0.95, 0.5)
 	if int(pv.get("defense", -1)) >= 0:
-		txt += " vs DIF %d → %s" % [int(pv["defense"]), pv.get("verdict", "")]
+		txt += " vs DIF %d -> %s" % [int(pv["defense"]), pv.get("verdict", "")]
 		match String(pv.get("verdict", "")):
 			"favorevole":  col = Color(0.4, 1.0, 0.4)
 			"sfavorevole": col = Color(1.0, 0.45, 0.4)
@@ -683,7 +683,7 @@ func _add_objectives(s: GameState) -> void:
 ## Marcatori di stato sulla mappa (come la 2D): fumo, incendi, fortificazioni,
 ## buche e ultimo impatto d'artiglieria. Tutto nel layer dinamico.
 func _add_status_markers(s: GameState) -> void:
-	var fort_letters := { 1: "T", 2: "C", 3: "B", 4: "≋", 5: "✸" }
+	var fort_letters := { 1: "T", 2: "C", 3: "B", 4: "#", 5: "*" }
 	var fort_colors := {
 		1: Color(0.7, 0.9, 1.0), 2: Color(0.8, 0.8, 0.85), 3: Color(0.85, 0.85, 0.9),
 		4: Color(1.0, 0.8, 0.3), 5: Color(1.0, 0.4, 0.3),

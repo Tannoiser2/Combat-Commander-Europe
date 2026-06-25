@@ -65,7 +65,7 @@ size_flags_horizontal = 3
 
 [node name="MenuBtn" type="Button" parent="TopBar/HBox"]
 layout_mode = 2
-text = "☰ Menù"
+text = "Menù"
 
 [node name="Hint" type="Label" parent="."]
 layout_mode = 1
@@ -145,7 +145,7 @@ alignment = 1
 [node name="ToggleBtn" type="Button" parent="HandPanel/VBox/Header"]
 layout_mode = 2
 custom_minimum_size = Vector2(130, 0)
-text = "▼ Carte"
+text = "Nascondi carte"
 
 [node name="EndTurnBtn" type="Button" parent="HandPanel/VBox/Header"]
 layout_mode = 2

@@ -61,7 +61,7 @@ func _build_view3d_button() -> void:
 	sub.add_child(_board3d)
 
 	_view3d_btn = Button.new()
-	_view3d_btn.text = "⬚ Vista 3D"
+	_view3d_btn.text = "Vista 3D"
 	_view3d_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_view3d_btn.offset_left = -150
 	_view3d_btn.offset_top = 40
@@ -81,7 +81,7 @@ func _set_3d(on: bool) -> void:
 		if on:
 			_board3d.refresh()
 	if _view3d_btn != null:
-		_view3d_btn.text = "▣ Vista 2D" if on else "⬚ Vista 3D"
+		_view3d_btn.text = "Vista 2D" if on else "Vista 3D"
 
 
 ## Legenda dei simboli della mappa (toggle col tasto «L»), creata via codice per
@@ -101,8 +101,8 @@ func _build_legend() -> void:
 	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	lbl.text = "[b]Legenda (L per chiudere)[/b]\n" \
 		+ "T / C / B  Trincea / Casamatta / Bunker\n" \
-		+ "≋  Filo spinato    ✸  Mine\n" \
-		+ "✷  Esagono in fiamme (impassabile)\n" \
+		+ "#  Filo spinato    *  Mine\n" \
+		+ "*  Esagono in fiamme (impassabile)\n" \
 		+ "[color=#cfc]riempimento verde[/color]  buca/foxhole\n" \
 		+ "[color=#ccd]nube grigia[/color]  fumo (hindrance)\n" \
 		+ "[color=#f55]anello rosso[/color]  impatto d'artiglieria\n" \
@@ -180,7 +180,7 @@ func _refresh_ui() -> void:
 	var sd: int = s.sudden_death_space
 	var filled: int = clampi(s.time_marker, 0, sd)
 	time_label.text = "Tempo %s %d/%d" % [
-		"▰".repeat(filled) + "▱".repeat(max(0, sd - filled)), s.time_marker, sd
+		"#".repeat(filled) + "-".repeat(max(0, sd - filled)), s.time_marker, sd
 	]
 	# Bilancia VP (positivo = Germania avanti)
 	var leader := "GER" if s.vp_tracker > 0 else ("RUS" if s.vp_tracker < 0 else "—")
@@ -204,7 +204,7 @@ func _guidance_text(s: GameState) -> String:
 	match s.phase:
 		Domain.Phase.PLAYER_TURN:
 			var ord := "  (ordini %d/%d)" % [s.order_count, s.max_orders]
-			var arty := "  · 📻 Artiglieria pronta" if Game.has_artillery_available() else ""
+			var arty := "  · Artiglieria pronta" if Game.has_artillery_available() else ""
 			if s.order_count >= s.max_orders:
 				return "Ordini esauriti%s — gioca un'Azione (dx) o premi «Fine Turno»" % ord
 			if s.selected_unit_id != "":
@@ -232,7 +232,7 @@ func _guidance_text(s: GameState) -> String:
 						var pv := Game.fire_preview()
 						var msg := "FUOCO — squadra %d · FP %d" % [s.fire_group_ids.size(), int(pv.get("fp", 0))]
 						if int(pv.get("defense", -1)) >= 0:
-							msg += " vs DIF %d (cop %d) → %s" % [
+							msg += " vs DIF %d (cop %d) -> %s" % [
 								int(pv["defense"]), int(pv["cover"]), pv.get("verdict", "")]
 						msg += " · pezzo arancio = aggiungi/togli · dx carta = modificatore · clicca il BERSAGLIO per sparare"
 						if not s.fire_modifiers.is_empty():
@@ -249,11 +249,11 @@ func _guidance_text(s: GameState) -> String:
 					return "AVANZATA — clicca un esagono adiacente · l'unità per annullare"
 				Domain.OrderType.ARTY:
 					var mode := "FUMO" if s.artillery_smoke else "esplosivo"
-					return "🎯 ARTIGLIERIA [%s] — clicca il bersaglio (giallo) nella LOS · «S» = fumo/esplosivo · lo spotter per annullare" % mode
+					return "ARTIGLIERIA [%s] — clicca il bersaglio (giallo) nella LOS · «S» = fumo/esplosivo · lo spotter per annullare" % mode
 				_:
 					return "Clicca un'unità sulla mappa"
 		Domain.Phase.REACTION_WINDOW:
-			return "⚡ FUOCO DI OPPORTUNITÀ — clicca un tiratore (giallo) per sparare · altrove o SPAZIO = non sparare"
+			return "FUOCO DI OPPORTUNITÀ — clicca un tiratore (giallo) per sparare · altrove o SPAZIO = non sparare"
 		_:
 			return Domain.PHASE_LABELS.get(s.phase, "")
 
@@ -307,8 +307,8 @@ func _refresh_hand() -> void:
 		child.queue_free()
 	if Game.state == null:
 		return
-	hand_toggle_btn.text = "▲ Carte (%d)" % Game.state.hand_of(Game.state.human_faction).size() if _hand_collapsed \
-		else "▼ Carte (%d)" % Game.state.hand_of(Game.state.human_faction).size()
+	var n_cards := Game.state.hand_of(Game.state.human_faction).size()
+	hand_toggle_btn.text = "Mostra carte (%d)" % n_cards if _hand_collapsed else "Nascondi carte (%d)" % n_cards
 	hand_container.visible = not _hand_collapsed
 	if _hand_collapsed:
 		return

@@ -108,19 +108,19 @@ func _build_ui() -> void:
 	fac.add_theme_constant_override("separation", 20)
 	inner.add_child(fac)
 	_play_ger = Button.new()
-	_play_ger.text = "⚔ Germania"
+	_play_ger.text = "Germania"
 	_play_ger.custom_minimum_size = Vector2(190, 52)
 	_play_ger.pressed.connect(_start.bind(Domain.Faction.GERMAN))
 	fac.add_child(_play_ger)
 	_play_rus = Button.new()
-	_play_rus.text = "★ Unione Sovietica"
+	_play_rus.text = "Unione Sovietica"
 	_play_rus.custom_minimum_size = Vector2(190, 52)
 	_play_rus.pressed.connect(_start.bind(Domain.Faction.RUSSIAN))
 	fac.add_child(_play_rus)
 
 	# Editor mappe (in alto a destra).
 	var ed := Button.new()
-	ed.text = "✎ Editor mappe"
+	ed.text = "Editor mappe"
 	ed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	ed.offset_left = -170
 	ed.offset_top = 12
