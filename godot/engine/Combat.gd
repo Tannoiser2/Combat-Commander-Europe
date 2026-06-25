@@ -109,7 +109,7 @@ static func resolve_fire(
 		if product <= dist + hind:
 			res.fp_total = 0
 			res.dice_roll = product
-			res.log_line = "%s targeting su (%d,%d): %d×%d=%d ≤ gittata%d+h%d ⇒ MANCATO" % [
+			res.log_line = "%s targeting su (%d,%d): %d×%d=%d <= gittata%d+h%d => MANCATO" % [
 				attacker.unit_name, tq, tr, atk_dice.x, atk_dice.y, product, dist, hind]
 			return res
 
@@ -132,7 +132,7 @@ static func resolve_fire(
 	if not attacker.ordnance and fp - hind <= 0:
 		res.fp_total = 0
 		res.dice_roll = atk_dice.x + atk_dice.y
-		res.log_line = "%s su (%d,%d): FP %d − hindrance %d ≤ 0 ⇒ attacco ANNULLATO (10.3.2.1)" % [
+		res.log_line = "%s su (%d,%d): FP %d - hindrance %d <= 0 => attacco ANNULLATO (10.3.2.1)" % [
 			attacker.unit_name, tq, tr, fp, hind]
 		return res
 	var attack_fp := maxi(1, fp) if attacker.ordnance else (fp - hind)
@@ -152,20 +152,20 @@ static func resolve_fire(
 		spray_cover = _resolve_hex_defenders(state, attacker, spray_q, spray_r, attack_total, def_roll, res)
 
 	# ─── Log ─────────────────────────────────────────────────────────────────
-	res.log_line = "%s (×%d) spara su (%d,%d): ATT %d (FP%d−h%d+%d) vs DIF (mor+cop%d+%d)" % [
+	res.log_line = "%s (×%d) spara su (%d,%d): ATT %d (FP%d-h%d+%d) vs DIF (mor+cop%d+%d)" % [
 		attacker.unit_name, group.size(), tq, tr,
 		attack_total, fp, hind, res.dice_roll, cover, def_roll
 	]
 	if spray_cover >= 0:
 		res.log_line += " | sventagliata su (%d,%d) cop%d" % [spray_q, spray_r, spray_cover]
 	if res.eliminated.size() > 0:
-		res.log_line += " ⇒ ELIMINATE: %s" % ", ".join(res.eliminated)
+		res.log_line += " => ELIMINATE: %s" % ", ".join(res.eliminated)
 	if res.broken.size() > 0:
-		res.log_line += " ⇒ ROTTE: %s" % ", ".join(res.broken)
+		res.log_line += " => ROTTE: %s" % ", ".join(res.broken)
 	if res.suppressed.size() > 0:
-		res.log_line += " ⇒ SOPPRESSE: %s" % ", ".join(res.suppressed)
+		res.log_line += " => SOPPRESSE: %s" % ", ".join(res.suppressed)
 	if res.eliminated.is_empty() and res.broken.is_empty() and res.suppressed.is_empty():
-		res.log_line += " ⇒ nessun effetto"
+		res.log_line += " => nessun effetto"
 
 	# Rimuove dallo stato le unità eliminate (contandole sul Casualty Track).
 	for uid in res.eliminated:

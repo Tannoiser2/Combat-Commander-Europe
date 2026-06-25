@@ -286,7 +286,7 @@ static func resolve_melee(
 	var outcome := "PAREGGIO (entrambi eliminati)"
 	if res.winner != -1:
 		outcome = "vince %s" % Domain.FACTION_SHORT.get(res.winner, "?")
-	res.log_line = "Corpo a corpo: ATT %d vs DIF %d → %s, eliminate %d unità" % [
+	res.log_line = "Corpo a corpo: ATT %d vs DIF %d -> %s, eliminate %d unità" % [
 		res.atk_total, res.def_total, outcome, res.eliminated.size()]
 	return res
 

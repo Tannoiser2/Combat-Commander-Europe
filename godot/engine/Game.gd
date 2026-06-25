@@ -52,7 +52,7 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 	Cards.shuffle(state.russian_deck)
 	Cards.deal_initial(state)
 
-	_log("═══ SCENARIO %d: %s ═══" % [state.scenario_number, state.scenario_name])
+	_log("=== SCENARIO %d: %s ===" % [state.scenario_number, state.scenario_name])
 	_log("Turno %d — iniziativa: %s" % [
 		state.turn_number,
 		Domain.FACTION_NAMES.get(state.initiative_holder, "?")
@@ -83,7 +83,7 @@ func save_game(path: String = SaveGame.SAVE_PATH) -> bool:
 		return false
 	var ok := SaveGame.save_state(state, path)
 	if ok:
-		_log("💾 Partita salvata.")
+		_log("Partita salvata.")
 	return ok
 
 
@@ -93,7 +93,7 @@ func load_game(path: String = SaveGame.SAVE_PATH) -> bool:
 	if s == null:
 		return false
 	state = s
-	_log("📂 Partita caricata.")
+	_log("Partita caricata.")
 	emit_signal("phase_changed", state.phase)
 	emit_signal("state_changed")
 	return true
@@ -1102,7 +1102,7 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	state.move_committed = true
 	state.moving_unit_id = u.id
 	state.moving_card_index = state.selected_card_index
-	_log("%s si muove (%d,%d)→(%d,%d) [-%d PM, rimasti %d]" % [
+	_log("%s si muove (%d,%d)->(%d,%d) [-%d PM, rimasti %d]" % [
 		u.unit_name, old_q, old_r, tq, tr, cost, remaining
 	])
 	emit_signal("unit_moved", u.id, tq, tr)
@@ -1205,7 +1205,7 @@ func _execute_recover(hand_index: int) -> void:
 	for u in broken:
 		var fate := _draw_fate(state.human_faction)
 		var r := Rules.try_recover(state, u, _dice_of(fate))
-		_log("Recupero %s: %d vs %d → %s" % [
+		_log("Recupero %s: %d vs %d -> %s" % [
 			u.unit_name, r["roll"], r["target"], "OK" if r["success"] else "fallito"
 		])
 		_apply_fate(fate, state.human_faction)
@@ -1225,7 +1225,7 @@ func _execute_rout(hand_index: int) -> void:
 		var fate := _draw_fate(state.human_faction)
 		var r := Rules.rout_unit(state, u, _dice_of(fate))
 		if r["eliminated"]:
-			_log("Rotta %s: %d esagoni → ELIMINATA (nessuna via di fuga)" % [u.unit_name, r["steps"]])
+			_log("Rotta %s: %d esagoni -> ELIMINATA (nessuna via di fuga)" % [u.unit_name, r["steps"]])
 			emit_signal("unit_eliminated", u.id)
 		else:
 			_log("Rotta %s: tiro %d, si ritira di %d esagoni" % [u.unit_name, r["roll"], r["moved"]])
@@ -1328,13 +1328,13 @@ func _mine_attack_on_move(u: Unit, from_q: int, from_r: int) -> bool:
 	if atk > defn:
 		if u.efficient:
 			u.break_unit()
-			_log("💥 Mine: %s colpita (att %d > dif %d) → rotta." % [u.unit_name, atk, defn])
+			_log("Mine: %s colpita (att %d > dif %d) -> rotta." % [u.unit_name, atk, defn])
 		else:
-			_log("💥 Mine: %s colpita (att %d > dif %d) → eliminata." % [u.unit_name, atk, defn])
+			_log("Mine: %s colpita (att %d > dif %d) -> eliminata." % [u.unit_name, atk, defn])
 			emit_signal("unit_eliminated", u.id)
 			state.eliminate_unit(u.id)
 		return true
-	_log("Mine: %s passa (att %d ≤ dif %d)." % [u.unit_name, atk, defn])
+	_log("Mine: %s passa (att %d <= dif %d)." % [u.unit_name, atk, defn])
 	return false
 
 
@@ -1357,7 +1357,7 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	var atk_fate := _draw_fate(defender)
 	var def_fate := _draw_fate(mover.faction)
 	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
-	_log("⚡ Opportunità — " + res.log_line)
+	_log("Opportunità — " + res.log_line)
 	for id in res.eliminated:
 		emit_signal("unit_eliminated", id)
 	_apply_fate(atk_fate, defender, { "kind": "fire", "weapons": weapon_ids })
@@ -1703,7 +1703,7 @@ func _check_sudden_death(triggering_faction: int) -> void:
 	var space := state.time_marker
 	var total := _sd_roll(triggering_faction)
 	if total >= space:
-		_log("Morte Subitanea evitata: tiro %d ≥ %d (casella Tempo)." % [total, space])
+		_log("Morte Subitanea evitata: tiro %d >= %d (casella Tempo)." % [total, space])
 		return
 	# La Morte Subitanea scatterebbe. Vincitore = leader nei VP; in pareggio,
 	# il detentore dell'Iniziativa (9.2).
@@ -1718,11 +1718,11 @@ func _check_sudden_death(triggering_faction: int) -> void:
 		_log("Re-Roll dell'Iniziativa: %s annulla la Morte Subitanea e cede l'Iniziativa a %s — nuovo tiro %d vs %d." % [
 			Domain.FACTION_NAMES.get(loser, "?"), Domain.FACTION_NAMES.get(winner, "?"), t2, space])
 		if t2 >= space:
-			_log("Morte Subitanea evitata col Re-Roll: %d ≥ %d — la partita continua." % [t2, space])
+			_log("Morte Subitanea evitata col Re-Roll: %d >= %d — la partita continua." % [t2, space])
 			return
 		_log("Morte Subitanea confermata anche dopo il Re-Roll: %d < %d." % [t2, space])
 	_log("VP finali — bilancia %+d (positivo = Germania)" % state.vp_tracker)
-	_log("⏰ MORTE SUBITANEA — fine partita.")
+	_log("MORTE SUBITANEA — fine partita.")
 	_end_game(winner)
 
 
@@ -1783,7 +1783,7 @@ func _end_game(winner: int) -> void:
 		return  # partita già conclusa: evita doppio segnale
 	_change_phase(Domain.Phase.GAME_OVER)
 	var fname: String = Domain.FACTION_NAMES.get(winner, "PAREGGIO")
-	_log("═══ FINE PARTITA — Vincitore: %s ═══" % fname)
+	_log("=== FINE PARTITA — Vincitore: %s ===" % fname)
 	emit_signal("game_over", winner)
 
 

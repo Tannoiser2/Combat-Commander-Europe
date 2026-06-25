@@ -57,7 +57,7 @@ static func assign(state: GameState, count: int, rng: RandomNumberGenerator) -> 
 		_apply_chit(state, chit, lines)
 	# Riepilogo VP per obiettivo.
 	for o in state.objectives:
-		lines.append("Obiettivo #%d → %d VP" % [o.id, o.vp])
+		lines.append("Obiettivo #%d -> %d VP" % [o.id, o.vp])
 	out["drawn"] = drawn
 	out["lines"] = lines
 	return out
