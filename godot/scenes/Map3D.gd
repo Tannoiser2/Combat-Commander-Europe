@@ -20,6 +20,9 @@ var _cam_dist := 30.0
 var _center := Vector3.ZERO
 
 var _dynamic: Node3D
+var _fx: Node3D            ## layer effetti transitori (tracer, flash); non azzerato dai refresh
+var _last_unit_pos := {}   ## id unità → Vector2i(q,r) noto (per animare lo spostamento)
+var _pending_slide := {}   ## id unità → Vector3 posizione mondo di partenza dello slittamento
 var _press_pos := Vector2.ZERO
 var _dragged := false
 var _touches := {}        ## indice dito → posizione (per il pinch a due dita)
@@ -40,16 +43,110 @@ func _ready() -> void:
 	_build_static(s)
 	_dynamic = Node3D.new()
 	add_child(_dynamic)
+	_fx = Node3D.new()
+	add_child(_fx)
 	_refresh_dynamic(s)
 	_camera.current = true
 	_update_camera()
 	if not Game.state_changed.is_connected(_on_state_changed):
 		Game.state_changed.connect(_on_state_changed)
+	if not Game.unit_moved.is_connected(_on_unit_moved):
+		Game.unit_moved.connect(_on_unit_moved)
+	if not Game.fire_resolved.is_connected(_on_fire_resolved):
+		Game.fire_resolved.connect(_on_fire_resolved)
 
 
 func _on_state_changed() -> void:
 	if Game.state != null and active:
 		_refresh_dynamic(Game.state)
+
+
+## Lo spostamento di un'unità: memorizza la posizione di partenza così che, al
+## successivo refresh, la pedina scivoli dall'esagono vecchio a quello nuovo.
+func _on_unit_moved(id: String, q: int, r: int) -> void:
+	if not active or Game.state == null:
+		return
+	if _last_unit_pos.has(id):
+		var old: Vector2i = _last_unit_pos[id]
+		if old != Vector2i(q, r):
+			var oci := _hex_img(old.x, old.y)
+			var oty := _top_y(Game.state, old.x, old.y)
+			_pending_slide[id] = Vector3(oci.x * _world, oty + 0.75, oci.y * _world)
+
+
+## Tiro risolto: tracciante dallo sparatore al bersaglio + lampo e impatto.
+func _on_fire_resolved(result: Object) -> void:
+	if not active or Game.state == null or result == null:
+		return
+	var atk := Game.state.unit_by_id(result.attacker_id)
+	if atk == null:
+		return
+	var s := Game.state
+	var fci := _hex_img(atk.q, atk.r)
+	var from := Vector3(fci.x * _world, _top_y(s, atk.q, atk.r) + 0.9, fci.y * _world)
+	var tci := _hex_img(result.target_q, result.target_r)
+	var to := Vector3(tci.x * _world, _top_y(s, result.target_q, result.target_r) + 0.6, tci.y * _world)
+	_spawn_tracer(from, to)
+	_spawn_flash(from, 0.18, Color(1.0, 0.92, 0.45), 0.3)
+	_spawn_flash(to, 0.34, Color(1.0, 0.5, 0.15), 0.65)
+
+
+## Tracciante: cilindro sottile emissivo orientato da → a, che svanisce.
+func _spawn_tracer(from: Vector3, to: Vector3) -> void:
+	var tracer := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.03
+	cyl.bottom_radius = 0.03
+	cyl.height = from.distance_to(to)
+	cyl.radial_segments = 6
+	tracer.mesh = cyl
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(1.0, 0.95, 0.55)
+	m.emission_enabled = true
+	m.emission = Color(1.0, 0.85, 0.3)
+	m.emission_energy_multiplier = 2.0
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	tracer.material_override = m
+	tracer.transform = _aim_y((from + to) * 0.5, (to - from))
+	_fx.add_child(tracer)
+	var tw := tracer.create_tween()
+	tw.tween_interval(0.12)
+	tw.tween_property(m, "albedo_color:a", 0.0, 0.32)
+	tw.parallel().tween_property(m, "emission_energy_multiplier", 0.0, 0.32)
+	tw.tween_callback(tracer.queue_free)
+
+
+## Lampo/impatto: sfera emissiva che si espande e svanisce.
+func _spawn_flash(pos: Vector3, radius: float, color: Color, dur: float) -> void:
+	var fl := MeshInstance3D.new()
+	var sph := SphereMesh.new()
+	sph.radius = radius
+	sph.height = radius * 2.0
+	fl.mesh = sph
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.emission_enabled = true
+	m.emission = color
+	m.emission_energy_multiplier = 2.2
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fl.material_override = m
+	fl.position = pos
+	_fx.add_child(fl)
+	var tw := fl.create_tween()
+	tw.tween_property(fl, "scale", Vector3(2.2, 2.2, 2.2), dur)
+	tw.parallel().tween_property(m, "albedo_color:a", 0.0, dur)
+	tw.tween_callback(fl.queue_free)
+
+
+## Transform che mappa l'asse Y del mesh sulla direzione `dir` (per i cilindri).
+func _aim_y(origin: Vector3, dir: Vector3) -> Transform3D:
+	var y := dir.normalized()
+	var ref := Vector3.UP if absf(y.dot(Vector3.UP)) < 0.99 else Vector3.RIGHT
+	var x := ref.cross(y).normalized()
+	var z := x.cross(y).normalized()
+	return Transform3D(Basis(x, y, z), origin)
 
 
 ## Rigenera il layer dinamico (pedine, obiettivi, evidenziazioni).
@@ -289,6 +386,8 @@ func _add_pieces(s: GameState) -> void:
 			# La pedina selezionata si solleva sopra l'impilamento per essere vista.
 			var lift := 0.7 if sel else 0.0
 			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off + Vector3(0.0, lift, 0.0)
+			var final_pos := base + Vector3(0.0, 0.75, 0.0)
+			_last_unit_pos[u.id] = Vector2i(u.q, u.r)
 			var tex := _counter_tex(u)
 			if tex != null:
 				var sp := Sprite3D.new()
@@ -296,8 +395,16 @@ func _add_pieces(s: GameState) -> void:
 				sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 				sp.shaded = false
 				sp.pixel_size = (1.85 if sel else 1.5) / float(tex.get_height())
-				sp.position = base + Vector3(0.0, 0.75, 0.0)
 				_dynamic.add_child(sp)
+				# Se l'unità si è appena spostata, la pedina scivola da → a.
+				if _pending_slide.has(u.id):
+					sp.position = _pending_slide[u.id]
+					var tw := sp.create_tween()
+					tw.set_trans(Tween.TRANS_SINE)
+					tw.tween_property(sp, "position", final_pos, 0.28)
+					_pending_slide.erase(u.id)
+				else:
+					sp.position = final_pos
 			else:
 				var pm := MeshInstance3D.new()
 				var pc := CylinderMesh.new()
