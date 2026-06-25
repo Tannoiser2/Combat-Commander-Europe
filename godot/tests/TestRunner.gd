@@ -1292,6 +1292,15 @@ func _test_fortifications() -> void:
 	hd.fortification = Domain.Fort.TRENCH
 	_check(Rules.cover_at(s, 1, 1, false) == 4, "Trincea → copertura 4")
 
+	# Buca (F102): copertura ALTERNATIVA 3 (4 vs ordnance/artiglieria), non cumulativa.
+	var sfx := _new_state()
+	sfx.hex_at(0, 0).has_foxhole = true
+	_check(Rules.cover_at(sfx, 0, 0, false) == 3, "Buca → copertura 3")
+	_check(Rules.cover_at(sfx, 0, 0, true) == 4, "Buca vs ordnance/artiglieria → 4 (F102)")
+	sfx.hex_at(1, 1).terrain = Domain.TerrainType.WOODS  # copertura 2
+	sfx.hex_at(1, 1).has_foxhole = true
+	_check(Rules.cover_at(sfx, 1, 1, false) == 3, "Buca nel bosco → 3 (alternativa, NON cumulativa)")
+
 	# Filo spinato: −1 a FP/Gittata/Morale.
 	var u := _mk("g", GER, SQUAD, RIFLE, 2, 2, 6, 7, 6)
 	s.units[u.id] = u

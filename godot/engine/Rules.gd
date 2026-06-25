@@ -63,16 +63,17 @@ static func wire_penalty(state: GameState, u: Unit) -> int:
 	return 1 if (hd != null and hd.fortification == Domain.Fort.WIRE) else 0
 
 
-## Copertura dell'esagono per il tiro di difesa (T78.3 + fortificazioni). La buca
-## somma +3 (comportamento attuale); Trincea/Casamatta/Bunker danno una copertura
-## ALTERNATIVA non cumulativa (+1 vs ordnance): si usa la migliore.
+## Copertura dell'esagono per il tiro di difesa (T78.3 + fortificazioni). Buca e
+## Trincea/Casamatta/Bunker danno una copertura ALTERNATIVA non cumulativa col
+## terreno: si usa la migliore. La buca vale 3 (4 vs ordnance/artiglieria, F102),
+## le fortificazioni FORT_COVER (+1 vs ordnance).
 static func cover_at(state: GameState, q: int, r: int, vs_ordnance: bool) -> int:
 	var hd: GameState.HexData = state.hex_at(q, r)
 	if hd == null:
 		return 0
 	var cov: int = Domain.TERRAIN_COVER.get(hd.terrain, 0)
 	if hd.has_foxhole:
-		cov += 3
+		cov = maxi(cov, 3 + (1 if vs_ordnance else 0))
 	var fc := int(Domain.FORT_COVER.get(hd.fortification, 0))
 	if fc > 0:
 		cov = maxi(cov, fc + (1 if vs_ordnance else 0))
