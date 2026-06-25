@@ -15,6 +15,7 @@ var _ob_axis: VBoxContainer
 var _ob_allies: VBoxContainer
 var _axis_btn: Button
 var _allies_btn: Button
+var _changelog: Panel
 
 ## Nazione (stringa catalogo) → nome mostrato.
 const NATION_LABEL := {
@@ -63,7 +64,7 @@ func _build_ui() -> void:
 	scroll.offset_left = 16
 	scroll.offset_top = 16
 	scroll.offset_right = -724
-	scroll.offset_bottom = -16
+	scroll.offset_bottom = -48  # spazio per versione + Changelog in basso
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 	_list = VBoxContainer.new()
@@ -114,6 +115,31 @@ func _build_ui() -> void:
 	_art_tex.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_art_tex.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	inner.add_child(_art_tex)
+
+	# Versione + Changelog (sempre presenti, in basso a sinistra).
+	var ver := Label.new()
+	ver.text = "v%s" % Domain.VERSION
+	ver.add_theme_font_size_override("font_size", 13)
+	ver.modulate = Color(0.72, 0.74, 0.78)
+	ver.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ver.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	ver.offset_left = 18
+	ver.offset_top = -40
+	ver.offset_right = 78
+	ver.offset_bottom = -12
+	add_child(ver)
+	var clog_btn := Button.new()
+	clog_btn.text = "Changelog"
+	clog_btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	clog_btn.offset_left = 84
+	clog_btn.offset_top = -42
+	clog_btn.offset_right = 204
+	clog_btn.offset_bottom = -12
+	clog_btn.pressed.connect(func() -> void:
+		if _changelog != null:
+			_changelog.visible = not _changelog.visible)
+	add_child(clog_btn)
+	_build_changelog_panel()
 
 	# Editor mappe (in alto a destra).
 	var ed := Button.new()
@@ -197,6 +223,57 @@ func _fill_ob(btn: Button, forces: VBoxContainer, nation: String, forze: Array) 
 		lbl.modulate = Color(0.84, 0.86, 0.9)
 		lbl.text = "%d × %s" % [n, tipo]
 		forces.add_child(lbl)
+
+
+## Pannello del changelog (centrato), aperto dal pulsante «Changelog». Legge
+## res://assets/changelog.md.
+func _build_changelog_panel() -> void:
+	_changelog = Panel.new()
+	_changelog.visible = false
+	_changelog.set_anchors_preset(Control.PRESET_CENTER)
+	_changelog.offset_left = -380
+	_changelog.offset_top = -300
+	_changelog.offset_right = 380
+	_changelog.offset_bottom = 300
+	var pad := MarginContainer.new()
+	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(m, 16)
+	_changelog.add_child(pad)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	pad.add_child(v)
+	var head := HBoxContainer.new()
+	var t := Label.new()
+	t.text = "Novità — Changelog"
+	t.add_theme_font_size_override("font_size", 18)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	var close := Button.new()
+	close.text = "Chiudi"
+	close.pressed.connect(func() -> void: _changelog.visible = false)
+	head.add_child(close)
+	v.add_child(head)
+	var sc := ScrollContainer.new()
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(sc)
+	var rt := RichTextLabel.new()
+	rt.bbcode_enabled = true
+	rt.fit_content = true
+	rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rt.text = _load_text("res://assets/changelog.md")
+	sc.add_child(rt)
+	add_child(_changelog)
+
+
+func _load_text(path: String) -> String:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return "(changelog non disponibile)"
+	var t := f.get_as_text()
+	f.close()
+	return t
 
 
 func _load_tex(path: String) -> Texture2D:
