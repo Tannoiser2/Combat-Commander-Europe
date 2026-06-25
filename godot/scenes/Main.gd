@@ -181,7 +181,7 @@ func _help_text() -> String:
 		+ "[b]Passare / finire il turno[/b]\n" \
 		+ " - Premi «Fine Turno» per concludere e passare all'avversario (anche a ordini finiti).\n\n" \
 		+ "[b]Tasti rapidi[/b]\n" \
-		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = carte    R = registro\n" \
+		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = carte    R = registro    V = LOS\n" \
 		+ " - X = esci dal bordo nemico (VP)    S = fumo/esplosivo    SPAZIO = non sparare\n" \
 		+ " - F5 = salva    F9 = carica    M = muto    H = questo aiuto"
 
@@ -244,6 +244,23 @@ func _toggle_log() -> void:
 		_log_reopen_btn.visible = _log_collapsed
 
 
+## Attiva/disattiva la "Modalità LOS": uno strumento per verificare la linea di
+## vista tra due esagoni (estremità trascinabili, linea colorata). Inizializza le
+## estremità così la linea è subito visibile; funziona sia in 2D sia in 3D.
+func _toggle_los_mode() -> void:
+	var s := Game.state
+	if s == null:
+		return
+	s.los_mode = not s.los_mode
+	if s.los_mode and (s.los_a.x < 0 or s.los_b.x < 0):
+		var u := s.unit_by_id(s.selected_unit_id)
+		var a := Vector2i(u.q, u.r) if u != null else Vector2i(int(s.map_cols / 2), int(s.map_rows / 2))
+		s.los_a = a
+		s.los_b = Vector2i(clampi(a.x + 3, 0, s.map_cols - 1), a.y)
+	Game.emit_signal("state_changed")
+	_refresh_ui()
+
+
 func _connect_signals() -> void:
 	Game.state_changed.connect(_refresh_ui)
 	Game.log_added.connect(_on_log_added)
@@ -283,6 +300,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		KEY_R:  # mostra/nascondi la colonna del Registro
 			_toggle_log()
+			get_viewport().set_input_as_handled()
+		KEY_V:  # Modalità LOS: verifica la linea di vista tra due esagoni
+			_toggle_los_mode()
 			get_viewport().set_input_as_handled()
 		KEY_G:  # trasferisci/raccogli l'arma trasportata (11.3)
 			if Game.state != null and Game.state.phase == Domain.Phase.PLAYER_MOVING \
@@ -346,6 +366,8 @@ func _is_player_phase(phase: int) -> bool:
 
 ## Istruzione contestuale mostrata nel banner guida (cosa fare adesso).
 func _guidance_text(s: GameState) -> String:
+	if s.los_mode:
+		return "MODALITÀ LOS — trascina le estremità (o clicca un esagono) · verde = libera · gialla = ostacolata · rossa = bloccata · «V» per uscire"
 	match s.phase:
 		Domain.Phase.PLAYER_TURN:
 			var ord := "  (ordini %d/%d)" % [s.order_count, s.max_orders]
