@@ -425,6 +425,13 @@ func _add_highlights(s: GameState) -> void:
 			var inc: bool = s.fire_group_ids.has(eid)
 			_hex_disc(ev.q, ev.r, s,
 				Color(1.0, 0.55, 0.0, 0.45) if inc else Color(0.6, 0.6, 0.6, 0.35))
+		# Linee di mira dai pezzi che sparano verso il bersaglio (chi spara a chi).
+		for gid in s.fire_group_ids:
+			var gu := s.unit_by_id(gid)
+			if gu != null and not (gu.q == s.fire_target_q and gu.r == s.fire_target_r):
+				_los_line(gu.q, gu.r, s.fire_target_q, s.fire_target_r, s, Color(0.95, 0.2, 0.15, 0.85))
+		# Targhetta di anteprima sopra il bersaglio: FP vs DIF stimata + esito.
+		_add_fire_readout(s)
 	# Finestra di reazione (Fuoco di Opportunità): mover rosso, tiratori gialli.
 	if s.phase == Domain.Phase.REACTION_WINDOW:
 		var mv := s.unit_by_id(s.opfire_mover_id)
@@ -513,6 +520,25 @@ func _add_command_aura(s: GameState, cost_map: Dictionary) -> void:
 				continue
 			if HexGrid.distance(leader.q, leader.r, q, r) <= leader.command:
 				_hex_disc(q, r, s, Color(1.0, 0.55, 0.0, 0.10))
+
+
+## Targhetta di anteprima del fuoco sopra il bersaglio: FP attacco · DIF stimata
+## · esito atteso (verde=favorevole, giallo=incerto, rosso=sfavorevole).
+func _add_fire_readout(s: GameState) -> void:
+	var pv := Game.fire_preview()
+	if pv.is_empty():
+		return
+	var txt := "FP %d" % int(pv.get("fp", 0))
+	var col := Color(1.0, 0.95, 0.5)
+	if int(pv.get("defense", -1)) >= 0:
+		txt += " vs DIF %d → %s" % [int(pv["defense"]), pv.get("verdict", "")]
+		match String(pv.get("verdict", "")):
+			"favorevole":  col = Color(0.4, 1.0, 0.4)
+			"sfavorevole": col = Color(1.0, 0.45, 0.4)
+			_:             col = Color(1.0, 0.9, 0.4)
+	var ci := _hex_img(s.fire_target_q, s.fire_target_r)
+	var pos := Vector3(ci.x * _world, _top_y(s, s.fire_target_q, s.fire_target_r) + 1.2, ci.y * _world)
+	_badge(pos, txt, col)
 
 
 ## Linee di LOS dall'unità selezionata (se può sparare) verso i nemici in

@@ -221,6 +221,14 @@ func _draw() -> void:
 				continue
 			var inc: bool = s.fire_group_ids.has(eid)
 			_draw_hex_outline(ev.q, ev.r, COL_GROUP if inc else COL_GROUP_OFF, 3.0 if inc else 2.0)
+		# Linee di mira: da ogni pezzo che spara verso il bersaglio (chi spara a chi).
+		var tgt := _hex_center(s.fire_target_q, s.fire_target_r)
+		for gid in s.fire_group_ids:
+			var gu := s.unit_by_id(gid)
+			if gu != null:
+				_draw_aim_line(_hex_center(gu.q, gu.r), tgt)
+		# Riquadro di anteprima sopra il bersaglio: FP attacco vs DIF stimata + esito.
+		_draw_fire_readout(tgt)
 
 	# Finestra di reazione (Fuoco di Opportunità): mover in rosso, tiratori in giallo
 	if s.phase == Domain.Phase.REACTION_WINDOW:
@@ -402,6 +410,41 @@ func _handle_key(k: InputEventKey) -> void:
 	if k.keycode == KEY_T:
 		_terrain_debug = not _terrain_debug
 		queue_redraw()
+
+
+## Linea di mira dal tiratore al bersaglio, con punta di freccia sull'esagono
+## bersaglio (rende esplicito "chi spara a chi").
+func _draw_aim_line(from: Vector2, to: Vector2) -> void:
+	var col := Color(0.95, 0.2, 0.15, 0.85)
+	var dir := (to - from)
+	if dir.length() < 1.0:
+		return
+	dir = dir.normalized()
+	var tip := to - dir * (_hsize() * 0.45)   # ferma la punta sul bordo del bersaglio
+	draw_line(from, tip, col, 3.0)
+	var perp := Vector2(-dir.y, dir.x)
+	var base := tip - dir * 13.0
+	draw_colored_polygon(PackedVector2Array([tip, base + perp * 7.0, base - perp * 7.0]), col)
+
+
+## Riquadro di anteprima del fuoco, ancorato sopra l'esagono bersaglio:
+## FP d'attacco · DIF stimata (copertura) · esito atteso (colore = verdetto).
+func _draw_fire_readout(target_center: Vector2) -> void:
+	var pv := Game.fire_preview()
+	if pv.is_empty():
+		return
+	var txt := "FP %d" % int(pv.get("fp", 0))
+	var col := Color(0.95, 0.95, 0.5)
+	if int(pv.get("defense", -1)) >= 0:
+		txt += "  vs DIF %d  →  %s" % [int(pv["defense"]), pv.get("verdict", "")]
+		match String(pv.get("verdict", "")):
+			"favorevole":  col = Color(0.4, 1.0, 0.4)
+			"sfavorevole": col = Color(1.0, 0.45, 0.4)
+			_:             col = Color(1.0, 0.9, 0.4)
+	var pos := target_center - Vector2(0, _hsize() * 1.05)
+	var w := _font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x if _font else 80.0
+	draw_rect(Rect2(pos.x - w * 0.5 - 6, pos.y - 13, w + 12, 22), Color(0.05, 0.05, 0.08, 0.85))
+	_draw_text(txt, pos, 15.0, col, true)
 
 
 ## Mappa "q,r" → costo in PM per raggiungere l'esagono, valida solo durante una

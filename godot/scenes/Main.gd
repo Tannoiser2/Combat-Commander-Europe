@@ -229,7 +229,12 @@ func _guidance_text(s: GameState) -> String:
 					return "MOSSA — PM %d · clicca un esagono (il numero = costo) · l'unità per annullare" % pm
 				Domain.OrderType.FIRE:
 					if s.fire_target_q >= 0:
-						var msg := "FUOCO — gruppo %d, FP ~%d · pezzi (arancio) · dx carta = modificatore · bersaglio per sparare" % [s.fire_group_ids.size(), Game.projected_fire_fp()]
+						var pv := Game.fire_preview()
+						var msg := "FUOCO — squadra %d · FP %d" % [s.fire_group_ids.size(), int(pv.get("fp", 0))]
+						if int(pv.get("defense", -1)) >= 0:
+							msg += " vs DIF %d (cop %d) → %s" % [
+								int(pv["defense"]), int(pv["cover"]), pv.get("verdict", "")]
+						msg += " · pezzo arancio = aggiungi/togli · dx carta = modificatore · clicca il BERSAGLIO per sparare"
 						if not s.fire_modifiers.is_empty():
 							msg += "  [%s]" % ", ".join(s.fire_modifiers)
 						if s.spray_active:
@@ -237,7 +242,7 @@ func _guidance_text(s: GameState) -> String:
 						return msg
 					if not has_unit:
 						return "FUOCO — clicca l'unità che spara"
-					return "FUOCO — clicca un bersaglio nemico evidenziato · l'unità per annullare"
+					return "FUOCO — clicca un bersaglio nemico evidenziato (apparirà la linea di tiro) · l'unità per annullare"
 				Domain.OrderType.ADVANCE:
 					if not has_unit:
 						return "AVANZATA — clicca l'unità che avanza"
