@@ -862,15 +862,24 @@ func _test_artillery() -> void:
 	_check(s2.units["out"].efficient, "Impatto non tocca chi è fuori dal raggio")
 	_check(int(res["hexes"]) >= 5, "Impatto copre il centro e gli adiacenti in mappa")
 
-	# Distruzione fortificazioni (O18.2.3.3): pesante (FP≥20) spiana, leggera no.
+	# Radio FP dal Manifest (75-76→8 … 183-203→13).
+	_check(Rules.radio_fp_for("75-76mm") == 8, "Radio 75-76mm → FP 8")
+	_check(Rules.radio_fp_for("Radio 81-88mm") == 9, "Radio 81-88mm → FP 9")
+	_check(Rules.radio_fp_for("105-114mm") == 10, "Radio 105-114mm → FP 10")
+	_check(Rules.radio_fp_for("183-203mm") == 13, "Radio 183-203mm → FP 13")
+	# Vulnerabilità delle fortificazioni (O18.2.3.3): 20 − FP, match ESATTO.
+	_check(Rules.artillery_fort_vulnerability(8) == 12, "Vulnerabilità: Radio FP 8 → 12")
+	_check(Rules.artillery_fort_vulnerability(13) == 7, "Vulnerabilità: Radio FP 13 → 7")
 	var sf := _new_state()
 	sf.hex_at(2, 2).fortification = Domain.Fort.BUNKER
-	Combat.resolve_artillery(sf, 24, 2, 2, rng)
-	_check(sf.hex_at(2, 2).fortification == Domain.Fort.NONE, "Artiglieria pesante distrugge il Bunker")
+	Combat.resolve_artillery(sf, 8, 2, 2, rng, 12)  # impact 12 == vulnerabilità (FP 8)
+	_check(sf.hex_at(2, 2).fortification == Domain.Fort.NONE,
+		"Impact Roll esatto (12 con Radio FP 8) distrugge il Bunker")
 	var sf2 := _new_state()
 	sf2.hex_at(2, 2).fortification = Domain.Fort.BUNKER
-	Combat.resolve_artillery(sf2, 16, 2, 2, rng)
-	_check(sf2.hex_at(2, 2).fortification == Domain.Fort.BUNKER, "Artiglieria leggera (75mm) non spiana il Bunker")
+	Combat.resolve_artillery(sf2, 8, 2, 2, rng, 11)  # impact 11 ≠ 12
+	_check(sf2.hex_at(2, 2).fortification == Domain.Fort.BUNKER,
+		"Impact Roll diverso dalla vulnerabilità non spiana il Bunker")
 
 	# Barrage fumogeno (O18.2.3.1): posa fumo sui 7 esagoni, salta le fiamme.
 	var sm := _new_state(6, 6)
