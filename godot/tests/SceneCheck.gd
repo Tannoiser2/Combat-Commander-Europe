@@ -31,9 +31,11 @@ func _initialize() -> void:
 		"Sidebar/SideVBox/Tools/View3DBtn",
 		"Sidebar/SideVBox/Tools/LosBtn",
 		"Sidebar/SideVBox/Tools/HelpBtn",
+		"Sidebar/SideVBox/Tools2/MenuBtn",
+		"Sidebar/SideVBox/Tools2/EditorBtn",
 		"Sidebar/SideVBox/InfoPanel/InfoMargin/InfoLabel",
-		"TopBar/Bar/HBox/PhaseLabel",
-		"TopBar/Bar/Hint",
+		"TopBar/HBox/PhaseLabel",
+		"TopBar/HBox/OrdersLabel",
 	]:
 		if inst.get_node_or_null(path) == null:
 			_fail("nodo mancante: " + path)
@@ -54,6 +56,7 @@ func _check_view(map: Node) -> void:
 	# inquadratura/zoom in modo deterministico (in gioco la mappa reale si carica).
 	var img := Image.create(200, 150, false, Image.FORMAT_RGB8)
 	map._map_texture = ImageTexture.create_from_image(img)
+	map.map_rect = Rect2(0, 40, 400, 300)  # area libera simulata (in headless il vp è 0×0)
 	map._view_custom = false
 	map._update_view()
 	var fit_scale: float = map._fit_scale

@@ -150,16 +150,7 @@ func _build_ui() -> void:
 			_changelog.visible = not _changelog.visible)
 	add_child(clog_btn)
 	_build_changelog_panel()
-
-	# Editor mappe (in alto a destra).
-	var ed := Button.new()
-	ed.text = "Editor mappe"
-	ed.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	ed.offset_left = -150
-	ed.offset_top = 12
-	ed.offset_right = -16
-	ed.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/MapEditor.tscn"))
-	add_child(ed)
+	# Nota: l'«Editor mappe» è stato spostato nella colonna laterale in partita.
 
 
 ## Una colonna dell'Ordine di Battaglia: pulsante-fazione in cima + elenco forze.

@@ -12,6 +12,9 @@ var cal_ox: float = 129.0    ## Centro dell'esagono (0,0) in pixel immagine
 var cal_oy: float = 69.0
 var view_scale: float = 1.0      ## Scala immagine→schermo (calcolata per adattarsi)
 var view_origin: Vector2 = Vector2.ZERO
+## Area di schermo riservata alla mappa (impostata dalla HUD: esclude barra,
+## colonna e mano). Se vuota, si usa l'intero viewport.
+var map_rect: Rect2 = Rect2()
 var _map_image_id: String = ""   ## id immagine attualmente caricata
 var _terrain_debug: bool = false  ## true = mostra le tinte del terreno (tasto T)
 var _los_drag: int = -1            ## estremità LOS trascinata (0=A, 1=B, -1=nessuna)
@@ -108,27 +111,30 @@ func _refresh_map() -> void:
 	_update_view()
 
 
-## Calcola scala e origine per inquadrare l'immagine nell'area visibile (sotto la
-## top bar, a sinistra della colonna laterale, sopra la mano). Se l'utente ha
-## zoomato/spostato (`_view_custom`) la vista resta com'è: si aggiorna solo il
+## Area di schermo in cui inquadrare la mappa: `map_rect` se la HUD l'ha
+## impostata (esclude barra/colonna/mano), altrimenti l'intero viewport.
+func _map_area() -> Rect2:
+	if map_rect.size.x > 1.0 and map_rect.size.y > 1.0:
+		return map_rect
+	return Rect2(Vector2.ZERO, get_viewport_rect().size)
+
+
+## Calcola scala e origine per inquadrare l'immagine nell'area libera. Se l'utente
+## ha zoomato/spostato (`_view_custom`) la vista resta com'è: si aggiorna solo il
 ## valore di auto-fit usato per i limiti di zoom.
 func _update_view() -> void:
 	if _map_texture == null:
 		return
-	var vp := get_viewport_rect().size
-	var top := 82.0      # top bar (stat + guida)
-	var bottom := 96.0   # pannello della mano in basso
-	var right := 350.0   # colonna laterale a destra
-	var avail := Vector2(maxf(200.0, vp.x - right), maxf(120.0, vp.y - top - bottom))
+	var area := _map_area()
 	var iw := float(_map_texture.get_width())
 	var ih := float(_map_texture.get_height())
-	_fit_scale = minf(avail.x / iw, avail.y / ih)
+	_fit_scale = minf(area.size.x / iw, area.size.y / ih)
 	if _view_custom:
 		return
 	view_scale = _fit_scale
-	view_origin = Vector2(
-		(avail.x - iw * view_scale) * 0.5,
-		top + (avail.y - ih * view_scale) * 0.5)
+	view_origin = area.position + Vector2(
+		(area.size.x - iw * view_scale) * 0.5,
+		(area.size.y - ih * view_scale) * 0.5)
 
 
 ## Zoom centrato su un punto-schermo (la rotella): l'esagono sotto il cursore
