@@ -43,6 +43,7 @@ func _ready() -> void:
 	_test_reachable_costs()
 	_test_fire_preview()
 	_test_weapon_portage()
+	_test_move_path_cost()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -85,6 +86,7 @@ func _ready() -> void:
 	_test_fortifications()
 	_test_objectives_vp()
 	_test_op_fire()
+	_test_op_fire_card_cost()
 	_test_actions()
 	_test_grenade()
 	_test_melee_tie()
@@ -426,6 +428,33 @@ func _test_weapon_portage() -> void:
 	# 11.3: eliminato il portatore, l'arma è eliminata con lui.
 	s.eliminate_unit("sq2")
 	_check(s.unit_by_id("mg") == null, "eliminato il portatore, l'arma sparisce")
+
+
+func _test_move_path_cost() -> void:
+	print("· Movimento: clic su esagono lontano paga il costo del PERCORSO (no salti)")
+	var s := _new_state(9, 1)
+	s.human_faction = GER
+	var u := _mk("u", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	u.move = 4
+	s.units[u.id] = u
+	# Corridoio aperto (costo 1/esagono): il percorso accumula il costo reale.
+	_check(HexGrid.path_to(u, s, 3, 0, 4).size() == 3, "(3,0): percorso di 3 passi")
+	_check(HexGrid.path_to(u, s, 4, 0, 4).size() == 4, "(4,0) costa 4: 4 passi entro 4 PM")
+	_check(HexGrid.path_to(u, s, 5, 0, 4).is_empty(), "(5,0) costa 5: irraggiungibile con 4 PM")
+	# Nemico lontano e soppresso: tiene viva la partita senza scatenare op-fire.
+	var en := _mk("rus", RUS, SQUAD, RIFLE, 8, 0, 5, 7)
+	en.suppressed = true
+	s.units["rus"] = en
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	s.group_mp["u"] = 4
+	s.selected_unit_id = "u"
+	s.moving_unit_id = "u"
+	Game.state = s
+	# Prima del fix: il clic lontano costava un solo passo (l'unità "saltava".)
+	Game.click_hex_move(3, 0)
+	_check(u.q == 3 and u.r == 0, "il mover arriva a (3,0)")
+	_check(int(s.group_mp["u"]) == 1, "ha speso 3 PM lungo il percorso (non 1)")
 
 
 func _test_sudden_death_initiative() -> void:
@@ -1468,6 +1497,36 @@ func _test_op_fire() -> void:
 		if u.id == "rus-far":
 			has_far = true
 	_check(not has_far, "un tiratore fuori gittata non è idoneo all'opportunità")
+
+
+func _test_op_fire_card_cost() -> void:
+	print("· Op Fire: serve una carta Fuoco, la consuma e attiva il tiratore (A24.1/.3)")
+	var s := _new_state(6, 3)
+	s.human_faction = GER          # difensore IA = RUS
+	var mover := _mk("ger", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	var sh := _mk("rus", RUS, SQUAD, RIFLE, 2, 1, 9, 7)  # adiacente, FP alto: tiro conveniente
+	s.units[mover.id] = mover
+	s.units[sh.id] = sh
+	# Mazzi minimi (carte PASS) per il rifornimento e i dadi del Fato.
+	for i in 5:
+		var rc := Card.new(); rc.order = Domain.OrderType.PASS; s.russian_deck.append(rc)
+		var gc := Card.new(); gc.order = Domain.OrderType.PASS; s.german_deck.append(gc)
+	Game.state = s
+	# Senza carta Fuoco: l'IA non reagisce e non attiva nessuno.
+	s.russian_hand.clear()
+	_check(Game._op_fire(mover, RUS) == false, "senza carta Fuoco l'IA non reagisce")
+	_check(not sh.activated, "nessun tiratore attivato senza reazione")
+	# A24.3: un'unità già attivata non è idonea all'op-fire.
+	sh.activated = true
+	_check(OpFire.eligible_shooters(s, mover, RUS).is_empty(), "un'unità attivata non fa op-fire")
+	sh.activated = false
+	# Con una carta Fuoco: reagisce, consuma la carta e attiva il tiratore.
+	var fcard := Card.new()
+	fcard.order = Domain.OrderType.FIRE
+	s.russian_hand.append(fcard)
+	Game._op_fire(mover, RUS)
+	_check(Game._fire_card_index(RUS) < 0, "la carta Fuoco è stata consumata (A24.1)")
+	_check(sh.activated, "il tiratore è stato attivato dall'op-fire (A24.3)")
 
 
 func _act(name: String) -> Card:

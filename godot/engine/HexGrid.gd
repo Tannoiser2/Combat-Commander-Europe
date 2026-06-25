@@ -203,7 +203,7 @@ static func reachable(u: Unit, state: GameState, budget_override: int = -1) -> A
 ## Come reachable(), ma restituisce una mappa "q,r" → PM minimi necessari per
 ## raggiungere quell'esagono (per mostrare il costo del movimento sulla mappa).
 ## L'esagono di partenza non è incluso. Stessa BFS con costo di reachable().
-static func reachable_costs(u: Unit, state: GameState, budget_override: int = -1) -> Dictionary:
+static func reachable_costs(u: Unit, state: GameState, budget_override: int = -1, out_came: Dictionary = {}) -> Dictionary:
 	var costs := {}
 	var budget := u.move if budget_override < 0 else budget_override
 	if budget <= 0:
@@ -245,6 +245,7 @@ static func reachable_costs(u: Unit, state: GameState, budget_override: int = -1
 				continue
 			visited[key] = total
 			costs[key] = total
+			out_came[key] = "%d,%d" % [cq, cr]
 			# Filo (F106) / Mine (F103): entrando, il movimento si ferma qui —
 			# non espandere oltre, così l'anteprima riflette lo stop reale.
 			var nhd: GameState.HexData = state.hex_at(nb.x, nb.y)
@@ -254,6 +255,26 @@ static func reachable_costs(u: Unit, state: GameState, budget_override: int = -1
 				frontier.append({"q": nb.x, "r": nb.y, "spent": total})
 
 	return costs
+
+
+## Percorso a costo minimo da u fino a (tq,tr) entro `budget` PM: lista ordinata
+## di esagoni ATTRAVERSATI (passi adiacenti), partenza esclusa, destinazione
+## inclusa; vuota se irraggiungibile. Serve a muovere passo-passo, così costo del
+## terreno, Mine, Filo e Fuoco di Opportunità scattano a OGNI esagono entrato.
+static func path_to(u: Unit, state: GameState, tq: int, tr: int, budget_override: int = -1) -> Array[Vector2i]:
+	var came := {}
+	var costs := reachable_costs(u, state, budget_override, came)
+	var path: Array[Vector2i] = []
+	var dest := "%d,%d" % [tq, tr]
+	if not costs.has(dest):
+		return path
+	var start := "%d,%d" % [u.q, u.r]
+	var k := dest
+	while k != start and came.has(k):
+		var p := String(k).split(",")
+		path.insert(0, Vector2i(int(p[0]), int(p[1])))
+		k = String(came[k])
+	return path
 
 
 ## Costo effettivo per muovere u dall'esagono corrente a (tq, tr).

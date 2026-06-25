@@ -12,7 +12,9 @@ extends RefCounted
 static func eligible_shooters(state: GameState, mover: Unit, defender: int) -> Array[Unit]:
 	var result: Array[Unit] = []
 	for u in state.units_of(defender):
-		if not u.efficient or u.suppressed or u.fp <= 0:
+		# A24.3: il Fuoco di Opportunità ATTIVA il tiratore; un'unità già attivata
+		# (ha già sparato/agito in questo turno) non può reagire di nuovo.
+		if not u.efficient or u.suppressed or u.fp <= 0 or u.activated:
 			continue
 		if u.ordnance or u.unit_class == Domain.UnitClass.MORTAR or u.unit_class == Domain.UnitClass.AT:
 			continue  # ordnance escluso dal Fuoco di Opportunità (11.5/A33.3)

@@ -188,7 +188,8 @@ func _help_text() -> String:
 
 ## Striscia-etichetta sovrapposta su una metà della carta. Trasparente ai click:
 ## passano alla TextureButton sottostante (così Sx/Dx restano funzionanti).
-func _card_banner(text: String, is_top: bool) -> Control:
+## `playable` = false la disegna in grigio (quella metà non è giocabile adesso).
+func _card_banner(text: String, is_top: bool, playable: bool = true) -> Control:
 	var c := Control.new()
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.set_anchors_preset(Control.PRESET_TOP_WIDE if is_top else Control.PRESET_BOTTOM_WIDE)
@@ -202,7 +203,10 @@ func _card_banner(text: String, is_top: bool) -> Control:
 		c.offset_bottom = -2
 	var bg := ColorRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0.08, 0.16, 0.38, 0.82) if is_top else Color(0.42, 0.22, 0.04, 0.82)
+	if not playable:
+		bg.color = Color(0.18, 0.18, 0.20, 0.82)
+	else:
+		bg.color = Color(0.08, 0.16, 0.38, 0.82) if is_top else Color(0.42, 0.22, 0.04, 0.82)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.add_child(bg)
 	var lbl := Label.new()
@@ -212,7 +216,7 @@ func _card_banner(text: String, is_top: bool) -> Control:
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.clip_text = true
 	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	lbl.add_theme_color_override("font_color", Color(1, 1, 1) if playable else Color(0.55, 0.55, 0.58))
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.add_child(lbl)
 	return c
@@ -465,14 +469,27 @@ func _refresh_hand() -> void:
 	hand_container.visible = not _hand_collapsed
 	if _hand_collapsed:
 		return
-	var hand := Game.state.hand_of(Game.state.human_faction)
+	var s := Game.state
+	# Giocabilità: gli ordini e le azioni si giocano solo nel proprio turno; un
+	# ordine "vero" (Mossa/Fuoco/Avanzata/Recupero/Rotta/Artiglieria) richiede
+	# ordini ancora disponibili. Le carte non giocabili sono attenuate.
+	var is_turn := s.phase == Domain.Phase.PLAYER_TURN
+	var orders_left := s.order_count < s.max_orders
+	var human_phase := s.phase == Domain.Phase.PLAYER_TURN or s.phase == Domain.Phase.PLAYER_MOVING
+	var hand := s.hand_of(s.human_faction)
 	for i in hand.size():
 		var card: Card = hand[i]
 		var order_name: String = Domain.ORDER_LABELS.get(card.order, card.order_label)
+		var counts: bool = card.order in [
+			Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE,
+			Domain.OrderType.RECOVER, Domain.OrderType.ROUT, Domain.OrderType.ARTY]
+		var order_ok := is_turn and (orders_left or not counts)
+		var action_ok := is_turn
 		# Contenitore-carta: la TextureButton riempie il riquadro, due strisce
 		# etichettano le metà (alto = Ordine/Sx, basso = Azione/Dx).
 		var root := Control.new()
 		root.custom_minimum_size = Vector2(128, 178)
+		root.modulate = Color(1, 1, 1, 1.0) if human_phase else Color(1, 1, 1, 0.45)
 		var tb := TextureButton.new()
 		tb.set_anchors_preset(Control.PRESET_FULL_RECT)
 		tb.texture_normal = load(card.face_path())
@@ -482,8 +499,8 @@ func _refresh_hand() -> void:
 		tb.pressed.connect(_on_card_pressed.bind(i))
 		tb.gui_input.connect(_on_card_input.bind(i))
 		root.add_child(tb)
-		root.add_child(_card_banner("Sx: " + order_name, true))
-		root.add_child(_card_banner("Dx: " + card.action_name, false))
+		root.add_child(_card_banner("Sx: " + order_name, true, order_ok))
+		root.add_child(_card_banner("Dx: " + card.action_name, false, action_ok))
 		hand_container.add_child(root)
 
 

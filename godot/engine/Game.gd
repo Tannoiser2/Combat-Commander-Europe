@@ -511,7 +511,10 @@ func _cycle_select(units_here: Array, allow_deselect: bool) -> void:
 		select_unit(sel_list[0].id)
 
 
-## Giocatore clicca su un esagono durante la fase di movimento.
+## Giocatore clicca su un esagono durante la fase di movimento. Il bersaglio può
+## essere lontano: si percorre il tragitto a costo minimo UN ESAGONO ALLA VOLTA,
+## così il costo del terreno si accumula davvero (niente "salti" a prezzo di un
+## passo) e Mine/Filo/Fuoco di Opportunità scattano a ogni esagono attraversato.
 func click_hex_move(tq: int, tr: int) -> void:
 	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
 		return
@@ -521,7 +524,24 @@ func click_hex_move(tq: int, tr: int) -> void:
 	var u := state.unit_by_id(uid)
 	if u == null or u.faction != state.human_faction:
 		return
-	_execute_move_step(u, tq, tr)
+	var budget := int(state.group_mp.get(uid, u.move))
+	var path := HexGrid.path_to(u, state, tq, tr, budget)
+	if path.is_empty():
+		_log("(%d,%d) irraggiungibile coi PM rimasti." % [tq, tr])
+		return
+	for step in path:
+		# Interrompi se il mover non è più attivo (rotto/eliminato/op-fire) o senza PM.
+		if state.phase != Domain.Phase.PLAYER_MOVING:
+			break
+		if state.selected_unit_id != uid and state.moving_unit_id != uid:
+			break
+		if int(state.group_mp.get(uid, 0)) <= 0:
+			break
+		var bq := u.q
+		var br := u.r
+		_execute_move_step(u, step.x, step.y)
+		if u.q == bq and u.r == br:
+			break  # passo non eseguito: non proseguire (evita salti non adiacenti)
 
 
 ## Colonna del bordo AVVERSARIO da cui una fazione può uscire (7.2): i Tedeschi
@@ -1346,14 +1366,32 @@ signal _opfire_decided()                 ## Interno: il giocatore ha scelto
 var _opfire_choice: String = ""          ## Tiratore scelto ("" = non sparare)
 
 
+## Indice in mano di una carta con ordine FUOCO (da giocare come Azione di Op
+## Fire, A24.1), oppure -1 se la fazione non ne ha.
+func _fire_card_index(faction: int) -> int:
+	var hand := state.hand_of(faction)
+	for i in hand.size():
+		if hand[i].order == Domain.OrderType.FIRE:
+			return i
+	return -1
+
+
 ## Risolve un Fuoco di Opportunità con uno SPECIFICO tiratore. Restituisce true se
 ## il mover è stato rotto o eliminato (movimento da interrompere).
+## A24.1: è un'Azione → si gioca SCARTANDO una carta Fuoco dalla mano del
+## difensore (col rifornimento standard). A24.3: l'Op Fire ATTIVA il tiratore,
+## che quindi non può reagire una seconda volta nello stesso turno.
 func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
+	var fci := _fire_card_index(defender)
+	if fci < 0:
+		return false  # nessuna carta Fuoco in mano: nessuna reazione possibile
 	var group := Combat.fire_group(shooter, mover.q, mover.r, state)
 	var weapon_ids: Array = []
 	for g in group:
 		if g.is_weapon():
 			weapon_ids.append(g.id)
+	shooter.activated = true             # A24.3
+	_discard_for(defender, fci)          # A24.1: la carta Fuoco giocata come Azione
 	var atk_fate := _draw_fate(defender)
 	var def_fate := _draw_fate(mover.faction)
 	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
@@ -1365,19 +1403,37 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	return res.eliminated.has(mover.id) or res.broken.has(mover.id)
 
 
-## Op Fire AUTOMATICO: il difensore reagisce col miglior tiratore idoneo. Usato
-## quando il difensore è l'IA (durante il movimento del giocatore).
+## Op Fire AUTOMATICO: il difensore IA reagisce col miglior tiratore idoneo, ma
+## solo se ha una carta Fuoco e il tiro è ragionevole (come farebbe un giocatore:
+## non spreca carte su tiri velleitari).
 func _op_fire(mover: Unit, defender: int) -> bool:
+	if _fire_card_index(defender) < 0:
+		return false
 	var shooter := OpFire.best_shooter(state, mover, defender)
 	if shooter == null:
 		return false
+	if not _op_fire_worthwhile(shooter, mover):
+		return false
 	return _resolve_op_fire(shooter, mover, defender)
+
+
+## Euristica dell'IA: vale la pena reagire se l'FP proiettato (con Comando, meno
+## l'ostacolo della LOS) è almeno pari alla difesa statica del mover (i dadi
+## decidono il resto). Evita di bruciare carte Fuoco su tiri deboli.
+func _op_fire_worthwhile(shooter: Unit, mover: Unit) -> bool:
+	var fp := Rules.fp_with_command(state, shooter)
+	fp -= HexGrid.los_hindrance(shooter.q, shooter.r, mover.q, mover.r, state)
+	var cover := Rules.cover_at(state, mover.q, mover.r, shooter.ordnance)
+	return fp >= mover.morale + cover
 
 
 ## Op Fire come FINESTRA DI REAZIONE (A33). Se il difensore è l'umano, apre la
 ## scelta del tiratore (o «non sparare») e attende la decisione; se è l'IA, fuoco
 ## automatico. Coroutine: il chiamante deve usare `await`.
 func _reactive_op_fire(mover: Unit, defender: int) -> bool:
+	# A24.1: senza una carta Fuoco in mano il difensore non può reagire.
+	if _fire_card_index(defender) < 0:
+		return false
 	var shooters := OpFire.eligible_shooters(state, mover, defender)
 	if shooters.is_empty():
 		return false
