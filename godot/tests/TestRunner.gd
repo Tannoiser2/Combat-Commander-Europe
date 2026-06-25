@@ -95,6 +95,7 @@ func _ready() -> void:
 	_test_loader_weapons_with_squads()
 	_test_fire_command_group()
 	_test_fire_ready()
+	_test_order_feasible()
 	_test_actions()
 	_test_grenade()
 	_test_melee_tie()
@@ -1647,6 +1648,32 @@ func _test_fire_ready() -> void:
 	Game._compute_fire_ready()
 	_check(s.fire_ready_ids.has("A"), "una squadra con bersaglio è pronta a sparare")
 	_check(not s.fire_ready_ids.has("F"), "una squadra senza bersaglio non è pronta")
+
+
+func _test_order_feasible() -> void:
+	print("· Badge: order_feasible riflette ciò che è davvero possibile ora")
+	var s := _new_state(8, 3)
+	s.human_faction = GER
+	Game.state = s
+	# Mappa vuota: solo Passa è possibile.
+	_check(Game.order_feasible(Domain.OrderType.PASS), "Passa è sempre possibile")
+	_check(not Game.order_feasible(Domain.OrderType.MOVE), "senza unità la Mossa non è possibile")
+	_check(not Game.order_feasible(Domain.OrderType.FIRE), "senza bersagli il Fuoco non è possibile")
+	_check(not Game.order_feasible(Domain.OrderType.ROUT), "senza unità rotte la Rotta non è possibile")
+	# Una squadra mobile → Mossa e Avanzata possibili.
+	var sq := _mk("sq", GER, SQUAD, RIFLE, 1, 1, 5, 7, 9)  # gittata 9
+	s.units["sq"] = sq
+	_check(Game.order_feasible(Domain.OrderType.MOVE), "con una squadra mobile la Mossa è possibile")
+	_check(Game.order_feasible(Domain.OrderType.ADVANCE), "con una squadra l'Avanzata è possibile")
+	_check(not Game.order_feasible(Domain.OrderType.FIRE), "ancora nessun nemico → Fuoco no")
+	# Nemico in gittata e LOS → Fuoco possibile.
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 4, 1, 5, 7)
+	_check(Game.order_feasible(Domain.OrderType.FIRE), "con un nemico in gittata il Fuoco è possibile")
+	# Unità rotta → Recupero e Rotta possibili (e niente Mossa/Fuoco con quella sola).
+	sq.break_unit()
+	_check(Game.order_feasible(Domain.OrderType.RECOVER), "con un'unità rotta il Recupero è possibile")
+	_check(Game.order_feasible(Domain.OrderType.ROUT), "con un'unità rotta la Rotta è possibile")
+	_check(not Game.order_feasible(Domain.OrderType.MOVE), "un'unità rotta non può muovere")
 
 
 func _weapon(id: String, faction: int, q: int, r: int) -> Unit:

@@ -218,17 +218,27 @@ func _make_badge(path: String, fallback_text: String, lit: bool, width: float) -
 	return tb
 
 
-## La metà AZIONE è giocabile ora? Nel proprio turno sempre; durante un Fuoco con
-## bersaglio scelto solo i modificatori; durante una Mossa solo Fuoco d'Assalto.
+## Azioni "di contesto": hanno effetto solo durante un Fuoco (modificatori,
+## Sventagliata) o una Mossa (Fuoco d'Assalto), non nella fase ordini.
+func _is_context_action(name: String) -> bool:
+	return name in Game.FIRE_MOD_NAMES \
+		or name.begins_with("SVENTAGLIATA") \
+		or name == "FUOCO D'ASSALTO"
+
+
+## La metà AZIONE è giocabile ora? Nella fase ordini le azioni autonome sì, ma
+## quelle di contesto (modificatori di fuoco, Fuoco d'Assalto, Sventagliata) si
+## accendono solo nel loro contesto: durante un Fuoco col bersaglio scelto i
+## modificatori/Sventagliata, durante una Mossa il Fuoco d'Assalto.
 func _action_playable(card: Card, s: GameState) -> bool:
+	var name := card.action_name
 	if s.phase == Domain.Phase.PLAYER_TURN:
-		return true
+		return not _is_context_action(name)
 	if s.phase == Domain.Phase.PLAYER_MOVING:
 		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
-			return card.action_name in Game.FIRE_MOD_NAMES \
-				or card.action_name.begins_with("SVENTAGLIATA")
+			return name in Game.FIRE_MOD_NAMES or name.begins_with("SVENTAGLIATA")
 		if s.current_order == Domain.OrderType.MOVE:
-			return card.action_name == "FUOCO D'ASSALTO"
+			return name == "FUOCO D'ASSALTO"
 	return false
 
 
@@ -653,7 +663,8 @@ func _refresh_hand() -> void:
 	var s := Game.state
 	# Giocabilità: gli ordini e le azioni si giocano solo nel proprio turno; un
 	# ordine "vero" (Mossa/Fuoco/Avanzata/Recupero/Rotta/Artiglieria) richiede
-	# ordini ancora disponibili. Le carte non giocabili sono attenuate.
+	# ordini ancora disponibili E che esista davvero un bersaglio/unità su cui
+	# applicarlo. Le carte non giocabili sono attenuate (badge spento).
 	var is_turn := s.phase == Domain.Phase.PLAYER_TURN
 	var orders_left := s.order_count < s.max_orders
 	var hand := s.hand_of(s.human_faction)
@@ -663,7 +674,7 @@ func _refresh_hand() -> void:
 		var counts: bool = card.order in [
 			Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE,
 			Domain.OrderType.RECOVER, Domain.OrderType.ROUT, Domain.OrderType.ARTY]
-		var order_ok := is_turn and (orders_left or not counts)
+		var order_ok := is_turn and (orders_left or not counts) and Game.order_feasible(card.order)
 		var action_ok := _action_playable(card, s)
 		# Carta = due badge impilati: Ordine sopra, Azione sotto. Ogni badge è
 		# illuminato quando giocabile, spento (grigio) quando no.
