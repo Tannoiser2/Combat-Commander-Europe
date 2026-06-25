@@ -5,7 +5,9 @@ extends Control
 # ─── Nodi ─────────────────────────────────────────────────────────────────────
 
 @onready var hex_map: Node2D = $HexMap
-@onready var log_list: ItemList = $LogPanel/LogList
+@onready var log_panel: PanelContainer = $LogPanel
+@onready var log_list: ItemList = $LogPanel/LogVBox/LogList
+@onready var log_toggle_btn: Button = $LogPanel/LogVBox/LogHeader/LogToggleBtn
 @onready var phase_label: Label = $TopBar/HBox/PhaseLabel
 @onready var turn_label: Label = $TopBar/HBox/TurnLabel
 @onready var init_label: Label = $TopBar/HBox/InitLabel
@@ -25,6 +27,8 @@ var _hand_collapsed := false
 
 var _legend: Panel = null
 var _help: Panel = null
+var _log_collapsed := false
+var _log_reopen_btn: Button = null
 
 
 func _ready() -> void:
@@ -35,6 +39,8 @@ func _ready() -> void:
 	_build_legend()
 	_build_view3d_button()
 	_build_help_panel()
+	_build_log_reopen()
+	log_toggle_btn.pressed.connect(_toggle_log)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	_refresh_ui()
 	# Riempi il registro con le righe già accumulate
@@ -175,7 +181,7 @@ func _help_text() -> String:
 		+ "[b]Passare / finire il turno[/b]\n" \
 		+ " - Premi «Fine Turno» per concludere e passare all'avversario (anche a ordini finiti).\n\n" \
 		+ "[b]Tasti rapidi[/b]\n" \
-		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = mostra/nascondi carte\n" \
+		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = carte    R = registro\n" \
 		+ " - X = esci dal bordo nemico (VP)    S = fumo/esplosivo    SPAZIO = non sparare\n" \
 		+ " - F5 = salva    F9 = carica    M = muto    H = questo aiuto"
 
@@ -210,6 +216,28 @@ func _card_banner(text: String, is_top: bool) -> Control:
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.add_child(lbl)
 	return c
+
+
+## Colonna del Registro (a destra) collassabile. Da nascosta, un pulsante
+## «Registro» in alto a destra la riapre (anche col tasto «R»).
+func _build_log_reopen() -> void:
+	_log_reopen_btn = Button.new()
+	_log_reopen_btn.text = "Registro"
+	_log_reopen_btn.tooltip_text = "Mostra il registro (R)"
+	_log_reopen_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_log_reopen_btn.offset_left = -150
+	_log_reopen_btn.offset_top = 84
+	_log_reopen_btn.offset_right = -12
+	_log_reopen_btn.visible = false
+	_log_reopen_btn.pressed.connect(_toggle_log)
+	add_child(_log_reopen_btn)
+
+
+func _toggle_log() -> void:
+	_log_collapsed = not _log_collapsed
+	log_panel.visible = not _log_collapsed
+	if _log_reopen_btn != null:
+		_log_reopen_btn.visible = _log_collapsed
 
 
 func _connect_signals() -> void:
@@ -248,6 +276,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_H:  # pannello d'aiuto: come si gioca / comandi
 			if _help != null:
 				_help.visible = not _help.visible
+			get_viewport().set_input_as_handled()
+		KEY_R:  # mostra/nascondi la colonna del Registro
+			_toggle_log()
 			get_viewport().set_input_as_handled()
 		KEY_G:  # trasferisci/raccogli l'arma trasportata (11.3)
 			if Game.state != null and Game.state.phase == Domain.Phase.PLAYER_MOVING \
