@@ -28,6 +28,24 @@ func _ready() -> void:
 	_build(s)
 	_camera.current = true
 	_update_camera()
+	_add_ui()
+
+
+## Overlay 2D: pulsante per tornare alla mappa 2D.
+func _add_ui() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	var btn := Button.new()
+	btn.text = "▣ Vista 2D"
+	btn.position = Vector2(16, 14)
+	btn.custom_minimum_size = Vector2(130, 38)
+	btn.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/Main.tscn"))
+	layer.add_child(btn)
+	var hint := Label.new()
+	hint.text = "Trascina = ruota · rotella = zoom · «2»/ESC = 2D"
+	hint.position = Vector2(160, 22)
+	hint.modulate = Color(1, 1, 1, 0.7)
+	layer.add_child(hint)
 
 
 func _add_lighting() -> void:
@@ -104,6 +122,7 @@ func _build(s: GameState) -> void:
 			var bB := Vector3(tB.x, 0.0, tB.z)
 			side_st.add_vertex(tA); side_st.add_vertex(bA); side_st.add_vertex(tB)
 			side_st.add_vertex(tB); side_st.add_vertex(bA); side_st.add_vertex(bB)
+		_decorate(hd, q, r, center_w)
 		minx = minf(minx, center_w.x); maxx = maxf(maxx, center_w.x)
 		minz = minf(minz, center_w.z); maxz = maxf(maxz, center_w.z)
 
@@ -125,6 +144,7 @@ func _build(s: GameState) -> void:
 	side_mi.material_override = side_mat
 	add_child(side_mi)
 
+	_add_side_features(s, ox, oy, hx)
 	_add_pieces(s, ox, oy, hx)
 	_add_objectives(s, ox, oy, hx)
 
@@ -228,6 +248,130 @@ func _mat(col: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = col
 	return m
+
+
+# ─── Volumi 3D: alberi, edifici, macerie sopra l'esagono ──────────────────────
+
+## Aggiunge volumi sopra l'esagono in base al terreno. `top` = centro della
+## faccia superiore (alla quota reale).
+func _decorate(hd: GameState.HexData, q: int, r: int, top: Vector3) -> void:
+	match hd.terrain:
+		Domain.TerrainType.WOODS:
+			_add_tree(top, _jit(q, r, 0), 1.0)
+			_add_tree(top, _jit(q, r, 1), 0.85)
+			_add_tree(top, _jit(q, r, 2), 0.7)
+		Domain.TerrainType.ORCHARD:
+			_add_tree(top, _jit(q, r, 0), 0.8)
+			_add_tree(top, _jit(q, r, 3), 0.7)
+		Domain.TerrainType.BUILDING:
+			_add_building(top)
+		Domain.TerrainType.RUBBLE:
+			_add_box(top + Vector3(0.2, 0.1, -0.1), Vector3(0.4, 0.2, 0.4), Color(0.45, 0.43, 0.40))
+			_add_box(top + Vector3(-0.25, 0.07, 0.2), Vector3(0.3, 0.14, 0.3), Color(0.5, 0.47, 0.44))
+
+
+## Offset deterministico (niente RNG) per scostare gli alberi dentro l'esagono.
+func _jit(q: int, r: int, i: int) -> Vector3:
+	var a := float(q * 12 + r * 7 + i * 53)
+	return Vector3(sin(a) * 0.45, 0.0, cos(a * 1.7) * 0.45)
+
+
+func _add_tree(top: Vector3, off: Vector3, scale: float) -> void:
+	var trunk := MeshInstance3D.new()
+	var tc := CylinderMesh.new()
+	tc.top_radius = 0.05 * scale
+	tc.bottom_radius = 0.07 * scale
+	tc.height = 0.35 * scale
+	tc.radial_segments = 6
+	trunk.mesh = tc
+	trunk.material_override = _mat(Color(0.35, 0.25, 0.15))
+	trunk.position = top + off + Vector3(0.0, 0.175 * scale, 0.0)
+	add_child(trunk)
+	var foliage := MeshInstance3D.new()
+	var fc := CylinderMesh.new()
+	fc.top_radius = 0.0
+	fc.bottom_radius = 0.34 * scale
+	fc.height = 0.75 * scale
+	fc.radial_segments = 8
+	foliage.mesh = fc
+	foliage.material_override = _mat(Color(0.10, 0.32, 0.12))
+	foliage.position = top + off + Vector3(0.0, 0.7 * scale, 0.0)
+	add_child(foliage)
+
+
+func _add_building(top: Vector3) -> void:
+	_add_box(top + Vector3(0.0, 0.3, 0.0), Vector3(0.95, 0.6, 0.85), Color(0.62, 0.5, 0.4))
+	var roof := MeshInstance3D.new()
+	var rc := CylinderMesh.new()
+	rc.top_radius = 0.0
+	rc.bottom_radius = 0.72
+	rc.height = 0.4
+	rc.radial_segments = 4
+	roof.mesh = rc
+	roof.rotation_degrees = Vector3(0.0, 45.0, 0.0)
+	roof.material_override = _mat(Color(0.45, 0.22, 0.18))
+	roof.position = top + Vector3(0.0, 0.8, 0.0)
+	add_child(roof)
+
+
+func _add_box(center: Vector3, size: Vector3, col: Color) -> void:
+	var b := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	b.mesh = bm
+	b.material_override = _mat(col)
+	b.position = center
+	add_child(b)
+
+
+# ─── Bordi: muri, steccati, siepi, bocage ─────────────────────────────────────
+
+## Rende le caratteristiche dei lati (HEDGE/WALL/FENCE/BOCAGE) come segmenti lungo
+## il bordo condiviso tra i due esagoni.
+func _add_side_features(s: GameState, ox: float, oy: float, hx: float) -> void:
+	for sf in s.side_features:
+		var feat := int(sf.get("feature", Domain.HexsideFeature.NONE))
+		var spec := _side_spec(feat)
+		if spec.is_empty():
+			continue
+		var a: Vector2i = sf.get("a", Vector2i.ZERO)
+		var b: Vector2i = sf.get("b", Vector2i.ZERO)
+		var ha: GameState.HexData = s.hex_at(a.x, a.y)
+		var hb: GameState.HexData = s.hex_at(b.x, b.y)
+		var ea := ha.elevation if ha != null else 0
+		var eb := hb.elevation if hb != null else 0
+		var top_y := BASE_H + maxi(ea, eb) * ELEV_STEP
+		var ca := _hex_img(a.x, a.y, ox, oy, hx)
+		var cb := _hex_img(b.x, b.y, ox, oy, hx)
+		var wa := Vector3(ca.x * _world, top_y, ca.y * _world)
+		var wb := Vector3(cb.x * _world, top_y, cb.y * _world)
+		var mid := (wa + wb) * 0.5
+		var dir := (wb - wa)
+		dir.y = 0.0
+		dir = dir.normalized()
+		var along := Vector3.UP.cross(dir).normalized()  # lungo il bordo (orizz.)
+		var h: float = spec["h"]
+		var bx := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(1.02, h, spec["t"])  # lunghezza ≈ lato esagono
+		bx.mesh = bm
+		bx.material_override = _mat(spec["c"])
+		bx.transform = Transform3D(Basis(along, Vector3.UP, dir), mid + Vector3(0.0, h * 0.5, 0.0))
+		add_child(bx)
+
+
+## Altezza/spessore/colore per tipo di lato; vuoto se non è un muretto.
+func _side_spec(feat: int) -> Dictionary:
+	match feat:
+		Domain.HexsideFeature.WALL:
+			return { "h": 0.32, "t": 0.08, "c": Color(0.55, 0.53, 0.5) }
+		Domain.HexsideFeature.HEDGE:
+			return { "h": 0.36, "t": 0.18, "c": Color(0.16, 0.36, 0.14) }
+		Domain.HexsideFeature.BOCAGE:
+			return { "h": 0.5, "t": 0.26, "c": Color(0.12, 0.3, 0.12) }
+		Domain.HexsideFeature.FENCE:
+			return { "h": 0.26, "t": 0.05, "c": Color(0.4, 0.3, 0.18) }
+	return {}
 
 
 func _update_camera() -> void:
