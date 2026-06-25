@@ -432,7 +432,7 @@ func _test_weapon_portage() -> void:
 
 
 func _test_move_path_cost() -> void:
-	print("· Movimento: clic su esagono lontano paga il costo del PERCORSO (no salti)")
+	print("· Movimento: passo-passo (un clic = un esagono) e percorso a costo minimo")
 	var s := _new_state(9, 1)
 	s.human_faction = GER
 	var u := _mk("u", GER, SQUAD, RIFLE, 0, 0, 5, 7)
