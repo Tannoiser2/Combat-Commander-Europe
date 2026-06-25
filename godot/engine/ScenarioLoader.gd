@@ -73,6 +73,13 @@ static func setup(state: GameState, num: int) -> bool:
 	var init_axis := String(e.get("iniziativa", "axis")) == "axis"
 	state.initiative_holder = Domain.Faction.GERMAN if init_axis else Domain.Faction.RUSSIAN
 	state.active_faction = state.initiative_holder
+	# Difensore (6.1.2): il lato con postura "defend"; -1 se nessuno difende.
+	if String(e.get("posture_axis", "")) == "defend":
+		state.defender_faction = Domain.Faction.GERMAN
+	elif String(e.get("posture_allies", "")) == "defend":
+		state.defender_faction = Domain.Faction.RUSSIAN
+	else:
+		state.defender_faction = -1
 
 	# Mano per fazione (qualità truppe) e soglie di resa (Casualty Track).
 	# Stand-in: axis → Tedeschi (GERMAN), allies → Russi (RUSSIAN).
