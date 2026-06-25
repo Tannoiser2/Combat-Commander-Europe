@@ -882,8 +882,9 @@ func projected_fire_fp() -> int:
 	var u := state.unit_by_id(state.selected_unit_id)
 	if u != null and not u.ordnance:
 		# Hindrance non cumulativo; fumo già incluso in los_hindrance (10.3.3/.4).
+		# 0 = l'attacco sarebbe annullato (10.3.2.1), così l'HUD lo segnala.
 		var hind := HexGrid.los_hindrance(u.q, u.r, state.fire_target_q, state.fire_target_r, state)
-		fp = maxi(1, fp - hind)
+		fp = maxi(0, fp - hind)
 	return fp
 
 

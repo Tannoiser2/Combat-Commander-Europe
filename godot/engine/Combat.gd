@@ -121,9 +121,6 @@ static func resolve_fire(
 	# ─── Potenza di fuoco del gruppo (O20.3.1.2) ─────────────────────────────
 	# Gruppo esplicito (scelto dal giocatore) o, in assenza, quello automatico.
 	var group := group_override if not group_override.is_empty() else fire_group(attacker, tq, tr, state)
-	# Anche i pezzi di supporto che sparano si rivelano (perdono la mimetizzazione).
-	for gu in group:
-		gu.concealed = false
 	# FP del pezzo base = migliore FP già comprensivo del Comando del leader
 	# co-locato (3.3.1.2 squadre/team, 3.3.1.3 armi), + 1 per ogni pezzo
 	# aggiuntivo (NON la somma di tutti gli FP). L'ordnance non è mai modificata.
@@ -134,7 +131,19 @@ static func resolve_fire(
 		fp += group.size() - 1
 	# Modificatori di fuoco (Mirato/Sostenuto/Incrociato, A37/A41/A30): +FP.
 	fp += fp_bonus
-	var attack_fp := maxi(1, fp) if attacker.ordnance else maxi(1, fp - hind)
+	# 10.3.2.1 Minimum Firepower: un attacco normale la cui FP sarebbe ridotta a
+	# 0 o meno dall'hindrance NON si può fare (le Azioni che alzano la FP contano
+	# prima del taglio). Attacco annullato, nessun effetto, nessuna rivelazione.
+	if not attacker.ordnance and fp - hind <= 0:
+		res.fp_total = 0
+		res.dice_roll = atk_dice.x + atk_dice.y
+		res.log_line = "%s su (%d,%d): FP %d − hindrance %d ≤ 0 ⇒ attacco ANNULLATO (10.3.2.1)" % [
+			attacker.unit_name, tq, tr, fp, hind]
+		return res
+	# L'attacco si effettua: i pezzi del gruppo che sparano si rivelano.
+	for gu in group:
+		gu.concealed = false
+	var attack_fp := maxi(1, fp) if attacker.ordnance else (fp - hind)
 	res.fp_total = attack_fp
 	res.dice_roll = atk_dice.x + atk_dice.y
 	var attack_total := attack_fp + res.dice_roll
