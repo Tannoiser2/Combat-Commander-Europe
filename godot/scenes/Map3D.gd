@@ -23,6 +23,7 @@ var _dynamic: Node3D
 var _fx: Node3D            ## layer effetti transitori (tracer, flash); non azzerato dai refresh
 var _last_unit_pos := {}   ## id unità → Vector2i(q,r) noto (per animare lo spostamento)
 var _pending_slide := {}   ## id unità → Vector3 posizione mondo di partenza dello slittamento
+var _pieces := []          ## [{id, node}] pedine correnti (per il click preciso sulle pile)
 var _press_pos := Vector2.ZERO
 var _dragged := false
 var _touches := {}        ## indice dito → posizione (per il pinch a due dita)
@@ -158,6 +159,7 @@ func refresh() -> void:
 func _refresh_dynamic(s: GameState) -> void:
 	for c in _dynamic.get_children():
 		c.queue_free()
+	_pieces.clear()
 	_add_status_markers(s)
 	_add_highlights(s)
 	_add_los_lines(s)
@@ -452,6 +454,7 @@ func _add_pieces(s: GameState) -> void:
 					_pending_slide.erase(u.id)
 				else:
 					sp.position = final_pos
+				_pieces.append({ "id": u.id, "node": sp })
 			else:
 				var pm := MeshInstance3D.new()
 				var pc := CylinderMesh.new()
@@ -462,6 +465,7 @@ func _add_pieces(s: GameState) -> void:
 					if u.faction == Domain.Faction.GERMAN else Color(0.28, 0.5, 0.28))
 				pm.position = base + Vector3(0.0, 0.3, 0.0)
 				_dynamic.add_child(pm)
+				_pieces.append({ "id": u.id, "node": pm })
 
 
 func _counter_tex(u: Unit) -> Texture2D:
@@ -772,6 +776,57 @@ func _pick_hex(vpos: Vector2) -> Vector2i:
 	return best
 
 
+## Pedina (billboard) sotto il cursore: proietta i centri delle pedine sullo
+## schermo e sceglie quella più vicina al click, preferendo la più frontale
+## (vicina alla camera) in una pila. "" se nessuna è abbastanza vicina.
+func _pick_piece(vpos: Vector2) -> String:
+	if _pieces.is_empty():
+		return ""
+	var thr := get_viewport().get_visible_rect().size.y * 0.06
+	var best := ""
+	var best_cam := INF
+	for p in _pieces:
+		var node: Node3D = p["node"]
+		if not is_instance_valid(node):
+			continue
+		var gp := node.global_position
+		if _camera.is_position_behind(gp):
+			continue
+		var sp := _camera.unproject_position(gp)
+		if vpos.distance_to(sp) > thr:
+			continue
+		var cd := _camera.global_position.distance_to(gp)
+		if cd < best_cam:
+			best_cam = cd
+			best = p["id"]
+	return best
+
+
+## Selezione/azione diretta sulla pedina cliccata in una pila. Restituisce true
+## se gestita; false per ricadere sul normale click dell'esagono.
+func _try_direct_select(pid: String) -> bool:
+	var s := Game.state
+	if s == null:
+		return false
+	var pu := s.unit_by_id(pid)
+	if pu == null:
+		return false
+	# Selezione precisa nella fase di scelta dell'unità.
+	if s.phase == Domain.Phase.PLAYER_TURN:
+		if pu.faction == s.human_faction and not pu.activated:
+			Game.select_unit(pid)
+			return true
+		return false
+	# Inclusione/esclusione precisa di un pezzo nel gruppo di fuoco impilato.
+	if s.phase == Domain.Phase.PLAYER_MOVING \
+			and s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+		if s.fire_eligible_ids.has(pid) and pid != s.selected_unit_id \
+				and not (pu.q == s.fire_target_q and pu.r == s.fire_target_r):
+			Game.toggle_fire_piece(pid)
+			return true
+	return false
+
+
 func _zoom(factor: float) -> void:
 	_cam_dist = clampf(_cam_dist * factor, 6.0, 200.0)
 	_update_camera()
@@ -821,9 +876,12 @@ func _unhandled_input(event: InputEvent) -> void:
 				_press_pos = mb.position
 				_dragged = false
 			elif not _dragged:
-				var hx := _pick_hex(mb.position)
-				if hx.x >= 0:
-					Game.click_hex(hx.x, hx.y)
+				# Prima prova il click preciso sulla pedina; altrimenti l'esagono.
+				var pid := _pick_piece(mb.position)
+				if pid == "" or not _try_direct_select(pid):
+					var hx := _pick_hex(mb.position)
+					if hx.x >= 0:
+						Game.click_hex(hx.x, hx.y)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_zoom(0.9)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
