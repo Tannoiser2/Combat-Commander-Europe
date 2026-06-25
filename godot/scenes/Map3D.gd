@@ -103,14 +103,25 @@ func _build_static(s: GameState) -> void:
 	_hx = s.cal_hex
 	_world = 1.0 / _hx
 
-	var top_st := SurfaceTool.new()
-	top_st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var side_st := SurfaceTool.new()
-	side_st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var minx := INF
-	var minz := INF
-	var maxx := -INF
-	var maxz := -INF
+	# Superficie texturizzata (vassoio + cime dei rilievi) e superficie marrone
+	# (spessore del bordo + fianchi dei rilievi).
+	var tex_st := SurfaceTool.new()
+	tex_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var brown_st := SurfaceTool.new()
+	brown_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+	# 1) VASSOIO RETTANGOLARE: l'intera immagine del tabellone (bordo marrone
+	#    incluso) come piano a quota BASE_H → la mappa 3D è rettangolare come la reale.
+	var ww := iw * _world
+	var hh := ih * _world
+	_tray_top(tex_st, ww, hh)
+	# fianchi del perimetro (spessore del tabellone) da BASE_H giù a 0.
+	_rect_wall(brown_st, Vector3(0, BASE_H, 0), Vector3(ww, BASE_H, 0))
+	_rect_wall(brown_st, Vector3(ww, BASE_H, 0), Vector3(ww, BASE_H, hh))
+	_rect_wall(brown_st, Vector3(ww, BASE_H, hh), Vector3(0, BASE_H, hh))
+	_rect_wall(brown_st, Vector3(0, BASE_H, hh), Vector3(0, BASE_H, 0))
+
+	# 2) RILIEVI: solo gli esagoni con elevazione > 0 sporgono sopra il vassoio.
 	for key in s.hexes:
 		var p := String(key).split(",")
 		var q := int(p[0])
@@ -118,52 +129,74 @@ func _build_static(s: GameState) -> void:
 		var hd: GameState.HexData = s.hexes[key]
 		var top_y := BASE_H + hd.elevation * ELEV_STEP
 		var cimg := _hex_img(q, r)
-		var corners_w: Array[Vector3] = []
-		var corners_uv: Array[Vector2] = []
-		for i in range(6):
-			var a := deg_to_rad(60.0 * i)
-			var ci := cimg + _hx * Vector2(cos(a), sin(a))
-			corners_w.append(Vector3(ci.x * _world, top_y, ci.y * _world))
-			corners_uv.append(Vector2(ci.x / iw, ci.y / ih))
-		var center_w := Vector3(cimg.x * _world, top_y, cimg.y * _world)
-		var center_uv := Vector2(cimg.x / iw, cimg.y / ih)
-		for i in range(6):
-			var j := (i + 1) % 6
-			top_st.set_normal(Vector3.UP)
-			top_st.set_uv(center_uv); top_st.add_vertex(center_w)
-			top_st.set_uv(corners_uv[i]); top_st.add_vertex(corners_w[i])
-			top_st.set_uv(corners_uv[j]); top_st.add_vertex(corners_w[j])
-		for i in range(6):
-			var j := (i + 1) % 6
-			var tA := corners_w[i]
-			var tB := corners_w[j]
-			var bA := Vector3(tA.x, 0.0, tA.z)
-			var bB := Vector3(tB.x, 0.0, tB.z)
-			side_st.add_vertex(tA); side_st.add_vertex(bA); side_st.add_vertex(tB)
-			side_st.add_vertex(tB); side_st.add_vertex(bA); side_st.add_vertex(bB)
-		_decorate(hd, q, r, center_w)
-		minx = minf(minx, center_w.x); maxx = maxf(maxx, center_w.x)
-		minz = minf(minz, center_w.z); maxz = maxf(maxz, center_w.z)
+		if hd.elevation > 0:
+			var corners_w: Array[Vector3] = []
+			var corners_uv: Array[Vector2] = []
+			for i in range(6):
+				var a := deg_to_rad(60.0 * i)
+				var ci := cimg + _hx * Vector2(cos(a), sin(a))
+				corners_w.append(Vector3(ci.x * _world, top_y, ci.y * _world))
+				corners_uv.append(Vector2(ci.x / iw, ci.y / ih))
+			var center_w := Vector3(cimg.x * _world, top_y, cimg.y * _world)
+			var center_uv := Vector2(cimg.x / iw, cimg.y / ih)
+			for i in range(6):
+				var j := (i + 1) % 6
+				tex_st.set_normal(Vector3.UP)
+				tex_st.set_uv(center_uv); tex_st.add_vertex(center_w)
+				tex_st.set_uv(corners_uv[i]); tex_st.add_vertex(corners_w[i])
+				tex_st.set_uv(corners_uv[j]); tex_st.add_vertex(corners_w[j])
+			# fianchi del rilievo: dal bordo superiore giù al vassoio (BASE_H).
+			for i in range(6):
+				var j := (i + 1) % 6
+				var tA := corners_w[i]
+				var tB := corners_w[j]
+				var bA := Vector3(tA.x, BASE_H, tA.z)
+				var bB := Vector3(tB.x, BASE_H, tB.z)
+				brown_st.add_vertex(tA); brown_st.add_vertex(bA); brown_st.add_vertex(tB)
+				brown_st.add_vertex(tB); brown_st.add_vertex(bA); brown_st.add_vertex(bB)
+		_decorate(hd, q, r, Vector3(cimg.x * _world, top_y, cimg.y * _world))
 
-	top_st.generate_normals()
+	tex_st.generate_normals()
 	var top_mat := StandardMaterial3D.new()
 	if tex != null:
 		top_mat.albedo_texture = tex
 	top_mat.roughness = 1.0
 	var top_mi := MeshInstance3D.new()
-	top_mi.mesh = top_st.commit()
+	top_mi.mesh = tex_st.commit()
 	top_mi.material_override = top_mat
 	add_child(top_mi)
 
-	side_st.generate_normals()
+	brown_st.generate_normals()
 	var side_mi := MeshInstance3D.new()
-	side_mi.mesh = side_st.commit()
-	side_mi.material_override = _mat(Color(0.32, 0.26, 0.18))
+	side_mi.mesh = brown_st.commit()
+	side_mi.material_override = _mat(Color(0.30, 0.22, 0.13))
 	add_child(side_mi)
 
 	_add_side_features(s)
-	_center = Vector3((minx + maxx) * 0.5, 0.0, (minz + maxz) * 0.5)
-	_cam_dist = maxf(maxx - minx, maxz - minz) * 0.7 + 8.0
+	_center = Vector3(ww * 0.5, 0.0, hh * 0.5)
+	_cam_dist = maxf(ww, hh) * 0.75 + 6.0
+
+
+## Faccia superiore del vassoio: quad (0,0)-(ww,hh) con l'immagine completa.
+func _tray_top(st: SurfaceTool, ww: float, hh: float) -> void:
+	var a := Vector3(0, BASE_H, 0)
+	var b := Vector3(ww, BASE_H, 0)
+	var c := Vector3(ww, BASE_H, hh)
+	var d := Vector3(0, BASE_H, hh)
+	st.set_normal(Vector3.UP); st.set_uv(Vector2(0, 0)); st.add_vertex(a)
+	st.set_normal(Vector3.UP); st.set_uv(Vector2(1, 0)); st.add_vertex(b)
+	st.set_normal(Vector3.UP); st.set_uv(Vector2(1, 1)); st.add_vertex(c)
+	st.set_normal(Vector3.UP); st.set_uv(Vector2(0, 0)); st.add_vertex(a)
+	st.set_normal(Vector3.UP); st.set_uv(Vector2(1, 1)); st.add_vertex(c)
+	st.set_normal(Vector3.UP); st.set_uv(Vector2(0, 1)); st.add_vertex(d)
+
+
+## Parete verticale del perimetro tra due punti del bordo superiore, giù a y=0.
+func _rect_wall(st: SurfaceTool, ta: Vector3, tb: Vector3) -> void:
+	var ba := Vector3(ta.x, 0.0, ta.z)
+	var bb := Vector3(tb.x, 0.0, tb.z)
+	st.add_vertex(ta); st.add_vertex(ba); st.add_vertex(tb)
+	st.add_vertex(tb); st.add_vertex(ba); st.add_vertex(bb)
 
 
 # ─── Layer dinamico ───────────────────────────────────────────────────────────
