@@ -1,9 +1,16 @@
-## Verifica headless che Main.tscn si istanzi senza errori (percorsi @onready,
-## struttura della HUD) e che la logica di zoom/pan della mappa 2D sia corretta.
+## Verifica headless che le scene si istanzino e si costruiscano senza errori:
+## struttura della HUD, percorsi @onready, logica di zoom/pan della mappa 2D,
+## schermata iniziale e costruzione della mappa 3D (terreno + decori).
+## I _ready dei nodi NON scattano durante _initialize: vengono eseguiti ai primi
+## frame, quindi i controlli si fanno in _process (dopo qualche frame).
 ## Stampa SCENE_RESULT: PASS/FAIL.
 extends SceneTree
 
 var _ok := true
+var _frames := 0
+var _main: Node = null
+var _menu: Node = null
+var _board: Node = null
 
 
 func _fail(msg: String) -> void:
@@ -12,18 +19,40 @@ func _fail(msg: String) -> void:
 
 
 func _initialize() -> void:
-	var scene: PackedScene = load("res://scenes/Main.tscn")
-	if scene == null:
+	var main_scene: PackedScene = load("res://scenes/Main.tscn")
+	if main_scene == null:
 		print("SCENE_RESULT: FAIL (Main.tscn non caricata)")
 		quit(1)
 		return
-	var inst: Node = scene.instantiate()
-	if inst == null:
-		print("SCENE_RESULT: FAIL (instantiate ha restituito null)")
-		quit(1)
-		return
-	get_root().add_child(inst)
+	_main = main_scene.instantiate()
+	get_root().add_child(_main)
 
+	var menu_scene: PackedScene = load("res://scenes/Menu.tscn")
+	if menu_scene != null:
+		_menu = menu_scene.instantiate()
+		get_root().add_child(_menu)
+
+	var m3d_scene: PackedScene = load("res://scenes/Map3D.tscn")
+	if m3d_scene != null:
+		_board = m3d_scene.instantiate()
+		get_root().add_child(_board)
+
+
+# Ritorna true per terminare il main loop.
+func _process(_dt: float) -> bool:
+	_frames += 1
+	if _frames < 3:  # lascia scattare i _ready (HUD, HexMap, Map3D)
+		return false
+	_run_checks()
+	print("SCENE_RESULT: ", "PASS" if _ok else "FAIL")
+	quit(0 if _ok else 1)
+	return true
+
+
+func _run_checks() -> void:
+	if _main == null:
+		_fail("Main non istanziata")
+		return
 	# 1) Nodi chiave della HUD ai percorsi attesi.
 	for path in [
 		"Sidebar/SideVBox/LogList",
@@ -37,25 +66,22 @@ func _initialize() -> void:
 		"TopBar/HBox/PhaseLabel",
 		"TopBar/HBox/OrdersLabel",
 	]:
-		if inst.get_node_or_null(path) == null:
+		if _main.get_node_or_null(path) == null:
 			_fail("nodo mancante: " + path)
 
 	# 2) Zoom & pan della mappa 2D.
-	_check_view(inst.get_node_or_null("HexMap"))
+	_check_view(_main.get_node_or_null("HexMap"))
 
-	# 3) Schermata iniziale: deve istanziarsi senza errori (UI costruita via codice).
-	var menu_scene: PackedScene = load("res://scenes/Menu.tscn")
-	if menu_scene == null:
-		_fail("Menu.tscn non caricata")
-	else:
-		var menu: Node = menu_scene.instantiate()
-		if menu == null:
-			_fail("Menu.tscn instantiate ha restituito null")
-		else:
-			get_root().add_child(menu)
+	# 3) Schermata iniziale: istanziata senza errori.
+	if _menu == null:
+		_fail("Menu non istanziata")
 
-	print("SCENE_RESULT: ", "PASS" if _ok else "FAIL")
-	quit(0 if _ok else 1)
+	# 4) Mappa 3D: _ready ha costruito terreno + decori (alberi/case/cespugli,
+	#    pendii). Deve aver prodotto parecchia geometria.
+	if _board == null:
+		_fail("Map3D non istanziata")
+	elif _board.get_child_count() < 20:
+		_fail("la mappa 3D non ha prodotto geometria (figli=%d)" % _board.get_child_count())
 
 
 func _check_view(map: Node) -> void:

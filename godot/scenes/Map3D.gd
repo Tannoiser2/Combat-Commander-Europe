@@ -8,6 +8,7 @@ extends Node3D
 
 const ELEV_STEP := 0.55
 const BASE_H := 0.25
+const SKIRT_FRAC := 0.5  ## allargamento della base dei rilievi per livello (pendio)
 
 var _world := 1.0 / 59.2
 var _ox := 129.0
@@ -334,13 +335,21 @@ func _build_static(s: GameState) -> void:
 				tex_st.set_uv(center_uv); tex_st.add_vertex(center_w)
 				tex_st.set_uv(corners_uv[i]); tex_st.add_vertex(corners_w[i])
 				tex_st.set_uv(corners_uv[j]); tex_st.add_vertex(corners_w[j])
-			# fianchi del rilievo: dal bordo superiore giù al vassoio (BASE_H).
+			# Fianchi del rilievo INCLINATI: la base (a BASE_H) è più larga della
+			# cima, così l'elevazione sembra una collina e non un gradino verticale.
+			# La "gonna" si allarga con l'elevazione → pendenza costante.
+			var skirt := _hx * SKIRT_FRAC * float(hd.elevation)
+			var base_w: Array[Vector3] = []
+			for i in range(6):
+				var a := deg_to_rad(60.0 * i)
+				var cb := cimg + (_hx + skirt) * Vector2(cos(a), sin(a))
+				base_w.append(Vector3(cb.x * _world, BASE_H, cb.y * _world))
 			for i in range(6):
 				var j := (i + 1) % 6
 				var tA := corners_w[i]
 				var tB := corners_w[j]
-				var bA := Vector3(tA.x, BASE_H, tA.z)
-				var bB := Vector3(tB.x, BASE_H, tB.z)
+				var bA := base_w[i]
+				var bB := base_w[j]
 				brown_st.add_vertex(tA); brown_st.add_vertex(bA); brown_st.add_vertex(tB)
 				brown_st.add_vertex(tB); brown_st.add_vertex(bA); brown_st.add_vertex(bB)
 		_decorate(hd, q, r, Vector3(cimg.x * _world, top_y, cimg.y * _world))
@@ -883,11 +892,17 @@ func _decorate(hd: GameState.HexData, q: int, r: int, top: Vector3) -> void:
 			_add_tree(top, _jit(q, r, 0), 1.0)
 			_add_tree(top, _jit(q, r, 1), 0.85)
 			_add_tree(top, _jit(q, r, 2), 0.7)
+			_add_bush(top, _jit(q, r, 4), 0.8)
 		Domain.TerrainType.ORCHARD:
 			_add_tree(top, _jit(q, r, 0), 0.8)
-			_add_tree(top, _jit(q, r, 3), 0.7)
+			_add_tree(top, _jit(q, r, 3), 0.72)
+			_add_bush(top, _jit(q, r, 5), 0.7)
+		Domain.TerrainType.FIELD:
+			_add_bush(top, _jit(q, r, 0), 0.9)
+			_add_bush(top, _jit(q, r, 2), 0.75)
+			_add_bush(top, _jit(q, r, 4), 0.8)
 		Domain.TerrainType.BUILDING:
-			_add_building(top)
+			_add_building(top, q, r)
 		Domain.TerrainType.RUBBLE:
 			_add_box(top + Vector3(0.2, 0.1, -0.1), Vector3(0.4, 0.2, 0.4), Color(0.45, 0.43, 0.40))
 			_add_box(top + Vector3(-0.25, 0.07, 0.2), Vector3(0.3, 0.14, 0.3), Color(0.5, 0.47, 0.44))
@@ -898,46 +913,82 @@ func _jit(q: int, r: int, i: int) -> Vector3:
 	return Vector3(sin(a) * 0.45, 0.0, cos(a * 1.7) * 0.45)
 
 
+## Alberello "da diorama": tronco affusolato + chioma a 3 volumi sferici
+## sovrapposti (più realistica del cono singolo), con verde variato.
 func _add_tree(top: Vector3, off: Vector3, scale: float) -> void:
+	var base := top + off
 	var trunk := MeshInstance3D.new()
 	var tc := CylinderMesh.new()
-	tc.top_radius = 0.05 * scale; tc.bottom_radius = 0.07 * scale; tc.height = 0.35 * scale
+	tc.top_radius = 0.035 * scale; tc.bottom_radius = 0.08 * scale; tc.height = 0.42 * scale
 	tc.radial_segments = 6
 	trunk.mesh = tc
-	trunk.material_override = _mat(Color(0.35, 0.25, 0.15))
-	trunk.position = top + off + Vector3(0.0, 0.175 * scale, 0.0)
+	trunk.material_override = _mat(Color(0.34, 0.24, 0.15))
+	trunk.position = base + Vector3(0.0, 0.21 * scale, 0.0)
 	add_child(trunk)
-	var foliage := MeshInstance3D.new()
-	var fc := CylinderMesh.new()
-	fc.top_radius = 0.0; fc.bottom_radius = 0.34 * scale; fc.height = 0.75 * scale
-	fc.radial_segments = 8
-	foliage.mesh = fc
-	foliage.material_override = _mat(Color(0.10, 0.32, 0.12))
-	foliage.position = top + off + Vector3(0.0, 0.7 * scale, 0.0)
-	add_child(foliage)
+	# Variazione di verde deterministica dalla posizione.
+	var t := 0.5 + 0.5 * sin(off.x * 13.0 + off.z * 7.0)
+	var green := Color(0.10, 0.30, 0.12).lerp(Color(0.16, 0.42, 0.16), t)
+	_add_sphere(base + Vector3(0.0, 0.5 * scale, 0.0), 0.30 * scale, green)
+	_add_sphere(base + Vector3(0.12 * scale, 0.7 * scale, -0.06 * scale), 0.24 * scale, green.darkened(0.06))
+	_add_sphere(base + Vector3(-0.07 * scale, 0.86 * scale, 0.05 * scale), 0.17 * scale, green.lightened(0.06))
 
 
-func _add_building(top: Vector3) -> void:
-	_add_box(top + Vector3(0.0, 0.3, 0.0), Vector3(0.95, 0.6, 0.85), Color(0.62, 0.5, 0.4))
+## Cespuglio: gruppetto di sfere basse e tozze.
+func _add_bush(top: Vector3, off: Vector3, scale: float) -> void:
+	var base := top + off
+	var green := Color(0.14, 0.34, 0.13)
+	_add_sphere(base + Vector3(0.0, 0.12 * scale, 0.0), 0.20 * scale, green)
+	_add_sphere(base + Vector3(0.16 * scale, 0.10 * scale, 0.04 * scale), 0.15 * scale, green.lightened(0.05))
+	_add_sphere(base + Vector3(-0.12 * scale, 0.09 * scale, -0.08 * scale), 0.14 * scale, green.darkened(0.05))
+
+
+## Casa "da diorama": corpo intonacato + tetto a due falde (prisma), camino e
+## porta. Posizione/colore leggermente variati per non farle tutte uguali.
+func _add_building(top: Vector3, q: int, r: int) -> void:
+	var yaw := 90.0 * float((q + r) % 2)  # alterna l'orientamento
+	var wall := Color(0.74, 0.68, 0.56).lerp(Color(0.66, 0.58, 0.48), 0.5 + 0.5 * sin(float(q * 5 + r * 3)))
+	var body := Vector3(0.88, 0.52, 0.78)
+	_add_box_rot(top + Vector3(0.0, body.y * 0.5, 0.0), body, wall, yaw)
+	# Tetto a falde: prisma triangolare (colmo lungo Z), appoggiato sul corpo.
 	var roof := MeshInstance3D.new()
-	var rc := CylinderMesh.new()
-	rc.top_radius = 0.0; rc.bottom_radius = 0.72; rc.height = 0.4
-	rc.radial_segments = 4
-	roof.mesh = rc
-	roof.rotation_degrees = Vector3(0.0, 45.0, 0.0)
-	roof.material_override = _mat(Color(0.45, 0.22, 0.18))
-	roof.position = top + Vector3(0.0, 0.8, 0.0)
+	var pm := PrismMesh.new()
+	pm.size = Vector3(body.x + 0.12, 0.40, body.z + 0.12)
+	roof.mesh = pm
+	roof.material_override = _mat(Color(0.5, 0.24, 0.18))
+	roof.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(yaw)), top + Vector3(0.0, body.y + 0.20, 0.0))
 	add_child(roof)
+	# Camino e porta (dettagli da plastico).
+	var chimney_local := Vector3(body.x * 0.28, body.y + 0.34, body.z * 0.2)
+	_add_box_rot(top + chimney_local.rotated(Vector3.UP, deg_to_rad(yaw)), Vector3(0.12, 0.3, 0.12), Color(0.4, 0.28, 0.22), yaw)
+	var door_local := Vector3(0.0, 0.16, body.z * 0.5 + 0.01)
+	_add_box_rot(top + door_local.rotated(Vector3.UP, deg_to_rad(yaw)), Vector3(0.18, 0.30, 0.04), Color(0.25, 0.17, 0.12), yaw)
 
 
 func _add_box(center: Vector3, size: Vector3, col: Color) -> void:
+	_add_box_rot(center, size, col, 0.0)
+
+
+func _add_box_rot(center: Vector3, size: Vector3, col: Color, yaw_deg: float) -> void:
 	var b := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = size
 	b.mesh = bm
 	b.material_override = _mat(col)
-	b.position = center
+	b.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(yaw_deg)), center)
 	add_child(b)
+
+
+func _add_sphere(center: Vector3, radius: float, col: Color) -> void:
+	var m := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = radius
+	sm.height = radius * 2.0
+	sm.radial_segments = 8
+	sm.rings = 5
+	m.mesh = sm
+	m.material_override = _mat(col)
+	m.position = center
+	add_child(m)
 
 
 # ─── Bordi: muri, steccati, siepi, bocage ─────────────────────────────────────
