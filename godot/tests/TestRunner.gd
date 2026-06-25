@@ -89,6 +89,7 @@ func _ready() -> void:
 	_test_op_fire()
 	_test_op_fire_card_cost()
 	_test_pass_turn()
+	_test_move_command_group()
 	_test_initial_carriers_relocate()
 	_test_scenario1_no_orphan_weapons()
 	_test_loader_weapons_with_squads()
@@ -1587,6 +1588,34 @@ func _test_pass_turn() -> void:
 	_check(s2.german_hand.size() == 2 and s2.german_discard.is_empty(),
 		"passare senza scartare conserva la mano")
 	_check(s2.turn_number == 2, "passare senza scartare cede comunque il turno")
+
+
+func _test_move_command_group() -> void:
+	print("· Comando (3.3.1.2): ordinare una qualunque unità comandata attiva tutto il gruppo")
+	var s := _new_state(8, 4)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	var L := _mk("L", GER, LEADER, ELITE, 2, 1, 1, 8, 6, 3)  # comando 3
+	var A := _mk("A", GER, SQUAD, RIFLE, 3, 1, 5, 7)
+	var B := _mk("B", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	s.units["L"] = L; s.units["A"] = A; s.units["B"] = B
+	Game.state = s
+	# Clicco la squadra A (NON il leader): si attiva l'intero raggio di comando.
+	Game.select_unit("A")
+	_check(s.ordered_group.has("A") and s.ordered_group.has("B") and s.ordered_group.has("L"),
+		"ordinare una squadra comandata attiva leader + tutte le unità in raggio")
+	# Una squadra fuori dal comando di qualsiasi leader si muove da sola.
+	var s2 := _new_state(14, 5)
+	s2.human_faction = GER
+	s2.phase = Domain.Phase.PLAYER_MOVING
+	s2.current_order = Domain.OrderType.MOVE
+	s2.units["L2"] = _mk("L2", GER, LEADER, ELITE, 0, 0, 1, 8, 6, 2)
+	s2.units["C"] = _mk("C", GER, SQUAD, RIFLE, 12, 4, 5, 7)  # lontanissima
+	Game.state = s2
+	Game.select_unit("C")
+	_check(s2.ordered_group.size() == 1 and s2.ordered_group.has("C"),
+		"una squadra fuori comando si muove da sola")
 
 
 func _weapon(id: String, faction: int, q: int, r: int) -> Unit:
