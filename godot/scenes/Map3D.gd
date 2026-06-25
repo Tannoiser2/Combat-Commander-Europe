@@ -160,6 +160,7 @@ func _refresh_dynamic(s: GameState) -> void:
 		c.queue_free()
 	_add_status_markers(s)
 	_add_highlights(s)
+	_add_los_lines(s)
 	_add_pieces(s)
 	_add_objectives(s)
 
@@ -366,6 +367,52 @@ func _hex_disc(q: int, r: int, s: GameState, col: Color) -> void:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mi.material_override = m
 	_dynamic.add_child(mi)
+
+
+## Linee di LOS dall'unità selezionata (se può sparare) verso i nemici in
+## gittata: verde = LOS libera, giallo = libera ma con ostacolo (hindrance),
+## rosso = bloccata. Aiuto tattico esclusivo della 3D.
+func _add_los_lines(s: GameState) -> void:
+	if s.selected_unit_id == "":
+		return
+	var sh := s.unit_by_id(s.selected_unit_id)
+	if sh == null or not sh.efficient or sh.fp <= 0:
+		return
+	var rng := Rules.range_with_command(s, sh)
+	for e in s.units.values():
+		if e.faction == sh.faction:
+			continue
+		var d := HexGrid.distance(sh.q, sh.r, e.q, e.r)
+		if d < 1 or d > rng:
+			continue
+		var col: Color
+		if HexGrid.has_los(sh.q, sh.r, e.q, e.r, s):
+			col = Color(0.2, 1.0, 0.3, 0.7) if HexGrid.los_hindrance(sh.q, sh.r, e.q, e.r, s) == 0 \
+				else Color(1.0, 0.85, 0.2, 0.7)
+		else:
+			col = Color(1.0, 0.25, 0.2, 0.55)
+		_los_line(sh.q, sh.r, e.q, e.r, s, col)
+
+
+func _los_line(q1: int, r1: int, q2: int, r2: int, s: GameState, col: Color) -> void:
+	var c1 := _hex_img(q1, r1)
+	var c2 := _hex_img(q2, r2)
+	var from := Vector3(c1.x * _world, _top_y(s, q1, r1) + 0.55, c1.y * _world)
+	var to := Vector3(c2.x * _world, _top_y(s, q2, r2) + 0.55, c2.y * _world)
+	var ln := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.025
+	cyl.bottom_radius = 0.025
+	cyl.height = from.distance_to(to)
+	cyl.radial_segments = 5
+	ln.mesh = cyl
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ln.material_override = m
+	ln.transform = _aim_y((from + to) * 0.5, (to - from))
+	_dynamic.add_child(ln)
 
 
 func _add_pieces(s: GameState) -> void:
