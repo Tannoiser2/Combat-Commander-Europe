@@ -40,6 +40,7 @@ func _ready() -> void:
 	_test_clone_preserves_hero()
 	_test_ai_advance_no_command()
 	_test_reachable_stops_at_wire()
+	_test_reachable_costs()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -337,6 +338,25 @@ func _test_reachable_stops_at_wire() -> void:
 	var r1 := HexGrid.reachable(u, s)
 	_check(r1.has(Vector2i(1, 0)), "si può entrare nell'esagono con Filo")
 	_check(not r1.has(Vector2i(2, 0)), "il Filo ferma il movimento: niente oltre (1,0)")
+
+
+func _test_reachable_costs() -> void:
+	print("· Anteprima movimento: costo in PM per esagono (HUD)")
+	var s := _new_state(5, 1)  # corridoio: ogni esagono costa 1 PM (terreno aperto)
+	var u := _mk("u", GER, SQUAD, RIFLE, 0, 0)
+	u.move = 4
+	s.units[u.id] = u
+	var costs := HexGrid.reachable_costs(u, s)
+	# Lungo il corridoio il costo cumulativo cresce di 1 per esagono.
+	_check(int(costs.get("1,0", -1)) == 1, "(1,0) costa 1 PM")
+	_check(int(costs.get("3,0", -1)) == 3, "(3,0) costa 3 PM")
+	_check(not costs.has("0,0"), "l'esagono di partenza non è incluso nel costo")
+	# Parità con reachable(): stesse chiavi (stesso insieme di esagoni).
+	var reach := HexGrid.reachable(u, s)
+	_check(reach.size() == costs.size(), "reachable e reachable_costs coprono gli stessi esagoni")
+	# Budget ridotto: un esagono più costoso dei PM residui sparisce dalla mappa.
+	var costs2 := HexGrid.reachable_costs(u, s, 2)
+	_check(costs2.has("2,0") and not costs2.has("3,0"), "con 2 PM si arriva a (2,0) ma non a (3,0)")
 
 
 func _test_sudden_death_initiative() -> void:

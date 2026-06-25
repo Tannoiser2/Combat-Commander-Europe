@@ -193,14 +193,25 @@ static func step_cost(state: GameState, fq: int, fr: int, tq: int, tr: int) -> i
 ## Esagoni raggiungibili dall'unità. `budget_override` >= 0 usa quei PM (per i
 ## passi successivi di una mossa già avviata); altrimenti l'allowance pieno.
 static func reachable(u: Unit, state: GameState, budget_override: int = -1) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for key in reachable_costs(u, state, budget_override):
+		var p := String(key).split(",")
+		result.append(Vector2i(int(p[0]), int(p[1])))
+	return result
+
+
+## Come reachable(), ma restituisce una mappa "q,r" → PM minimi necessari per
+## raggiungere quell'esagono (per mostrare il costo del movimento sulla mappa).
+## L'esagono di partenza non è incluso. Stessa BFS con costo di reachable().
+static func reachable_costs(u: Unit, state: GameState, budget_override: int = -1) -> Dictionary:
+	var costs := {}
 	var budget := u.move if budget_override < 0 else budget_override
 	if budget <= 0:
-		return []
+		return costs
 	# BFS con costo: dizionario "q,r" → PM spesi fin qui
 	var visited := {}
 	var frontier := [{"q": u.q, "r": u.r, "spent": 0}]
 	visited["%d,%d" % [u.q, u.r]] = 0
-	var result: Array[Vector2i] = []
 
 	while frontier.size() > 0:
 		var current = frontier.pop_front()
@@ -233,7 +244,7 @@ static func reachable(u: Unit, state: GameState, budget_override: int = -1) -> A
 			if u.is_man() and state.soldier_icons_at(nb.x, nb.y) + u.soldier_icons() > 7:
 				continue
 			visited[key] = total
-			result.append(Vector2i(nb.x, nb.y))
+			costs[key] = total
 			# Filo (F106) / Mine (F103): entrando, il movimento si ferma qui —
 			# non espandere oltre, così l'anteprima riflette lo stop reale.
 			var nhd: GameState.HexData = state.hex_at(nb.x, nb.y)
@@ -242,7 +253,7 @@ static func reachable(u: Unit, state: GameState, budget_override: int = -1) -> A
 			if not stops:
 				frontier.append({"q": nb.x, "r": nb.y, "spent": total})
 
-	return result
+	return costs
 
 
 ## Costo effettivo per muovere u dall'esagono corrente a (tq, tr).
