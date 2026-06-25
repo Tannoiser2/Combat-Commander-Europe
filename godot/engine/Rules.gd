@@ -92,6 +92,16 @@ static func move_with_command(state: GameState, u: Unit) -> int:
 	return u.move + unit_command_bonus(state, u)
 
 
+## PM effettivi disponibili per la Mossa: base + Comando, meno il malus
+## dell'eventuale arma trasportata (11.1). Mai negativo.
+static func move_allowance(state: GameState, u: Unit) -> int:
+	var mp := move_with_command(state, u)
+	var w := state.weapon_carried_by(u.id)
+	if w != null:
+		mp += w.move_penalty  # move_penalty è negativo (es. -2)
+	return maxi(0, mp)
+
+
 ## FP di base per il fuoco includendo il Comando (3.3.1.2 squadre/team, 3.3.1.3
 ## armi) e la penalità del Filo. L'ordnance non è mai modificata dal Comando.
 static func fp_with_command(state: GameState, u: Unit) -> int:

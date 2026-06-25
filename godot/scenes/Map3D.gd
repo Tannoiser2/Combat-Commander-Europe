@@ -710,6 +710,10 @@ func _add_status_markers(s: GameState) -> void:
 	# Ultimo impatto d'artiglieria: disco rosso translucido sugli esagoni colpiti.
 	for ih in s.last_impact_hexes:
 		_ground_disc(int(ih.x), int(ih.y), s, 0.95, Color(0.95, 0.15, 0.1, 0.28))
+	# Armi a terra (senza portatore, 11.3): disco giallo = raccoglibili con «G».
+	for u in s.units.values():
+		if u.is_weapon() and u.carrier_id == "":
+			_ground_disc(u.q, u.r, s, 0.5, Color(1.0, 0.85, 0.2, 0.45))
 
 
 ## Disco orizzontale (raggio = frazione dell'esagono) appoggiato sulla cima.

@@ -181,7 +181,7 @@ static func _unit_to_dict(u: Unit) -> Dictionary:
 		"move": u.move, "morale": u.morale, "command": u.command, "move_penalty": u.move_penalty,
 		"ordnance": u.ordnance, "min_range": u.min_range, "q": u.q, "r": u.r,
 		"efficient": u.efficient, "suppressed": u.suppressed, "activated": u.activated,
-		"veteran": u.veteran, "concealed": u.concealed,
+		"veteran": u.veteran, "concealed": u.concealed, "carrier_id": u.carrier_id,
 	}
 
 
@@ -197,6 +197,7 @@ static func _unit_from_dict(d: Dictionary) -> Unit:
 	u.efficient = bool(d.get("efficient", true)); u.suppressed = bool(d.get("suppressed", false))
 	u.activated = bool(d.get("activated", false)); u.veteran = bool(d.get("veteran", false))
 	u.concealed = bool(d.get("concealed", false))
+	u.carrier_id = String(d.get("carrier_id", ""))
 	return u
 
 
