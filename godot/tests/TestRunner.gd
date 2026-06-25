@@ -465,12 +465,26 @@ func _test_los_hexside() -> void:
 
 
 func _test_los_hindrance() -> void:
-	print("· LOS: hindrance (frutteto)")
+	print("· LOS: hindrance NON cumulativo (10.3.3, valori Terrain Chart)")
 	var s := _new_state()
 	_check(HexGrid.los_hindrance(0, 0, 3, 0, s) == 0, "nessun hindrance su terreno aperto")
-	s.hexes["1,0"].terrain = Domain.TerrainType.ORCHARD
-	s.hexes["2,0"].terrain = Domain.TerrainType.ORCHARD
-	_check(HexGrid.los_hindrance(0, 0, 3, 0, s) == 2, "due frutteti intermedi danno hindrance 2")
+	# Valori ufficiali: Brush 3, Orchard 2, Field 1.
+	var sb := _new_state()
+	sb.hexes["1,0"].terrain = Domain.TerrainType.BRUSH
+	_check(HexGrid.los_hindrance(0, 0, 3, 0, sb) == 3, "un Brush intermedio = hindrance 3")
+	# Esempio del regolamento: DUE Brush intermedi = 3 (non 6) — non cumulativo.
+	sb.hexes["2,0"].terrain = Domain.TerrainType.BRUSH
+	_check(HexGrid.los_hindrance(0, 0, 3, 0, sb) == 3, "due Brush intermedi = 3, non 6 (non cumulativo)")
+	# Il modificatore singolo più grande: Brush(3) + Orchard(2) → 3.
+	var so := _new_state()
+	so.hexes["1,0"].terrain = Domain.TerrainType.BRUSH
+	so.hexes["2,0"].terrain = Domain.TerrainType.ORCHARD
+	_check(HexGrid.los_hindrance(0, 0, 3, 0, so) == 3, "Brush+Orchard = max(3,2) = 3")
+	# Fumo: ostacola anche sull'esagono del bersaglio (10.3.4).
+	var ss := _new_state()
+	ss.hexes["3,0"].has_smoke = true
+	_check(HexGrid.los_hindrance(0, 0, 3, 0, ss) == HexGrid.SMOKE_HINDRANCE,
+		"il fumo sul bersaglio ostacola (10.3.4)")
 
 
 func _test_step_cost() -> void:

@@ -101,12 +101,10 @@ static func resolve_fire(
 	# fuoco sono rivelati più sotto, una volta formato il gruppo.
 	attacker.concealed = false
 
-	# Ostacolo (hindrance) lungo la LOS. Per le armi normali riduce la potenza di
-	# fuoco; per l'ordnance modifica invece il Targeting Roll (O20.2.3/10.3.1).
-	var hd: GameState.HexData = state.hex_at(tq, tr)
+	# Ostacolo (hindrance) lungo la LOS (NON cumulativo, 10.3.3; il fumo sul
+	# bersaglio/tiratore è già incluso in los_hindrance, 10.3.4). Per le armi
+	# normali riduce la FP; per l'ordnance modifica il Targeting Roll (O20.2.3).
 	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state)
-	if hd != null and hd.has_smoke:
-		hind += 1  # fumo sul bersaglio
 
 	# ─── Ordnance: Targeting Roll (O20.2.3) ──────────────────────────────────
 	# I due dadi si MOLTIPLICANO (non si sommano): per colpire il prodotto deve
