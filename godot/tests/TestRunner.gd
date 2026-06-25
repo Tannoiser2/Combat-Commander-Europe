@@ -35,6 +35,7 @@ func _ready() -> void:
 	_test_recover()
 	_test_recover_suppression()
 	_test_can_be_ordered()
+	_test_team_vs_squad()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -275,6 +276,29 @@ func _test_recover_suppression() -> void:
 	_check(not brk.efficient, "la rimozione della soppressione non ripristina le unità rotte")
 	# Idempotente: senza unità soppresse non libera nulla.
 	_check(Rules.clear_suppression(s, GER) == 0, "nessuna soppressione residua → 0 liberate")
+
+
+func _test_team_vs_squad() -> void:
+	print("· Squadra vs Team: VP (7.1) e figure soldato (8.2)")
+	var squad := _mk("sq", GER, SQUAD, RIFLE, 0, 0)
+	var team := _mk("tm", GER, Domain.UnitType.TEAM, RIFLE, 0, 0)
+	_check(GameState.elimination_vp(squad) == 2, "una Squadra eliminata vale 2 VP")
+	_check(GameState.elimination_vp(team) == 1, "un Team eliminato vale 1 VP")
+	_check(squad.soldier_icons() == 4, "una Squadra conta 4 figure")
+	_check(team.soldier_icons() == 2, "un Team conta 2 figure")
+	# Stacking 8.2: Squadra(4)+Team(2)+Leader(1) = 7 (al limite, non overstack).
+	var s := _new_state()
+	var sq := _mk("s1", GER, SQUAD, RIFLE, 2, 2)
+	var tm := _mk("t1", GER, Domain.UnitType.TEAM, RIFLE, 2, 2)
+	var ld := _mk("l1", GER, Domain.UnitType.LEADER, RIFLE, 2, 2)
+	s.units[sq.id] = sq
+	s.units[tm.id] = tm
+	s.units[ld.id] = ld
+	_check(s.soldier_icons_at(2, 2) == 7, "Squadra+Team+Leader = 7 figure (limite di impilamento)")
+	# UnitChart costruisce un "Weapon Team" come TEAM.
+	var built := UnitChart.build_unit("wt", GER, "Weapon Team", 0, 0)
+	_check(built.type == Domain.UnitType.TEAM, "UnitChart costruisce 'Weapon Team' come TEAM")
+	_check(built.is_man() and not built.is_weapon(), "un Team è un uomo, non un'arma")
 
 
 func _test_can_be_ordered() -> void:

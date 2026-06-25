@@ -208,9 +208,14 @@ static func _leader_art(faction: int, label: String) -> String:
 
 # ─── Squadre / Team ──────────────────────────────────────────────────────────
 
+static func _is_team(label: String) -> bool:
+	return label.ends_with("Team")  # "Weapon Team", "Elite Team", ...
+
+
 static func _squad(id: String, faction: int, label: String, nat: String) -> Unit:
 	var s := _squad_stats(nat, label)
-	var u := _mk(id, faction, Domain.UnitType.SQUAD, _squad_class(label), label)
+	var utype := Domain.UnitType.TEAM if _is_team(label) else Domain.UnitType.SQUAD
+	var u := _mk(id, faction, utype, _squad_class(label), label)
 	u.fp = int(s.get("fp", 5)); u.fp_boxed = bool(s.get("fp_boxed", false))
 	u.range = int(s.get("range", 5)); u.range_boxed = bool(s.get("range_boxed", true))
 	u.move = int(s.get("move", 4)); u.morale = int(s.get("morale", 7))
