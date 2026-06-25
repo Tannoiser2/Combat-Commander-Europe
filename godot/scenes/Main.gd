@@ -39,16 +39,49 @@ func _ready() -> void:
 		log_list.add_item(line)
 
 
-## Pulsante per passare alla vista mappa 3D (in alto a destra).
+var _v3d: SubViewportContainer = null
+var _board3d: Node = null
+var _view3d_btn: Button = null
+
+
+## Vista 3D embeddata (SubViewport) + pulsante di toggle in alto a destra.
 func _build_view3d_button() -> void:
-	var btn := Button.new()
-	btn.text = "⬚ Vista 3D"
-	btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	btn.offset_left = -150
-	btn.offset_top = 40
-	btn.offset_right = -12
-	btn.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/Map3D.tscn"))
-	add_child(btn)
+	# Contenitore 3D a tutto schermo, dietro alla HUD.
+	_v3d = SubViewportContainer.new()
+	_v3d.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_v3d.stretch = true
+	_v3d.visible = false
+	add_child(_v3d)
+	move_child(_v3d, hex_map.get_index() + 1)  # subito sopra la 2D, sotto la HUD
+	var sub := SubViewport.new()
+	sub.transparent_bg = false
+	_v3d.add_child(sub)
+	_board3d = load("res://scenes/Map3D.tscn").instantiate()
+	_board3d.active = false
+	sub.add_child(_board3d)
+
+	_view3d_btn = Button.new()
+	_view3d_btn.text = "⬚ Vista 3D"
+	_view3d_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_view3d_btn.offset_left = -150
+	_view3d_btn.offset_top = 40
+	_view3d_btn.offset_right = -12
+	_view3d_btn.pressed.connect(func() -> void: _set_3d(not _v3d.visible))
+	add_child(_view3d_btn)
+
+
+## Mostra/nasconde la mappa 3D (alternativa alla 2D). La HUD resta sopra entrambe.
+func _set_3d(on: bool) -> void:
+	if _v3d == null:
+		return
+	_v3d.visible = on
+	hex_map.visible = not on
+	if _board3d != null:
+		_board3d.active = on
+		if on:
+			_board3d.refresh()
+	if _view3d_btn != null:
+		_view3d_btn.text = "▣ Vista 2D" if on else "⬚ Vista 3D"
 
 
 ## Legenda dei simboli della mappa (toggle col tasto «L»), creata via codice per
@@ -112,8 +145,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			if _legend != null:
 				_legend.visible = not _legend.visible
 			get_viewport().set_input_as_handled()
-		KEY_3:  # apri la vista mappa 3D (prototipo); «2»/ESC per tornare
-			get_tree().change_scene_to_file("res://scenes/Map3D.tscn")
+		KEY_3:  # mostra la mappa 3D
+			_set_3d(true)
+			get_viewport().set_input_as_handled()
+		KEY_2:  # torna alla mappa 2D
+			_set_3d(false)
 			get_viewport().set_input_as_handled()
 		KEY_SPACE:
 			if Game.state != null and Game.state.phase == Domain.Phase.REACTION_WINDOW:

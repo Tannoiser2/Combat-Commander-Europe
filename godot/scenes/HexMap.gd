@@ -369,6 +369,8 @@ func _draw_text(txt: String, pos: Vector2, size: float, color: Color, centered: 
 # ─── Input ───────────────────────────────────────────────────────────────────
 
 func _input(event: InputEvent) -> void:
+	if not visible:  # la 3D è attiva: non gestire i click della 2D
+		return
 	if event is InputEventKey and event.pressed:
 		_handle_key(event as InputEventKey)
 		return
