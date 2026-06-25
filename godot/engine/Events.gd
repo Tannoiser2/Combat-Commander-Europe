@@ -428,11 +428,8 @@ static func _draw_objective_chit(state: GameState, lines: Array[String], label: 
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	var pool: Array = ObjectiveChits.CHIT_POOL
-	var v := int(pool[rng.randi_range(0, pool.size() - 1)])
-	var o: Objective = state.objectives[rng.randi_range(0, state.objectives.size() - 1)]
-	o.vp += v
-	lines.append("%s: Obiettivo #%d +%d VP." % [label, o.id, v])
+	var letter := ObjectiveChits.draw_one(state, rng, lines)
+	lines.append("%s: estratto chit %s." % [label, letter])
 
 
 ## E50 Commissario: il giocatore russo sceglie una sua unità rotta e tira (dadi

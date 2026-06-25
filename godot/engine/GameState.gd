@@ -115,6 +115,11 @@ var vp_tracker: int = 0  ## >0 Germania in vantaggio, <0 Russia
 ## sommati alla bilancia degli obiettivi in Game._update_objectives.
 var bonus_vp: int = 0
 
+## Chit Obiettivo "[open]" attivi (7.3.2): W = VP d'uscita raddoppiati,
+## X = VP da eliminazione raddoppiati.
+var chit_double_exit: bool = false
+var chit_double_elim: bool = false
+
 
 # ─── Iniziativa ──────────────────────────────────────────────────────────────
 
@@ -277,6 +282,8 @@ func eliminate_unit(uid: String) -> void:
 			casualties[u.faction] = int(casualties.get(u.faction, 0)) + 1
 		# VP da eliminazione (7.1): all'avversario di chi viene eliminato.
 		var v := elimination_vp(u)
+		if chit_double_elim:
+			v *= 2  # Chit Obiettivo X [open]: VP da eliminazione raddoppiati.
 		if v > 0:
 			if u.faction == Domain.Faction.GERMAN:
 				bonus_vp -= v  # i Russi guadagnano
@@ -293,6 +300,8 @@ func exit_unit_for_vp(uid: String) -> int:
 	if u == null:
 		return 0
 	var v := elimination_vp(u)
+	if chit_double_exit:
+		v *= 2  # Chit Obiettivo W [open]: VP d'uscita raddoppiati.
 	if v > 0:
 		if u.faction == Domain.Faction.GERMAN:
 			bonus_vp += v  # i Tedeschi guadagnano

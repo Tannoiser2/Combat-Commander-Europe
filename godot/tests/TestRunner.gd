@@ -931,49 +931,88 @@ func _test_more_events2() -> void:
 	Events.fire(s3, dust, GER)
 	_check(s3.hex_at(1, 1).has_smoke, "Polvere posa il fumo sull'esagono indicato")
 
-	# E65 Obiettivo della missione: un chit (1-3 VP) si somma a un obiettivo.
+	# E65 Obiettivo della missione: estrae UN chit reale e lo applica.
 	var s4 := _new_state()
-	s4.objectives.append(Objective.new(1, 0, 0, 0))
-	s4.objectives.append(Objective.new(2, 1, 0, 0))
-	Events.fire(s4, _ev("OBIETTIVO DELLA MISSIONE"), GER)
+	for i in 5:
+		s4.objectives.append(Objective.new(i + 1, i, 0, 0))
+	var ev_lines := Events.fire(s4, _ev("OBIETTIVO DELLA MISSIONE"), GER)
+	var mentions_chit := false
+	for l in ev_lines:
+		if "chit" in String(l).to_lower():
+			mentions_chit = true
+	_check(mentions_chit, "Obiettivo della missione estrae un chit obiettivo")
 	var total := 0
 	for o in s4.objectives:
 		total += o.vp
-	_check(total >= 1 and total <= 3, "Obiettivo della missione aggiunge un chit (1-3 VP)")
+	# Tutti gli obiettivi 1-5 sono presenti: un chit di valore dà VP, uno globale 0.
+	_check(total >= 0, "il chit estratto applica VP validi (≥ 0)")
+
+
+func _obj_vp(s: GameState, oid: int) -> int:
+	for o in s.objectives:
+		if o.id == oid:
+			return o.vp
+	return -1
 
 
 func _test_objective_chits() -> void:
-	print("· Chit Obiettivo (7.3.2): VP sorteggiati e cumulativi")
+	print("· Chit Obiettivo (7.3.2): mix reale dei 22 chit")
 	var s := _new_state()
 	for i in 5:
-		s.objectives.append(Objective.new(i + 1, 0, i, 9))  # VP stampato 9 (verrà azzerato)
+		s.objectives.append(Objective.new(i + 1, 0, i, 0))
+	var lines: Array = []
+	# Esempio del regolamento: C+G+K sull'Obiettivo #3 = 1+2+3 = 6 VP.
+	ObjectiveChits.apply(s, "C", lines)
+	ObjectiveChits.apply(s, "G", lines)
+	ObjectiveChits.apply(s, "K", lines)
+	_check(_obj_vp(s, 3) == 6, "C+G+K sull'Obiettivo #3 = 6 VP (cumulativo, esempio del regolamento)")
+	ObjectiveChits.apply(s, "Q", lines)
+	_check(_obj_vp(s, 5) == 5, "Chit Q: Obiettivo #5 +5 VP")
+	ObjectiveChits.apply(s, "S", lines)  # ogni obiettivo +1
+	_check(_obj_vp(s, 1) == 1 and _obj_vp(s, 3) == 7 and _obj_vp(s, 5) == 6, "Chit S: ogni Obiettivo +1 VP")
+	# Chit "[open]" globali: attivano le regole sui VP raddoppiati.
+	ObjectiveChits.apply(s, "W", lines)
+	ObjectiveChits.apply(s, "X", lines)
+	_check(s.chit_double_exit, "Chit W: VP d'uscita raddoppiati")
+	_check(s.chit_double_elim, "Chit X: VP da eliminazione raddoppiati")
+	# Chit per un obiettivo non sulla mappa → nessun effetto, nessun crash.
+	var s_small := _new_state()
+	s_small.objectives.append(Objective.new(1, 0, 0, 0))
+	_check(ObjectiveChits.apply(s_small, "Q", []) and _obj_vp(s_small, 1) == 0,
+		"Chit per un obiettivo assente non produce VP")
+
+	# assign(): estrae `count` chit DISTINTI dal sacchetto da 22 (senza rimpiazzo).
+	var s2 := _new_state()
+	for i in 5:
+		s2.objectives.append(Objective.new(i + 1, 0, i, 9))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 42
-	var res := ObjectiveChits.assign(s, 4, rng)
-	_check(res["drawn"].size() == 4, "Estratti 4 chit")
-	var total := 0
-	for o in s.objectives:
-		total += o.vp
-	var dsum := 0
-	for v in res["drawn"]:
-		dsum += int(v)
-	_check(total == dsum, "VP totali obiettivi = somma dei chit (cumulativo)")
-	var ok_vals := true
-	for v in res["drawn"]:
-		if int(v) < 1 or int(v) > 3:
-			ok_vals = false
-	_check(ok_vals, "Ogni chit vale 1-3")
+	var res := ObjectiveChits.assign(s2, 4, rng)
+	_check(res["drawn"].size() == 4, "assign estrae 4 chit")
+	var uniq := {}
+	for d in res["drawn"]:
+		uniq[d] = true
+	_check(uniq.size() == 4, "i chit estratti sono distinti (senza rimpiazzo)")
 
 	# count<=0 → nessun cambiamento ai VP stampati.
-	var s2 := _new_state()
-	s2.objectives.append(Objective.new(1, 0, 0, 7))
-	ObjectiveChits.assign(s2, 0, rng)
-	_check(s2.objectives[0].vp == 7, "Senza chit i VP stampati restano")
+	var s3 := _new_state()
+	s3.objectives.append(Objective.new(1, 0, 0, 7))
+	ObjectiveChits.assign(s3, 0, rng)
+	_check(s3.objectives[0].vp == 7, "Senza chit i VP stampati restano")
 
 	# Nessun obiettivo → nessun crash, nessun chit.
-	var s3 := _new_state()
-	var r3 := ObjectiveChits.assign(s3, 5, rng)
-	_check(r3["drawn"].is_empty(), "Nessun obiettivo: nessun chit assegnato")
+	var s4 := _new_state()
+	var r4 := ObjectiveChits.assign(s4, 5, rng)
+	_check(r4["drawn"].is_empty(), "Nessun obiettivo: nessun chit assegnato")
+
+	# Doppia eliminazione (Chit X): i VP da eliminazione sono raddoppiati.
+	var s5 := _new_state()
+	s5.chit_double_elim = true
+	var victim := _mk("rus-v", RUS, SQUAD, RIFLE, 0, 0, 5, 7)  # squadra = 2 VP
+	s5.units[victim.id] = victim
+	var before := s5.bonus_vp
+	s5.eliminate_unit(victim.id)
+	_check(s5.bonus_vp - before == 4, "Chit X: una squadra eliminata vale 4 VP (2×2) invece di 2")
 
 
 func _test_assault_fire() -> void:
