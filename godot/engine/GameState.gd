@@ -248,6 +248,15 @@ func broken_men_of(faction: int) -> Array[Unit]:
 	return result
 
 
+## Uomini efficienti ma soppressi (un ordine di Recupero rimuove la soppressione).
+func suppressed_men_of(faction: int) -> Array[Unit]:
+	var result: Array[Unit] = []
+	for u in units.values():
+		if u.faction == faction and u.is_man() and u.efficient and u.suppressed:
+			result.append(u)
+	return result
+
+
 func hand_of(faction: int) -> Array[Card]:
 	return german_hand if faction == Domain.Faction.GERMAN else russian_hand
 

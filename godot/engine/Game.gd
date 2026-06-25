@@ -1095,8 +1095,12 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 func _execute_recover(hand_index: int) -> void:
 	state.order_count += 1
 	var broken := state.broken_men_of(state.human_faction)
-	if broken.is_empty():
-		_log("Recupero: nessuna unità rotta da ripristinare.")
+	# Soppressione: un ordine di Recupero la rimuove automaticamente (no tiro).
+	var freed := Rules.clear_suppression(state, state.human_faction)
+	if freed > 0:
+		_log("Recupero: rimossa la soppressione da %d unità." % freed)
+	if broken.is_empty() and freed == 0:
+		_log("Recupero: nessuna unità da ripristinare.")
 	for u in broken:
 		var fate := _draw_fate(state.human_faction)
 		var r := Rules.try_recover(state, u, _dice_of(fate))
@@ -1420,6 +1424,7 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 			if mover != null:
 				_ai_advance(faction, mover, int(play["q"]), int(play["r"]))
 		Domain.OrderType.RECOVER:
+			Rules.clear_suppression(state, faction)
 			for ru in state.broken_men_of(faction):
 				var rfate := _draw_fate(faction)
 				var rec := Rules.try_recover(state, ru, _dice_of(rfate))
