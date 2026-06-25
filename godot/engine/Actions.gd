@@ -128,6 +128,6 @@ static func grenade_attack(
 	return {
 		"broken": broken,
 		"eliminated": eliminated,
-		"log": "Bombe a mano su (%d,%d): FP%d − cop.%d + dadi(%d+%d) = %d" % [
+		"log": "Bombe a mano su (%d,%d): FP%d - cop.%d + dadi(%d+%d) = %d" % [
 			tq, tr, fp, cover, dice.x, dice.y, final_score]
 	}

@@ -319,7 +319,7 @@ static func _command_control(state: GameState, faction: int, lines: Array[String
 			state.bonus_vp += n
 		else:
 			state.bonus_vp -= n
-	lines.append("Comando e Controllo: %d obiettivi controllati → +%d VP." % [n, n])
+	lines.append("Comando e Controllo: %d obiettivi controllati -> +%d VP." % [n, n])
 
 
 ## E54 Impeto: il giocatore sposta il suo segnalino Resa di una casella più in
@@ -445,9 +445,9 @@ static func _commissar(state: GameState, card: Card, lines: Array[String]) -> vo
 	var roll := card.dice_white + card.dice_red
 	if roll > target.morale:
 		state.eliminate_unit(target.id)
-		lines.append("Commissario: %s — tiro %d > morale %d → ELIMINATA." % [
+		lines.append("Commissario: %s — tiro %d > morale %d -> ELIMINATA." % [
 			target.unit_name, roll, target.morale])
 	else:
 		target.recover()
-		lines.append("Commissario: %s — tiro %d ≤ morale %d → ripristinata." % [
+		lines.append("Commissario: %s — tiro %d <= morale %d -> ripristinata." % [
 			target.unit_name, roll, target.morale])
