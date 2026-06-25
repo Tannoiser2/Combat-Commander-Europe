@@ -125,15 +125,16 @@ func _build_legend() -> void:
 ## aprono/chiudono. Riassume selezione, carte, mossa, fuoco e tasti rapidi.
 func _build_help_panel() -> void:
 	var btn := Button.new()
-	btn.text = "Comandi (?)"
+	btn.text = "Comandi"
 	btn.tooltip_text = "Come si gioca: selezione, carte, mossa, fuoco, tasti (anche col tasto «H»)"
-	btn.custom_minimum_size = Vector2(120, 0)
+	btn.custom_minimum_size = Vector2(96, 0)
 	btn.pressed.connect(func() -> void:
 		if _help != null:
 			_help.visible = not _help.visible)
-	var header: HBoxContainer = $HandPanel/VBox/Header
+	# Insieme al Registro: nell'intestazione della colonna del registro.
+	var header: HBoxContainer = $LogPanel/LogVBox/LogHeader
 	header.add_child(btn)
-	header.move_child(btn, 0)
+	header.move_child(btn, 1)  # tra il titolo «Registro» e «Nascondi»
 
 	_help = Panel.new()
 	_help.visible = false
@@ -186,40 +187,44 @@ func _help_text() -> String:
 		+ " - F5 = salva    F9 = carica    M = muto    H = questo aiuto"
 
 
-## Striscia-etichetta sovrapposta su una metà della carta. Trasparente ai click:
-## passano alla TextureButton sottostante (così Sx/Dx restano funzionanti).
-## `playable` = false la disegna in grigio (quella metà non è giocabile adesso).
-func _card_banner(text: String, is_top: bool, playable: bool = true) -> Control:
-	var c := Control.new()
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.set_anchors_preset(Control.PRESET_TOP_WIDE if is_top else Control.PRESET_BOTTOM_WIDE)
-	c.offset_left = 2
-	c.offset_right = -2
-	if is_top:
-		c.offset_top = 2
-		c.offset_bottom = 24
-	else:
-		c.offset_top = -24
-		c.offset_bottom = -2
-	var bg := ColorRect.new()
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	if not playable:
-		bg.color = Color(0.18, 0.18, 0.20, 0.82)
-	else:
-		bg.color = Color(0.08, 0.16, 0.38, 0.82) if is_top else Color(0.42, 0.22, 0.04, 0.82)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.add_child(bg)
-	var lbl := Label.new()
-	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
-	lbl.text = text
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.clip_text = true
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", Color(1, 1, 1) if playable else Color(0.55, 0.55, 0.58))
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.add_child(lbl)
-	return c
+## Un badge della mano (Ordine o Azione) come bottone-immagine. `lit` = giocabile
+## ora → colori pieni e cliccabile; altrimenti spento (grigio) e disabilitato.
+## Se il badge grafico manca, ripiega su un bottone testuale.
+func _make_badge(path: String, fallback_text: String, lit: bool, width: float) -> BaseButton:
+	var tex: Texture2D = load(path) if path != "" and ResourceLoader.exists(path) else null
+	if tex == null:
+		var b := Button.new()
+		b.text = fallback_text
+		b.disabled = not lit
+		b.focus_mode = Control.FOCUS_NONE
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size = Vector2(width, width * 0.33)
+		return b
+	var tb := TextureButton.new()
+	tb.texture_normal = tex
+	tb.ignore_texture_size = true
+	tb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	tb.focus_mode = Control.FOCUS_NONE
+	var ar := float(tex.get_height()) / float(tex.get_width())
+	tb.custom_minimum_size = Vector2(width, width * ar)
+	tb.disabled = not lit
+	# Illuminato quando giocabile; spento (grigio scuro) quando non si può giocare.
+	tb.modulate = Color(1, 1, 1, 1.0) if lit else Color(0.42, 0.42, 0.48, 0.92)
+	return tb
+
+
+## La metà AZIONE è giocabile ora? Nel proprio turno sempre; durante un Fuoco con
+## bersaglio scelto solo i modificatori; durante una Mossa solo Fuoco d'Assalto.
+func _action_playable(card: Card, s: GameState) -> bool:
+	if s.phase == Domain.Phase.PLAYER_TURN:
+		return true
+	if s.phase == Domain.Phase.PLAYER_MOVING:
+		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+			return card.action_name in Game.FIRE_MOD_NAMES \
+				or card.action_name.begins_with("SVENTAGLIATA")
+		if s.current_order == Domain.OrderType.MOVE:
+			return card.action_name == "FUOCO D'ASSALTO"
+	return false
 
 
 ## Colonna del Registro (a destra) collassabile. Da nascosta, un pulsante
@@ -497,7 +502,6 @@ func _refresh_hand() -> void:
 	# ordini ancora disponibili. Le carte non giocabili sono attenuate.
 	var is_turn := s.phase == Domain.Phase.PLAYER_TURN
 	var orders_left := s.order_count < s.max_orders
-	var human_phase := s.phase == Domain.Phase.PLAYER_TURN or s.phase == Domain.Phase.PLAYER_MOVING
 	var hand := s.hand_of(s.human_faction)
 	for i in hand.size():
 		var card: Card = hand[i]
@@ -506,24 +510,26 @@ func _refresh_hand() -> void:
 			Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE,
 			Domain.OrderType.RECOVER, Domain.OrderType.ROUT, Domain.OrderType.ARTY]
 		var order_ok := is_turn and (orders_left or not counts)
-		var action_ok := is_turn
-		# Contenitore-carta: la TextureButton riempie il riquadro, due strisce
-		# etichettano le metà (alto = Ordine/Sx, basso = Azione/Dx).
-		var root := Control.new()
-		root.custom_minimum_size = Vector2(128, 178)
-		root.modulate = Color(1, 1, 1, 1.0) if human_phase else Color(1, 1, 1, 0.45)
-		var tb := TextureButton.new()
-		tb.set_anchors_preset(Control.PRESET_FULL_RECT)
-		tb.texture_normal = load(card.face_path())
-		tb.ignore_texture_size = true
-		tb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		tb.tooltip_text = "Click Sx = Ordine: %s   |   Click Dx = Azione: %s" % [order_name, card.action_name]
-		tb.pressed.connect(_on_card_pressed.bind(i))
-		tb.gui_input.connect(_on_card_input.bind(i))
-		root.add_child(tb)
-		root.add_child(_card_banner("Sx: " + order_name, true, order_ok))
-		root.add_child(_card_banner("Dx: " + card.action_name, false, action_ok))
-		hand_container.add_child(root)
+		var action_ok := _action_playable(card, s)
+		# Carta = due badge impilati: Ordine sopra, Azione sotto. Ogni badge è
+		# illuminato quando giocabile, spento (grigio) quando no.
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 2)
+		var ord_path := ""
+		if Domain.ORDER_BADGE.has(card.order):
+			ord_path = "res://assets/badges/orders/%s.png" % Domain.ORDER_BADGE[card.order]
+		var act_path := ""
+		if Domain.ACTION_BADGE.has(card.action_name):
+			act_path = "res://assets/badges/actions/%s.png" % Domain.ACTION_BADGE[card.action_name]
+		var ob := _make_badge(ord_path, order_name, order_ok, 154.0)
+		ob.tooltip_text = "ORDINE: %s%s" % [order_name, "" if order_ok else "  —  non giocabile ora"]
+		ob.pressed.connect(_on_card_pressed.bind(i))
+		var ab := _make_badge(act_path, card.action_name, action_ok, 154.0)
+		ab.tooltip_text = "AZIONE: %s%s" % [card.action_name, "" if action_ok else "  —  non giocabile ora"]
+		ab.pressed.connect(_on_action_pressed.bind(i))
+		col.add_child(ob)
+		col.add_child(ab)
+		hand_container.add_child(col)
 
 
 func _on_log_added(line: String) -> void:
@@ -555,25 +561,23 @@ func _on_card_pressed(index: int) -> void:
 	Game.play_card(index)
 
 
-## Click destro su una carta = gioca l'AZIONE; durante l'assemblaggio del fuoco
-## applica invece il modificatore di fuoco (Mirato/Sostenuto/Incrociato/Sventagliata);
-## durante una Mossa, una carta FUOCO D'ASSALTO spara col pezzo in movimento (A26).
-func _on_card_input(event: InputEvent, index: int) -> void:
-	if event is InputEventMouseButton and event.pressed \
-			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
-		var s := Game.state
-		if s == null:
-			return
-		var hand := s.hand_of(s.human_faction)
-		var name := hand[index].action_name if index >= 0 and index < hand.size() else ""
-		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
-			Game.apply_fire_modifier(index)
-		elif s.phase == Domain.Phase.PLAYER_MOVING and s.current_order == Domain.OrderType.MOVE \
-				and name == "FUOCO D'ASSALTO":
-			Game.assault_fire(index)
-			_refresh_ui()
-		else:
-			Game.play_action(index)
+## Badge AZIONE premuto: gioca l'Azione. Durante l'assemblaggio del fuoco applica
+## il modificatore (Mirato/Sostenuto/Incrociato/Sventagliata); durante una Mossa,
+## FUOCO D'ASSALTO spara col pezzo in movimento (A26).
+func _on_action_pressed(index: int) -> void:
+	var s := Game.state
+	if s == null:
+		return
+	var hand := s.hand_of(s.human_faction)
+	var nm := hand[index].action_name if index >= 0 and index < hand.size() else ""
+	if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+		Game.apply_fire_modifier(index)
+	elif s.phase == Domain.Phase.PLAYER_MOVING and s.current_order == Domain.OrderType.MOVE \
+			and nm == "FUOCO D'ASSALTO":
+		Game.assault_fire(index)
+		_refresh_ui()
+	else:
+		Game.play_action(index)
 
 
 ## Mostra/nasconde la fila carte (il pannello si riduce all'header) per liberare
