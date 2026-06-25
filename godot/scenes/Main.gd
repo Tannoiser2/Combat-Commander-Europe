@@ -32,8 +32,11 @@ var _hand_collapsed := false
 
 var _legend: Panel = null
 var _help: Panel = null
-var _sidebar_collapsed := false
-var _sidebar_reopen_btn: Button = null
+# Colonna laterale come "cassetto" che scorre in orizzontale (non un pulsante che
+# apre una finestra). SIDE_W = larghezza; una maniglia sul bordo apre/chiude.
+const SIDE_W := 340.0
+var _sidebar_open := true
+var _sidebar_handle: Button = null
 
 # «Passa» (O15): pulsante nell'header + finestra per scegliere le carte da scartare.
 var _pass_btn: Button = null
@@ -48,11 +51,15 @@ func _ready() -> void:
 	if Game.state == null:
 		Game.start_new_game(Domain.Faction.GERMAN)
 	_connect_signals()
+	# La colonna scorre sopra la barra delle carte (full-width): portarla in cima
+	# allo z-order. Maniglia e finestre, aggiunte dopo, restano sopra di essa.
+	move_child(sidebar, -1)
 	_build_legend()
 	_build_view3d_button()
 	_build_los_button()
 	_build_help_panel()
-	_build_sidebar_reopen()
+	_apply_solid_panels()
+	_build_sidebar_handle()
 	_build_pass_ui()
 	log_toggle_btn.pressed.connect(_toggle_sidebar)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
@@ -73,13 +80,13 @@ func _ready() -> void:
 
 
 ## Comunica alla mappa l'area di disegno libera dai pannelli (top bar, colonna a
-## destra se visibile, mano in basso). La mappa si re-inquadra al suo interno.
+## destra se aperta, mano in basso). La mappa si re-inquadra al suo interno.
 func _update_map_rect() -> void:
 	if hex_map == null:
 		return
 	var vp := get_viewport_rect().size
 	var top := top_bar.size.y if top_bar.size.y > 0 else 40.0
-	var right := sidebar.size.x if sidebar.visible and sidebar.size.x > 0 else 0.0
+	var right := SIDE_W if _sidebar_open else 0.0
 	var bottom := hand_panel.size.y if hand_panel.visible and hand_panel.size.y > 0 else 0.0
 	var rect := Rect2(0, top, maxf(200.0, vp.x - right), maxf(120.0, vp.y - top - bottom))
 	hex_map.set("map_rect", rect)
@@ -269,27 +276,63 @@ func _action_playable(card: Card, s: GameState) -> bool:
 	return false
 
 
-## Colonna laterale (a destra) collassabile. Da nascosta, un pulsante «Pannello»
-## in alto a destra la riapre (anche col tasto «R»).
-func _build_sidebar_reopen() -> void:
-	_sidebar_reopen_btn = Button.new()
-	_sidebar_reopen_btn.text = "Pannello"
-	_sidebar_reopen_btn.tooltip_text = "Mostra la colonna laterale (registro, info, strumenti) — tasto «R»"
-	_sidebar_reopen_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_sidebar_reopen_btn.offset_left = -150
-	_sidebar_reopen_btn.offset_top = 84
-	_sidebar_reopen_btn.offset_right = -12
-	_sidebar_reopen_btn.visible = false
-	_sidebar_reopen_btn.pressed.connect(_toggle_sidebar)
-	add_child(_sidebar_reopen_btn)
+## Sfondo SOLIDO (opaco) per le tre "finestre" della HUD — barra in alto, colonna
+## a destra e mano in basso — così non sono più semi-trasparenti sopra la mappa.
+func _apply_solid_panels() -> void:
+	for p in [top_bar, sidebar, hand_panel]:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.12, 0.14, 0.17, 1.0)
+		sb.border_color = Color(0.05, 0.06, 0.08, 1.0)
+		for side in ["left", "top", "right", "bottom"]:
+			sb.set("content_margin_" + side, 8.0)
+		p.add_theme_stylebox_override("panel", sb)
+
+
+## Maniglia sul bordo sinistro della colonna: cliccandola la colonna SCORRE in
+## orizzontale (dentro/fuori), come un cassetto. Resta sempre visibile (anche a
+## colonna chiusa, sul bordo destro dello schermo).
+func _build_sidebar_handle() -> void:
+	_sidebar_handle = Button.new()
+	_sidebar_handle.text = "▶"
+	_sidebar_handle.tooltip_text = "Apri/chiudi la colonna laterale (anche col tasto «R»)"
+	_sidebar_handle.focus_mode = Control.FOCUS_NONE
+	_sidebar_handle.anchor_left = 1.0
+	_sidebar_handle.anchor_right = 1.0
+	_sidebar_handle.anchor_top = 0.5
+	_sidebar_handle.anchor_bottom = 0.5
+	_sidebar_handle.offset_top = -54
+	_sidebar_handle.offset_bottom = 54
+	_sidebar_handle.pressed.connect(_toggle_sidebar)
+	add_child(_sidebar_handle)
+	_place_sidebar(true)  # stato iniziale: aperta
+
+
+## Posiziona colonna e maniglia per lo stato aperto/chiuso. Con `animate` la
+## transizione scorre orizzontalmente con un Tween.
+func _place_sidebar(open: bool, animate: bool = false) -> void:
+	var s_left := -SIDE_W if open else 0.0           # bordo sinistro colonna (anchor dx)
+	var s_right := 0.0 if open else SIDE_W            # bordo destro colonna
+	var h_left := (-SIDE_W - 28.0) if open else -28.0 # maniglia: a sinistra del bordo colonna
+	var h_right := (-SIDE_W - 2.0) if open else -2.0
+	if animate:
+		var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(sidebar, "offset_left", s_left, 0.22)
+		tw.tween_property(sidebar, "offset_right", s_right, 0.22)
+		tw.tween_property(_sidebar_handle, "offset_left", h_left, 0.22)
+		tw.tween_property(_sidebar_handle, "offset_right", h_right, 0.22)
+		tw.chain().tween_callback(_update_map_rect)
+	else:
+		sidebar.offset_left = s_left
+		sidebar.offset_right = s_right
+		_sidebar_handle.offset_left = h_left
+		_sidebar_handle.offset_right = h_right
+		_update_map_rect.call_deferred()
+	_sidebar_handle.text = "▶" if open else "◀"
 
 
 func _toggle_sidebar() -> void:
-	_sidebar_collapsed = not _sidebar_collapsed
-	sidebar.visible = not _sidebar_collapsed
-	if _sidebar_reopen_btn != null:
-		_sidebar_reopen_btn.visible = _sidebar_collapsed
-	_update_map_rect()  # la mappa riprende lo spazio della colonna
+	_sidebar_open = not _sidebar_open
+	_place_sidebar(_sidebar_open, true)
 
 
 ## Attiva/disattiva la "Modalità LOS": uno strumento per verificare la linea di
