@@ -406,6 +406,78 @@ func _resolve_grenades(faction: int) -> void:
 	_log("Bombe a mano: nessun nemico adiacente.")
 
 
+## Dispatch unico di un clic su un esagono (q,r), indipendente dalla vista (2D o
+## 3D): seleziona unità, esegue ordini, assembla il fuoco, gestisce la finestra di
+## reazione. Sia la mappa 2D sia quella 3D chiamano questo metodo dopo aver
+## tradotto il punto cliccato in coordinate esagono.
+func click_hex(q: int, r: int) -> void:
+	if state == null:
+		return
+	var s := state
+	var key := "%d,%d" % [q, r]
+	var units_here := s.units_at(q, r)
+	if s.phase == Domain.Phase.PLAYER_MOVING:
+		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
+		# Fuoco: assemblaggio del gruppo (bersaglio già scelto).
+		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+			if q == s.fire_target_q and r == s.fire_target_r:
+				confirm_fire()
+				return
+			for eid in s.fire_eligible_ids:
+				if eid == s.selected_unit_id:
+					continue
+				var ev := s.unit_by_id(eid)
+				if ev != null and ev.q == q and ev.r == r:
+					toggle_fire_piece(eid)
+					return
+			if sel != null and q == sel.q and r == sel.r:
+				cancel_fire_target()
+			return
+		# Mossa di gruppo: cliccare un altro membro attivato cambia il mover attivo.
+		if s.current_order == Domain.OrderType.MOVE:
+			for gid in s.ordered_group:
+				if gid == s.selected_unit_id:
+					continue
+				var gv := s.unit_by_id(gid)
+				if gv != null and gv.q == q and gv.r == r:
+					select_unit(gid)
+					return
+		# Click sull'esagono dell'unità attiva = concludi/annulla l'ordine.
+		if sel != null and q == sel.q and r == sel.r:
+			conclude_order()
+			return
+		# Click su esagono evidenziato = esegui l'ordine.
+		if s.selected_unit_id != "" and s.highlighted_hexes.has(key):
+			match s.current_order:
+				Domain.OrderType.MOVE:
+					click_hex_move(q, r)
+				Domain.OrderType.FIRE:
+					click_hex_fire(q, r)
+				Domain.OrderType.ADVANCE:
+					click_hex_advance(q, r)
+				Domain.OrderType.ARTY:
+					click_hex_artillery(q, r)
+		else:
+			var own_here := units_here.filter(
+				func(u: Unit) -> bool: return u.faction == s.human_faction and not u.activated)
+			if own_here.size() > 0:
+				select_unit(own_here[0].id)
+	elif s.phase == Domain.Phase.REACTION_WINDOW:
+		for sid in s.opfire_shooter_ids:
+			var sv := s.unit_by_id(sid)
+			if sv != null and sv.q == q and sv.r == r:
+				opfire_choose(sid)
+				return
+		opfire_decline()
+	elif s.phase == Domain.Phase.PLAYER_TURN:
+		var own := units_here.filter(
+			func(u: Unit) -> bool: return u.faction == s.human_faction and not u.activated)
+		if own.size() > 0:
+			select_unit(own[0].id)
+		else:
+			deselect()
+
+
 ## Giocatore clicca su un esagono durante la fase di movimento.
 func click_hex_move(tq: int, tr: int) -> void:
 	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:

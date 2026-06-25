@@ -60,6 +60,7 @@ func _ready() -> void:
 	_test_more_events2()
 	_test_radio_unit()
 	_test_artillery()
+	_test_click_hex()
 	_test_artillery_available()
 	_test_ai_artillery()
 	_test_blaze()
@@ -760,6 +761,20 @@ func _test_ai_artillery() -> void:
 	s2.units["L2"] = _mk("L2", RUS, LEADER, ELITE, 1, 1, 1, 8)
 	s2.units["g3"] = _mk("g3", GER, SQUAD, RIFLE, 3, 1, 5, 7)
 	_check(AI.best_artillery(s2, RUS).is_empty(), "Senza Radio l'IA non richiede artiglieria")
+
+
+func _test_click_hex() -> void:
+	print("· Dispatch click esagono (condiviso 2D/3D)")
+	var s := _new_state()
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_TURN
+	var u := _mk("g", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	s.units[u.id] = u
+	Game.state = s
+	Game.click_hex(2, 2)
+	_check(s.selected_unit_id == "g", "click_hex su unità amica la seleziona")
+	Game.click_hex(0, 0)
+	_check(s.selected_unit_id == "", "click_hex su esagono vuoto deseleziona")
 
 
 func _test_artillery_available() -> void:
