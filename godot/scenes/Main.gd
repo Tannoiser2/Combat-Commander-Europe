@@ -32,6 +32,8 @@ var _hand_collapsed := false
 
 var _legend: Panel = null
 var _help: Panel = null
+var _rules_panel: Panel = null
+var _rules_label: RichTextLabel = null
 # Colonna laterale come "cassetto" che scorre in orizzontale (non un pulsante che
 # apre una finestra). SIDE_W = larghezza; una maniglia sul bordo apre/chiude.
 const SIDE_W := 340.0
@@ -58,6 +60,7 @@ func _ready() -> void:
 	_build_view3d_button()
 	_build_los_button()
 	_build_help_panel()
+	_build_rules_ingame()
 	_apply_solid_panels()
 	_build_sidebar_handle()
 	_build_pass_ui()
@@ -274,6 +277,61 @@ func _action_playable(card: Card, s: GameState) -> bool:
 		if s.current_order == Domain.OrderType.MOVE:
 			return name == "FUOCO D'ASSALTO"
 	return false
+
+
+## Pulsante «Regole» nella colonna + pannello con setup e regole speciali dello
+## scenario corrente (ScenarioRules). Aggiornato all'apertura.
+func _build_rules_ingame() -> void:
+	var btn := Button.new()
+	btn.text = "Regole"
+	btn.tooltip_text = "Setup e regole speciali dello scenario"
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var tools2: HBoxContainer = $Sidebar/SideVBox/Tools2
+	tools2.add_child(btn)
+
+	_rules_panel = Panel.new()
+	_rules_panel.visible = false
+	_rules_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_rules_panel.offset_left = -380
+	_rules_panel.offset_top = -300
+	_rules_panel.offset_right = 380
+	_rules_panel.offset_bottom = 300
+	var pad := MarginContainer.new()
+	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
+	for m in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(m, 16)
+	_rules_panel.add_child(pad)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	pad.add_child(v)
+	var head := HBoxContainer.new()
+	var t := Label.new()
+	t.text = "Regole dello scenario"
+	t.add_theme_font_size_override("font_size", 18)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	var close := Button.new()
+	close.text = "Chiudi"
+	close.pressed.connect(func() -> void: _rules_panel.visible = false)
+	head.add_child(close)
+	v.add_child(head)
+	var sc := ScrollContainer.new()
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(sc)
+	_rules_label = RichTextLabel.new()
+	_rules_label.bbcode_enabled = true
+	_rules_label.fit_content = true
+	_rules_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.add_child(_rules_label)
+	add_child(_rules_panel)
+
+	btn.pressed.connect(func() -> void:
+		if _rules_panel.visible:
+			_rules_panel.visible = false
+		else:
+			_rules_label.text = ScenarioRules.as_bbcode(Game.state.scenario_number)
+			_rules_panel.visible = true)
 
 
 ## Sfondo SOLIDO (opaco) per le tre "finestre" della HUD — barra in alto, colonna
