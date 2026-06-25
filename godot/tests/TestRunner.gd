@@ -41,6 +41,7 @@ func _ready() -> void:
 	_test_ai_advance_no_command()
 	_test_reachable_stops_at_wire()
 	_test_reachable_costs()
+	_test_fire_preview()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -357,6 +358,38 @@ func _test_reachable_costs() -> void:
 	# Budget ridotto: un esagono più costoso dei PM residui sparisce dalla mappa.
 	var costs2 := HexGrid.reachable_costs(u, s, 2)
 	_check(costs2.has("2,0") and not costs2.has("3,0"), "con 2 PM si arriva a (2,0) ma non a (3,0)")
+
+
+func _test_fire_preview() -> void:
+	print("· Anteprima fuoco: FP attacco vs difesa stimata (HUD)")
+	var s := _new_state(6, 1)
+	s.human_faction = GER
+	var sh := _mk("sh", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	var df := _mk("df", RUS, SQUAD, RIFLE, 2, 0, 5, 7)
+	s.units[sh.id] = sh
+	s.units[df.id] = df
+	s.current_order = Domain.OrderType.FIRE
+	s.selected_unit_id = sh.id
+	s.fire_target_q = 2
+	s.fire_target_r = 0
+	s.fire_group_ids.clear()
+	s.fire_group_ids.append("sh")
+	Game.state = s
+	var pv := Game.fire_preview()
+	_check(int(pv["fp"]) == 6, "FP del singolo tiratore = 6")
+	_check(int(pv["defense"]) == 7, "difesa = morale 7 + copertura 0 (terreno aperto)")
+	_check(int(pv["margin"]) == -1 and pv["verdict"] == "incerto", "margine -1 → incerto")
+	# Copertura: difensore nel bosco (cop 2) alza la difesa stimata.
+	s.hex_at(2, 0).terrain = Domain.TerrainType.WOODS
+	pv = Game.fire_preview()
+	_check(int(pv["cover"]) == 2 and int(pv["defense"]) == 9, "bosco: copertura 2 → difesa 9")
+	_check(pv["verdict"] == "sfavorevole", "FP6 vs DIF9 (margine -3) → sfavorevole")
+	# Gruppo di fuoco: un secondo pezzo aggiunge +1 FP.
+	var sh2 := _mk("sh2", GER, SQUAD, RIFLE, 1, 0, 6, 7)
+	s.units[sh2.id] = sh2
+	s.fire_group_ids.append("sh2")
+	pv = Game.fire_preview()
+	_check(int(pv["fp"]) == 7, "due pezzi nel gruppo: FP 6 + 1 = 7")
 
 
 func _test_sudden_death_initiative() -> void:

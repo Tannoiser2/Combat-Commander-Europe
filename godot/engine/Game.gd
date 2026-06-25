@@ -881,6 +881,44 @@ func projected_fire_fp() -> int:
 	return fp
 
 
+## Anteprima del fuoco in assemblaggio (per l'HUD). Restituisce il FP d'attacco
+## proiettato e la difesa STATICA (senza dadi) del difensore più ostico
+## nell'esagono bersaglio, calcolata con la stessa formula di Combat
+## (morale + copertura + Comando − Filo). Il margine ≈ FP − difesa indica quanto
+## il tiro è favorevole: i dadi (2d6 per parte) in media si annullano.
+## {} se non c'è un bersaglio scelto.
+func fire_preview() -> Dictionary:
+	if state == null or state.current_order != Domain.OrderType.FIRE or state.fire_target_q < 0:
+		return {}
+	var tq := state.fire_target_q
+	var tr := state.fire_target_r
+	var u := state.unit_by_id(state.selected_unit_id)
+	var ordnance := u != null and u.ordnance
+	var cover := Rules.cover_at(state, tq, tr, ordnance)
+	var best_def := -1
+	var n := 0
+	for t in state.men_at(tq, tr):
+		if u != null and t.faction == u.faction:
+			continue
+		n += 1
+		var d: int = t.morale + cover + Rules.unit_command_bonus(state, t) - Rules.wire_penalty(state, t)
+		best_def = maxi(best_def, d)
+	var fp := projected_fire_fp()
+	var margin: int = (fp - best_def) if best_def >= 0 else 0
+	var verdict := "—"
+	if best_def >= 0:
+		if margin >= 3:
+			verdict = "favorevole"
+		elif margin <= -3:
+			verdict = "sfavorevole"
+		else:
+			verdict = "incerto"
+	return {
+		"fp": fp, "cover": cover, "defenders": n,
+		"defense": best_def, "margin": margin, "verdict": verdict,
+	}
+
+
 ## Giocatore clicca un esagono adiacente durante un'Avanzata.
 func click_hex_advance(tq: int, tr: int) -> void:
 	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
