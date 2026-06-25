@@ -1605,14 +1605,36 @@ func _resolve_loss(ger_lost: bool, rus_lost: bool, reason: String) -> void:
 ## (6.3.2); altrimenti si prosegue. La carta tirata serve solo per i dadi: la sua
 ## conseguenza non si applica, per evitare inneschi a catena.
 func _check_sudden_death(triggering_faction: int) -> void:
-	var dice := _dice_of(_draw_fate(triggering_faction))
-	var total := dice.x + dice.y
 	var space := state.time_marker
-	if total < space:
-		_log("⏰ MORTE SUBITANEA: tiro %d < %d (casella Tempo) — fine partita." % [total, space])
-		_end_game(_count_objectives())
-	else:
+	var total := _sd_roll(triggering_faction)
+	if total >= space:
 		_log("Morte Subitanea evitata: tiro %d ≥ %d (casella Tempo)." % [total, space])
+		return
+	# La Morte Subitanea scatterebbe. Vincitore = leader nei VP; in pareggio,
+	# il detentore dell'Iniziativa (9.2).
+	_update_objectives()
+	var winner := Rules.sd_winner(state.vp_tracker, state.initiative_holder)
+	# 9.1 Re-Roll: chi sta perdendo può annullare e rifare il tiro, MA cedendo la
+	# carta Iniziativa all'avversario. (Lo fa solo se gli conviene, cioè se perde.)
+	if Rules.sd_initiative_rerolls(state.vp_tracker, state.initiative_holder):
+		var loser := state.initiative_holder
+		state.initiative_holder = winner  # la carta Iniziativa passa all'avversario
+		var t2 := _sd_roll(loser)
+		_log("Re-Roll dell'Iniziativa: %s annulla la Morte Subitanea e cede l'Iniziativa a %s — nuovo tiro %d vs %d." % [
+			Domain.FACTION_NAMES.get(loser, "?"), Domain.FACTION_NAMES.get(winner, "?"), t2, space])
+		if t2 >= space:
+			_log("Morte Subitanea evitata col Re-Roll: %d ≥ %d — la partita continua." % [t2, space])
+			return
+		_log("Morte Subitanea confermata anche dopo il Re-Roll: %d < %d." % [t2, space])
+	_log("VP finali — bilancia %+d (positivo = Germania)" % state.vp_tracker)
+	_log("⏰ MORTE SUBITANEA — fine partita.")
+	_end_game(winner)
+
+
+## Un singolo tiro di Morte Subitanea (somma dei dadi di una carta del Fato).
+func _sd_roll(faction: int) -> int:
+	var dice := _dice_of(_draw_fate(faction))
+	return dice.x + dice.y
 
 
 ## Ricalcola il controllo degli obiettivi e la bilancia VP (in-place).

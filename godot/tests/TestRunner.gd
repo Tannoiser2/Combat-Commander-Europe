@@ -35,6 +35,7 @@ func _ready() -> void:
 	_test_recover()
 	_test_recover_suppression()
 	_test_can_be_ordered()
+	_test_sudden_death_initiative()
 	_test_team_vs_squad()
 	_test_clone_preserves_hero()
 	_test_ai_advance_no_command()
@@ -334,6 +335,20 @@ func _test_reachable_stops_at_wire() -> void:
 	var r1 := HexGrid.reachable(u, s)
 	_check(r1.has(Vector2i(1, 0)), "si può entrare nell'esagono con Filo")
 	_check(not r1.has(Vector2i(2, 0)), "il Filo ferma il movimento: niente oltre (1,0)")
+
+
+func _test_sudden_death_initiative() -> void:
+	print("· Morte Subitanea: pareggio all'Iniziativa (9.2) e Re-Roll (9.1)")
+	# 9.2: in pareggio (bilancia VP 0) vince chi detiene la carta Iniziativa.
+	_check(Rules.sd_winner(0, GER) == GER, "pareggio VP → vince chi ha l'Iniziativa (DE)")
+	_check(Rules.sd_winner(0, RUS) == RUS, "pareggio VP → vince chi ha l'Iniziativa (RU)")
+	_check(Rules.sd_winner(3, RUS) == GER, "bilancia +3 → vince la Germania a prescindere dall'Iniziativa")
+	_check(Rules.sd_winner(-2, GER) == RUS, "bilancia -2 → vince la Russia")
+	# 9.1: rifà il tiro (cedendo l'Iniziativa) solo chi perde E detiene l'Iniziativa.
+	_check(Rules.sd_initiative_rerolls(3, RUS), "RU perde (DE avanti) e ha l'Iniziativa → Re-Roll")
+	_check(not Rules.sd_initiative_rerolls(3, GER), "DE è in vantaggio: non rifà")
+	_check(not Rules.sd_initiative_rerolls(0, GER), "in pareggio l'Iniziativa vince: non rifà")
+	_check(Rules.sd_initiative_rerolls(-1, GER), "DE perde (RU avanti) e ha l'Iniziativa → Re-Roll")
 
 
 func _test_can_be_ordered() -> void:

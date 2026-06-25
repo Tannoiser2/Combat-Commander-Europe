@@ -163,6 +163,23 @@ static func can_be_ordered(u: Unit) -> bool:
 	return u != null and u.efficient and not u.suppressed and not u.activated
 
 
+## Vincitore alla Morte Subitanea data la bilancia VP (positiva = Germania).
+## In PAREGGIO (bilancia 0) vince chi detiene la carta Iniziativa (9.2).
+static func sd_winner(vp_balance: int, initiative_holder: int) -> int:
+	if vp_balance > 0:
+		return Domain.Faction.GERMAN
+	if vp_balance < 0:
+		return Domain.Faction.RUSSIAN
+	return initiative_holder
+
+
+## Re-Roll dell'Iniziativa (9.1): chi sta PERDENDO può annullare e rifare il tiro
+## di Morte Subitanea, ma solo se detiene la carta Iniziativa. Quindi rifà se e
+## solo se il detentore dell'Iniziativa NON è il vincitore corrente.
+static func sd_initiative_rerolls(vp_balance: int, initiative_holder: int) -> bool:
+	return initiative_holder != sd_winner(vp_balance, initiative_holder)
+
+
 # ─── Corpo a corpo / Avanzata (O21) ──────────────────────────────────────────
 
 class MeleeResult:
