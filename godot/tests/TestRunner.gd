@@ -88,6 +88,7 @@ func _ready() -> void:
 	_test_objectives_vp()
 	_test_op_fire()
 	_test_op_fire_card_cost()
+	_test_pass_turn()
 	_test_actions()
 	_test_grenade()
 	_test_melee_tie()
@@ -1543,6 +1544,46 @@ func _test_op_fire_card_cost() -> void:
 	Game._op_fire(mover, RUS)
 	_check(Game._fire_card_index(RUS) < 0, "la carta Fuoco è stata consumata (A24.1)")
 	_check(sh.activated, "il tiratore è stato attivato dall'op-fire (A24.3)")
+
+
+func _test_pass_turn() -> void:
+	print("· Passa (O15): scarta le carte scelte, ne ripesca altrettante, cede il turno")
+	var s := _new_state(4, 3)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_TURN
+	s.order_count = 2
+	s.turn_number = 5
+	# Mano di 4 carte distinguibili per ordine.
+	for o in [Domain.OrderType.MOVE, Domain.OrderType.FIRE,
+			Domain.OrderType.ADVANCE, Domain.OrderType.RECOVER]:
+		var c := Card.new(); c.order = o; s.german_hand.append(c)
+	# Mazzo per il rifornimento (più carte di quelle che si scartano: niente reshuffle).
+	for i in 4:
+		var d := Card.new(); d.order = Domain.OrderType.ROUT; s.german_deck.append(d)
+	Game.state = s
+	var move_card: Card = s.german_hand[0]
+	var adv_card: Card = s.german_hand[2]
+	var hand_size := s.german_hand.size()
+	Game.pass_turn([0, 2])  # scarta MOSSA e AVANZATA
+	_check(s.german_hand.size() == hand_size, "la mano resta piena (ripesca quante ne scarta)")
+	_check(s.german_hand.find(move_card) < 0 and s.german_hand.find(adv_card) < 0,
+		"le carte scelte sono uscite dalla mano")
+	_check(s.german_discard.has(move_card) and s.german_discard.has(adv_card),
+		"le carte scelte sono finite negli scarti")
+	_check(s.order_count == 0 and s.turn_number == 6,
+		"passare cede il turno (azzera gli ordini, avanza il numero di turno)")
+	# Passare senza scartare conserva la mano e cede comunque il turno.
+	var s2 := _new_state(4, 3)
+	s2.human_faction = GER
+	s2.phase = Domain.Phase.PLAYER_TURN
+	s2.turn_number = 1
+	for o in [Domain.OrderType.MOVE, Domain.OrderType.FIRE]:
+		var c2 := Card.new(); c2.order = o; s2.german_hand.append(c2)
+	Game.state = s2
+	Game.pass_turn([])
+	_check(s2.german_hand.size() == 2 and s2.german_discard.is_empty(),
+		"passare senza scartare conserva la mano")
+	_check(s2.turn_number == 2, "passare senza scartare cede comunque il turno")
 
 
 func _act(name: String) -> Card:

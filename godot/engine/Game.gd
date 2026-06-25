@@ -1290,6 +1290,32 @@ func _discard_for(faction: int, hand_index: int) -> void:
 		Cards.draw(deck, discard, hand)
 
 
+## «Passa» (O15): invece di dare un ordine il giocatore può passare. Scarta le
+## carte scelte (per indice nella propria mano), ne ripesca altrettante e cede il
+## turno all'avversario. Passando senza scartare nulla si conserva la mano.
+func pass_turn(discard_indices: Array = []) -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_TURN:
+		return
+	var faction := state.human_faction
+	var hand := state.hand_of(faction)
+	# Raccogliamo i riferimenti alle carte: scartando in sequenza gli indici
+	# cambierebbero, mentre l'identità della carta resta stabile.
+	var to_discard: Array[Card] = []
+	for idx in discard_indices:
+		var i := int(idx)
+		if i >= 0 and i < hand.size():
+			to_discard.append(hand[i])
+	for c in to_discard:
+		var i := hand.find(c)
+		if i >= 0:
+			_discard_for(faction, i)  # scarta 1 e ripesca 1: la mano resta piena
+	if to_discard.is_empty():
+		_log("Passi: nessun ordine, mano invariata.")
+	else:
+		_log("Passi: scarti %d carta/e e ripeschi." % to_discard.size())
+	_end_player_turn()
+
+
 ## La fazione controllata dall'IA (l'opposta dell'umano).
 func _ai_faction() -> int:
 	return Domain.Faction.RUSSIAN if state.human_faction == Domain.Faction.GERMAN else Domain.Faction.GERMAN
