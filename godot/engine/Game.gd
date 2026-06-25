@@ -511,7 +511,10 @@ func _cycle_select(units_here: Array, allow_deselect: bool) -> void:
 		select_unit(sel_list[0].id)
 
 
-## Giocatore clicca su un esagono durante la fase di movimento.
+## Giocatore clicca su un esagono durante la fase di movimento. Il bersaglio può
+## essere lontano: si percorre il tragitto a costo minimo UN ESAGONO ALLA VOLTA,
+## così il costo del terreno si accumula davvero (niente "salti" a prezzo di un
+## passo) e Mine/Filo/Fuoco di Opportunità scattano a ogni esagono attraversato.
 func click_hex_move(tq: int, tr: int) -> void:
 	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
 		return
@@ -521,7 +524,24 @@ func click_hex_move(tq: int, tr: int) -> void:
 	var u := state.unit_by_id(uid)
 	if u == null or u.faction != state.human_faction:
 		return
-	_execute_move_step(u, tq, tr)
+	var budget := int(state.group_mp.get(uid, u.move))
+	var path := HexGrid.path_to(u, state, tq, tr, budget)
+	if path.is_empty():
+		_log("(%d,%d) irraggiungibile coi PM rimasti." % [tq, tr])
+		return
+	for step in path:
+		# Interrompi se il mover non è più attivo (rotto/eliminato/op-fire) o senza PM.
+		if state.phase != Domain.Phase.PLAYER_MOVING:
+			break
+		if state.selected_unit_id != uid and state.moving_unit_id != uid:
+			break
+		if int(state.group_mp.get(uid, 0)) <= 0:
+			break
+		var bq := u.q
+		var br := u.r
+		_execute_move_step(u, step.x, step.y)
+		if u.q == bq and u.r == br:
+			break  # passo non eseguito: non proseguire (evita salti non adiacenti)
 
 
 ## Colonna del bordo AVVERSARIO da cui una fazione può uscire (7.2): i Tedeschi

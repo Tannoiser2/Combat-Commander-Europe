@@ -43,6 +43,7 @@ func _ready() -> void:
 	_test_reachable_costs()
 	_test_fire_preview()
 	_test_weapon_portage()
+	_test_move_path_cost()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -426,6 +427,33 @@ func _test_weapon_portage() -> void:
 	# 11.3: eliminato il portatore, l'arma è eliminata con lui.
 	s.eliminate_unit("sq2")
 	_check(s.unit_by_id("mg") == null, "eliminato il portatore, l'arma sparisce")
+
+
+func _test_move_path_cost() -> void:
+	print("· Movimento: clic su esagono lontano paga il costo del PERCORSO (no salti)")
+	var s := _new_state(9, 1)
+	s.human_faction = GER
+	var u := _mk("u", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	u.move = 4
+	s.units[u.id] = u
+	# Corridoio aperto (costo 1/esagono): il percorso accumula il costo reale.
+	_check(HexGrid.path_to(u, s, 3, 0, 4).size() == 3, "(3,0): percorso di 3 passi")
+	_check(HexGrid.path_to(u, s, 4, 0, 4).size() == 4, "(4,0) costa 4: 4 passi entro 4 PM")
+	_check(HexGrid.path_to(u, s, 5, 0, 4).is_empty(), "(5,0) costa 5: irraggiungibile con 4 PM")
+	# Nemico lontano e soppresso: tiene viva la partita senza scatenare op-fire.
+	var en := _mk("rus", RUS, SQUAD, RIFLE, 8, 0, 5, 7)
+	en.suppressed = true
+	s.units["rus"] = en
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	s.group_mp["u"] = 4
+	s.selected_unit_id = "u"
+	s.moving_unit_id = "u"
+	Game.state = s
+	# Prima del fix: il clic lontano costava un solo passo (l'unità "saltava".)
+	Game.click_hex_move(3, 0)
+	_check(u.q == 3 and u.r == 0, "il mover arriva a (3,0)")
+	_check(int(s.group_mp["u"]) == 1, "ha speso 3 PM lungo il percorso (non 1)")
 
 
 func _test_sudden_death_initiative() -> void:
