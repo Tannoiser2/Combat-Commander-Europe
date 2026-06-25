@@ -180,6 +180,29 @@ static func sd_initiative_rerolls(vp_balance: int, initiative_holder: int) -> bo
 	return initiative_holder != sd_winner(vp_balance, initiative_holder)
 
 
+## FP stampato di una Radio dato il calibro nel nome (Weapon/Radio Manifest):
+## 75-76→8, 81-88→9, 105-114→10, 120-140→11, 150-155→12, 183-203→13.
+static func radio_fp_for(name: String) -> int:
+	if name.contains("183") or name.contains("203"):
+		return 13
+	if name.contains("150") or name.contains("155"):
+		return 12
+	if name.contains("120") or name.contains("140"):
+		return 11
+	if name.contains("105") or name.contains("114"):
+		return 10
+	if name.contains("81") or name.contains("88"):
+		return 9
+	return 8  # 75-76mm e default
+
+
+## Vulnerabilità delle Fortificazioni (O18.2.3.3, Track Display): una fortificazione
+## nell'esagono bombardato è distrutta se l'Artillery Impact Roll (2d6) è ESATTAMENTE
+## (20 − FP della Radio). FP8→12, FP9→11, FP10→10, FP11→9, FP12→8, FP13→7.
+static func artillery_fort_vulnerability(fp: int) -> int:
+	return 20 - fp
+
+
 # ─── Corpo a corpo / Avanzata (O21) ──────────────────────────────────────────
 
 class MeleeResult:

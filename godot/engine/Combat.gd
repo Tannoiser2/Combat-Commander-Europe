@@ -235,7 +235,8 @@ static func resolve_smoke_barrage(state: GameState, cq: int, cr: int) -> int:
 ## tira la difesa (Morale + copertura + 2d6) contro fp + 2d6. I dadi vengono
 ## dall'`rng`. Restituisce { eliminated, broken, suppressed, hexes }.
 static func resolve_artillery(
-	state: GameState, fp: int, cq: int, cr: int, rng: RandomNumberGenerator
+	state: GameState, fp: int, cq: int, cr: int, rng: RandomNumberGenerator,
+	forced_impact: int = -1
 ) -> Dictionary:
 	var res := { "eliminated": [], "broken": [], "suppressed": [], "hexes": 0, "forts": 0 }
 	var blast: Array = [Vector2i(cq, cr)]
@@ -245,11 +246,14 @@ static func resolve_artillery(
 		if h.x < 0 or h.x >= state.map_cols or h.y < 0 or h.y >= state.map_rows:
 			continue
 		res["hexes"] += 1
-		# Distruzione fortificazioni (O18.2.3.3): l'artiglieria pesante (FP≥20, cioè
-		# 88/105mm) spiana Trincea/Casamatta/Bunker/Filo/Mine PRIMA dei tiri di
-		# difesa, togliendo così la loro copertura ai difensori.
+		# Un solo Artillery Impact Roll (2d6) per esagono (O18.2.3): vale sia per
+		# la vulnerabilità delle fortificazioni sia come tiro d'attacco del fuoco.
+		var impact: int = forced_impact if forced_impact >= 0 else rng.randi_range(1, 6) + rng.randi_range(1, 6)
 		var hd: GameState.HexData = state.hex_at(h.x, h.y)
-		if hd != null and hd.fortification != Domain.Fort.NONE and fp >= 20:
+		# Distruzione fortificazioni (O18.2.3.3): distrutta se l'Impact Roll è
+		# ESATTAMENTE la Vulnerabilità (20 − FP), PRIMA dei tiri di difesa.
+		if hd != null and hd.fortification != Domain.Fort.NONE \
+				and impact == Rules.artillery_fort_vulnerability(fp):
 			hd.fortification = Domain.Fort.NONE
 			res["forts"] += 1
 		var here: Array = []
@@ -257,8 +261,9 @@ static func resolve_artillery(
 			if u.q == h.x and u.r == h.y:
 				here.append(u)
 		var cover := Rules.cover_at(state, h.x, h.y, false)
+		var attack_total: int = fp + impact
 		for u in here:
-			var atk: int = fp + rng.randi_range(1, 6) + rng.randi_range(1, 6)
+			var atk: int = attack_total
 			var defn: int = int(u.morale) + cover + rng.randi_range(1, 6) + rng.randi_range(1, 6)
 			if atk > defn:
 				if u.efficient:

@@ -358,14 +358,7 @@ func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, pre
 
 ## FP della bombardamento in base al calibro della Radio.
 func _radio_fp(radio: Unit) -> int:
-	var nm := radio.unit_name
-	if nm.contains("105"):
-		return 24
-	if nm.contains("88"):
-		return 20
-	if nm.contains("81"):
-		return 18
-	return 16  # 75mm e default
+	return Rules.radio_fp_for(radio.unit_name)
 
 
 ## Gioca la CARTA come AZIONE (banda inferiore) invece che come ordine.
