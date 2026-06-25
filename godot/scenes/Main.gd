@@ -24,6 +24,7 @@ var _hand_collapsed := false
 
 
 var _legend: Panel = null
+var _help: Panel = null
 
 
 func _ready() -> void:
@@ -33,6 +34,8 @@ func _ready() -> void:
 	_connect_signals()
 	_build_legend()
 	_build_view3d_button()
+	_build_help_panel()
+	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	_refresh_ui()
 	# Riempi il registro con le righe già accumulate
 	for line in Game.state.log:
@@ -112,6 +115,99 @@ func _build_legend() -> void:
 	add_child(_legend)
 
 
+## Pannello "Come si gioca": un pulsante nell'header della mano e il tasto «H» lo
+## aprono/chiudono. Riassume selezione, carte, mossa, fuoco e tasti rapidi.
+func _build_help_panel() -> void:
+	var btn := Button.new()
+	btn.text = "Comandi (?)"
+	btn.tooltip_text = "Come si gioca: selezione, carte, mossa, fuoco, tasti (anche col tasto «H»)"
+	btn.custom_minimum_size = Vector2(120, 0)
+	btn.pressed.connect(func() -> void:
+		if _help != null:
+			_help.visible = not _help.visible)
+	var header: HBoxContainer = $HandPanel/VBox/Header
+	header.add_child(btn)
+	header.move_child(btn, 0)
+
+	_help = Panel.new()
+	_help.visible = false
+	_help.set_anchors_preset(Control.PRESET_CENTER)
+	_help.offset_left = -300
+	_help.offset_top = -260
+	_help.offset_right = 300
+	_help.offset_bottom = 260
+	var lbl := RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.scroll_active = true
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.add_theme_constant_override("margin_left", 16)
+	lbl.add_theme_constant_override("margin_top", 12)
+	lbl.add_theme_constant_override("margin_right", 16)
+	lbl.add_theme_constant_override("margin_bottom", 12)
+	lbl.text = _help_text()
+	_help.add_child(lbl)
+	add_child(_help)
+
+
+func _help_text() -> String:
+	return "[b]COME SI GIOCA[/b]   (pulsante «Comandi» o tasto «H» per chiudere)\n\n" \
+		+ "[b]Selezione[/b]\n" \
+		+ " - Clicca un'unità per selezionarla; ri-clicca l'esagono per scorrere le pedine impilate.\n" \
+		+ " - In basso a sinistra compare la scheda dell'unità.\n\n" \
+		+ "[b]Carte (in basso)[/b]\n" \
+		+ " - Click [b]SINISTRO[/b] = gioca la metà [color=#7fb0ff]ORDINE[/color] (banda blu in alto: Muovere, Fuoco, Avanzata...).\n" \
+		+ " - Click [b]DESTRO[/b] = gioca la metà [color=#ffae5a]AZIONE[/color] (banda arancio in basso: Granate, Cecchino, modificatori...).\n\n" \
+		+ "[b]Mossa[/b]\n" \
+		+ " - Un leader trascina le unità entro il suo Comando (alone arancione).\n" \
+		+ " - Il numero sull'esagono = Punti Movimento per entrarci (verde = pochi, rosso = molti).\n" \
+		+ " - Clicca di nuovo l'unità attiva per concludere la sua mossa.\n\n" \
+		+ "[b]Fuoco[/b]\n" \
+		+ " - Clicca un bersaglio evidenziato: la linea rossa mostra chi spara a chi.\n" \
+		+ " - La targhetta sul bersaglio = FP d'attacco vs Difesa stimata, con l'esito.\n" \
+		+ " - Click su un pezzo arancione = aggiungilo/toglilo dalla squadra di fuoco.\n\n" \
+		+ "[b]Avanzata / Artiglieria[/b]\n" \
+		+ " - Avanzata: clicca un esagono adiacente (può scatenare il corpo a corpo).\n" \
+		+ " - Artiglieria: serve Radio + spotter; clicca il bersaglio nella LOS. «S» alterna fumo/esplosivo.\n\n" \
+		+ "[b]Passare / finire il turno[/b]\n" \
+		+ " - Premi «Fine Turno» per concludere e passare all'avversario (anche a ordini finiti).\n\n" \
+		+ "[b]Tasti rapidi[/b]\n" \
+		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = mostra/nascondi carte\n" \
+		+ " - X = esci dal bordo nemico (VP)    S = fumo/esplosivo    SPAZIO = non sparare\n" \
+		+ " - F5 = salva    F9 = carica    M = muto    H = questo aiuto"
+
+
+## Striscia-etichetta sovrapposta su una metà della carta. Trasparente ai click:
+## passano alla TextureButton sottostante (così Sx/Dx restano funzionanti).
+func _card_banner(text: String, is_top: bool) -> Control:
+	var c := Control.new()
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.set_anchors_preset(Control.PRESET_TOP_WIDE if is_top else Control.PRESET_BOTTOM_WIDE)
+	c.offset_left = 2
+	c.offset_right = -2
+	if is_top:
+		c.offset_top = 2
+		c.offset_bottom = 24
+	else:
+		c.offset_top = -24
+		c.offset_bottom = -2
+	var bg := ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.08, 0.16, 0.38, 0.82) if is_top else Color(0.42, 0.22, 0.04, 0.82)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.add_child(bg)
+	var lbl := Label.new()
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.text = text
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.clip_text = true
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", Color(1, 1, 1))
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.add_child(lbl)
+	return c
+
+
 func _connect_signals() -> void:
 	Game.state_changed.connect(_refresh_ui)
 	Game.log_added.connect(_on_log_added)
@@ -144,6 +240,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		KEY_L:  # legenda dei simboli della mappa
 			if _legend != null:
 				_legend.visible = not _legend.visible
+			get_viewport().set_input_as_handled()
+		KEY_H:  # pannello d'aiuto: come si gioca / comandi
+			if _help != null:
+				_help.visible = not _help.visible
 			get_viewport().set_input_as_handled()
 		KEY_3:  # mostra la mappa 3D
 			_set_3d(true)
@@ -315,17 +415,23 @@ func _refresh_hand() -> void:
 	var hand := Game.state.hand_of(Game.state.human_faction)
 	for i in hand.size():
 		var card: Card = hand[i]
+		var order_name: String = Domain.ORDER_LABELS.get(card.order, card.order_label)
+		# Contenitore-carta: la TextureButton riempie il riquadro, due strisce
+		# etichettano le metà (alto = Ordine/Sx, basso = Azione/Dx).
+		var root := Control.new()
+		root.custom_minimum_size = Vector2(128, 178)
 		var tb := TextureButton.new()
+		tb.set_anchors_preset(Control.PRESET_FULL_RECT)
 		tb.texture_normal = load(card.face_path())
 		tb.ignore_texture_size = true
 		tb.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		tb.custom_minimum_size = Vector2(124, 174)
-		tb.tooltip_text = "Sx: %s  ·  Dx: %s" % [
-			Domain.ORDER_LABELS.get(card.order, card.order_label), card.action_name
-		]
+		tb.tooltip_text = "Click Sx = Ordine: %s   |   Click Dx = Azione: %s" % [order_name, card.action_name]
 		tb.pressed.connect(_on_card_pressed.bind(i))
 		tb.gui_input.connect(_on_card_input.bind(i))
-		hand_container.add_child(tb)
+		root.add_child(tb)
+		root.add_child(_card_banner("Sx: " + order_name, true))
+		root.add_child(_card_banner("Dx: " + card.action_name, false))
+		hand_container.add_child(root)
 
 
 func _on_log_added(line: String) -> void:
