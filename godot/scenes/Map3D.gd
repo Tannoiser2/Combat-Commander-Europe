@@ -61,6 +61,7 @@ func refresh() -> void:
 func _refresh_dynamic(s: GameState) -> void:
 	for c in _dynamic.get_children():
 		c.queue_free()
+	_add_status_markers(s)
 	_add_highlights(s)
 	_add_pieces(s)
 	_add_objectives(s)
@@ -202,11 +203,40 @@ func _rect_wall(st: SurfaceTool, ta: Vector3, tb: Vector3) -> void:
 # ─── Layer dinamico ───────────────────────────────────────────────────────────
 
 ## Evidenzia gli esagoni-bersaglio (s.highlighted_hexes) con un disco giallo
-## translucido e l'unità selezionata in azzurro.
+## translucido, l'unità selezionata in azzurro, e replica in 3D le stesse
+## evidenziazioni della 2D: gruppo di comando, assemblaggio del gruppo di fuoco
+## e finestra di Fuoco di Opportunità.
 func _add_highlights(s: GameState) -> void:
 	for key in s.highlighted_hexes:
 		var p := String(key).split(",")
 		_hex_disc(int(p[0]), int(p[1]), s, Color(1.0, 0.95, 0.2, 0.5))
+	# Gruppo di comando attivato dall'ordine del leader (arancio).
+	for gid in s.ordered_group:
+		if gid == s.selected_unit_id:
+			continue
+		var gv := s.unit_by_id(gid)
+		if gv != null:
+			_hex_disc(gv.q, gv.r, s, Color(1.0, 0.55, 0.0, 0.35))
+	# Assemblaggio del gruppo di fuoco: pezzi inclusi (arancio) / esclusi (grigio).
+	if s.fire_target_q >= 0:
+		for eid in s.fire_eligible_ids:
+			if eid == s.selected_unit_id:
+				continue
+			var ev := s.unit_by_id(eid)
+			if ev == null:
+				continue
+			var inc: bool = s.fire_group_ids.has(eid)
+			_hex_disc(ev.q, ev.r, s,
+				Color(1.0, 0.55, 0.0, 0.45) if inc else Color(0.6, 0.6, 0.6, 0.35))
+	# Finestra di reazione (Fuoco di Opportunità): mover rosso, tiratori gialli.
+	if s.phase == Domain.Phase.REACTION_WINDOW:
+		var mv := s.unit_by_id(s.opfire_mover_id)
+		if mv != null:
+			_hex_disc(mv.q, mv.r, s, Color(0.95, 0.15, 0.15, 0.5))
+		for sid in s.opfire_shooter_ids:
+			var sv := s.unit_by_id(sid)
+			if sv != null:
+				_hex_disc(sv.q, sv.r, s, Color(1.0, 0.7, 0.1, 0.45))
 	if s.selected_unit_id != "":
 		var u := s.unit_by_id(s.selected_unit_id)
 		if u != null:
@@ -320,6 +350,115 @@ func _add_objectives(s: GameState) -> void:
 		lbl.outline_modulate = Color(0, 0, 0, 0.85)
 		lbl.position = Vector3(ci.x * _world, top_y + 1.25, ci.y * _world)
 		_dynamic.add_child(lbl)
+
+
+## Marcatori di stato sulla mappa (come la 2D): fumo, incendi, fortificazioni,
+## buche e ultimo impatto d'artiglieria. Tutto nel layer dinamico.
+func _add_status_markers(s: GameState) -> void:
+	var fort_letters := { 1: "T", 2: "C", 3: "B", 4: "≋", 5: "✸" }
+	var fort_colors := {
+		1: Color(0.7, 0.9, 1.0), 2: Color(0.8, 0.8, 0.85), 3: Color(0.85, 0.85, 0.9),
+		4: Color(1.0, 0.8, 0.3), 5: Color(1.0, 0.4, 0.3),
+	}
+	for key in s.hexes:
+		var p := String(key).split(",")
+		var q := int(p[0])
+		var r := int(p[1])
+		var hd: GameState.HexData = s.hexes[key]
+		var top_y := _top_y(s, q, r)
+		var ci := _hex_img(q, r)
+		var cw := Vector3(ci.x * _world, top_y, ci.y * _world)
+		if hd.has_foxhole:
+			_ground_disc(q, r, s, 0.42, Color(0.12, 0.10, 0.07, 0.7))
+		if hd.fortification != Domain.Fort.NONE:
+			_badge(cw + Vector3(0.0, 1.35, 0.0),
+				String(fort_letters.get(hd.fortification, "?")),
+				fort_colors.get(hd.fortification, Color.WHITE))
+		if hd.has_blaze:
+			_hex_disc(q, r, s, Color(0.95, 0.45, 0.1, 0.5))
+			_flame(cw)
+		if hd.has_smoke:
+			_smoke_puff(cw)
+	# Ultimo impatto d'artiglieria: disco rosso translucido sugli esagoni colpiti.
+	for ih in s.last_impact_hexes:
+		_ground_disc(int(ih.x), int(ih.y), s, 0.95, Color(0.95, 0.15, 0.1, 0.28))
+
+
+## Disco orizzontale (raggio = frazione dell'esagono) appoggiato sulla cima.
+func _ground_disc(q: int, r: int, s: GameState, radius_frac: float, col: Color) -> void:
+	var top_y := _top_y(s, q, r) + 0.05
+	var ci := _hex_img(q, r)
+	var cw := Vector3(ci.x * _world, top_y, ci.y * _world)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cor: Array[Vector3] = []
+	for i in range(12):
+		var a := deg_to_rad(30.0 * i)
+		var ci2 := ci + (_hx * radius_frac) * Vector2(cos(a), sin(a))
+		cor.append(Vector3(ci2.x * _world, top_y, ci2.y * _world))
+	for i in range(12):
+		var j := (i + 1) % 12
+		st.set_normal(Vector3.UP); st.add_vertex(cw)
+		st.set_normal(Vector3.UP); st.add_vertex(cor[i])
+		st.set_normal(Vector3.UP); st.add_vertex(cor[j])
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mi.material_override = m
+	_dynamic.add_child(mi)
+
+
+## Etichetta a cartello (lettera fortificazione) sospesa sopra l'esagono.
+func _badge(pos: Vector3, txt: String, col: Color) -> void:
+	var lbl := Label3D.new()
+	lbl.text = txt
+	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	lbl.font_size = 64
+	lbl.pixel_size = 0.012
+	lbl.modulate = col
+	lbl.outline_size = 18
+	lbl.outline_modulate = Color(0.05, 0.05, 0.05, 0.95)
+	lbl.position = pos
+	_dynamic.add_child(lbl)
+
+
+## Nube di fumo: gruppo di sfere grigie translucide sopra l'esagono.
+func _smoke_puff(cw: Vector3) -> void:
+	var offs := [Vector3(0, 0.95, 0), Vector3(0.3, 1.15, 0.1), Vector3(-0.28, 1.1, -0.12)]
+	for o in offs:
+		var sm := MeshInstance3D.new()
+		var sph := SphereMesh.new()
+		sph.radius = 0.42
+		sph.height = 0.64
+		sm.mesh = sph
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Color(0.82, 0.82, 0.86, 0.55)
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		sm.material_override = m
+		sm.position = cw + o
+		_dynamic.add_child(sm)
+
+
+## Fiamma: cono arancione emissivo sopra l'esagono in fiamme.
+func _flame(cw: Vector3) -> void:
+	var fl := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.0
+	cone.bottom_radius = 0.3
+	cone.height = 0.7
+	cone.radial_segments = 8
+	fl.mesh = cone
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(1.0, 0.55, 0.12)
+	m.emission_enabled = true
+	m.emission = Color(1.0, 0.5, 0.05)
+	m.emission_energy_multiplier = 1.6
+	fl.material_override = m
+	fl.position = cw + Vector3(0.0, 0.45, 0.0)
+	_dynamic.add_child(fl)
 
 
 func _mat(col: Color) -> StandardMaterial3D:
