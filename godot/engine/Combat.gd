@@ -260,7 +260,8 @@ static func resolve_artillery(
 		for u in state.units.values():
 			if u.q == h.x and u.r == h.y:
 				here.append(u)
-		var cover := Rules.cover_at(state, h.x, h.y, false)
+		# L'artiglieria è ordnance: buca/fortificazioni danno +1 copertura (F102/O18.2.3.3).
+		var cover := Rules.cover_at(state, h.x, h.y, true)
 		var attack_total: int = fp + impact
 		for u in here:
 			var atk: int = attack_total
