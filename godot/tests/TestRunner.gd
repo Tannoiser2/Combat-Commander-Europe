@@ -53,6 +53,7 @@ func _ready() -> void:
 	_test_fate_jam()
 	_test_los_hexside()
 	_test_los_hindrance()
+	_test_min_fp_hindrance()
 	_test_step_cost()
 	_test_event_air_support()
 	_test_event_rubble()
@@ -562,6 +563,23 @@ func _test_los_hexside() -> void:
 	var se := _new_state()
 	se.side_features.append(_side(Vector2i(0, 0), Vector2i(1, 0), Domain.HexsideFeature.WALL))
 	_check(HexGrid.has_los(0, 0, 3, 0, se), "un muro sul lato di estremità non blocca")
+
+
+func _test_min_fp_hindrance() -> void:
+	print("· Fuoco: hindrance che azzera la FP annulla l'attacco (10.3.2.1)")
+	var s := _new_state()
+	var atk := _mk("ger", GER, SQUAD, RIFLE, 0, 0, 2, 7)  # FP 2, gittata 6
+	var tgt := _mk("rus", RUS, SQUAD, RIFLE, 3, 0, 5, 7)
+	s.units[atk.id] = atk
+	s.units[tgt.id] = tgt
+	# Brush (hindrance 3) intermedio: FP 2 − 3 ≤ 0 → attacco annullato.
+	s.hexes["1,0"].terrain = Domain.TerrainType.BRUSH
+	var r := Combat.resolve_fire(atk, 3, 0, s, Vector2i(6, 6), Vector2i(1, 1))
+	_check(r.fp_total == 0 and r.broken.is_empty() and r.eliminated.is_empty() and r.suppressed.is_empty(),
+		"FP 2 − hindrance 3 ≤ 0 → attacco annullato, nessun effetto")
+	# Un'Azione che alza la FP la riporta a ≥1 e l'attacco si fa (2 +2 −3 = 1).
+	var r2 := Combat.resolve_fire(atk, 3, 0, s, Vector2i(6, 6), Vector2i(1, 1), [], 2)
+	_check(r2.fp_total == 1, "le Azioni che alzano la FP riportano l'attacco a ≥1 (10.3.2.1)")
 
 
 func _test_los_hindrance() -> void:
