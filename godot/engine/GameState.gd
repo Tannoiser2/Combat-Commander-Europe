@@ -135,6 +135,12 @@ var selected_unit_id: String = ""
 var selected_card_index: int = -1
 var highlighted_hexes: Array[String] = []
 
+# Strumento "Modalità LOS" (solo interfaccia, NON salvato): due estremità
+# trascinabili e la loro linea di vista (verde/giallo/rosso). Vedi HexGrid.los_kind.
+var los_mode: bool = false
+var los_a: Vector2i = Vector2i(-1, -1)
+var los_b: Vector2i = Vector2i(-1, -1)
+
 
 # ─── Ordine in corso ─────────────────────────────────────────────────────────
 

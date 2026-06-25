@@ -21,6 +21,8 @@ var _center := Vector3.ZERO
 
 var _dynamic: Node3D
 var _fx: Node3D            ## layer effetti transitori (tracer, flash); non azzerato dai refresh
+var _los_layer: Node3D    ## layer dello strumento Modalità LOS (linea + estremità)
+var _los_drag: int = -1   ## estremità LOS trascinata (0=A, 1=B, -1=nessuna)
 var _last_unit_pos := {}   ## id unità → Vector2i(q,r) noto (per animare lo spostamento)
 var _pending_slide := {}   ## id unità → Vector3 posizione mondo di partenza dello slittamento
 var _pieces := []          ## [{id, node}] pedine correnti (per il click preciso sulle pile)
@@ -49,6 +51,8 @@ func _ready() -> void:
 	add_child(_dynamic)
 	_fx = Node3D.new()
 	add_child(_fx)
+	_los_layer = Node3D.new()  ## strumento Modalità LOS (aggiornato a parte, drag fluido)
+	add_child(_los_layer)
 	_build_tooltip()
 	_refresh_dynamic(s)
 	_camera.current = true
@@ -248,6 +252,7 @@ func _refresh_dynamic(s: GameState) -> void:
 	_add_los_lines(s)
 	_add_pieces(s)
 	_add_objectives(s)
+	_draw_los_3d(s)
 
 
 func _add_lighting() -> void:
@@ -566,17 +571,20 @@ func _add_los_lines(s: GameState) -> void:
 		_los_line(sh.q, sh.r, e.q, e.r, s, col)
 
 
-func _los_line(q1: int, r1: int, q2: int, r2: int, s: GameState, col: Color) -> void:
+func _los_line(q1: int, r1: int, q2: int, r2: int, s: GameState, col: Color,
+		parent: Node3D = null, radius: float = 0.025) -> void:
+	if parent == null:
+		parent = _dynamic
 	var c1 := _hex_img(q1, r1)
 	var c2 := _hex_img(q2, r2)
 	var from := Vector3(c1.x * _world, _top_y(s, q1, r1) + 0.55, c1.y * _world)
 	var to := Vector3(c2.x * _world, _top_y(s, q2, r2) + 0.55, c2.y * _world)
 	var ln := MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.025
-	cyl.bottom_radius = 0.025
+	cyl.top_radius = radius
+	cyl.bottom_radius = radius
 	cyl.height = from.distance_to(to)
-	cyl.radial_segments = 5
+	cyl.radial_segments = 6
 	ln.mesh = cyl
 	var m := StandardMaterial3D.new()
 	m.albedo_color = col
@@ -584,7 +592,75 @@ func _los_line(q1: int, r1: int, q2: int, r2: int, s: GameState, col: Color) -> 
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	ln.material_override = m
 	ln.transform = _aim_y((from + to) * 0.5, (to - from))
-	_dynamic.add_child(ln)
+	parent.add_child(ln)
+
+
+## Strumento Modalità LOS in 3D: linea colorata tra le due estremità tenendo
+## conto dell'ALTEZZA degli esagoni (via _top_y), con i marcatori A/B e l'esito.
+## Disegnato in _los_layer (aggiornabile da solo per un trascinamento fluido).
+func _draw_los_3d(s: GameState) -> void:
+	if _los_layer == null:
+		return
+	for c in _los_layer.get_children():
+		c.queue_free()
+	if not s.los_mode or s.los_a.x < 0 or s.los_b.x < 0:
+		return
+	var kind := HexGrid.los_kind(s.los_a.x, s.los_a.y, s.los_b.x, s.los_b.y, s)
+	var col := _los_color_3d(kind)
+	_los_line(s.los_a.x, s.los_a.y, s.los_b.x, s.los_b.y, s, col, _los_layer, 0.06)
+	for i in 2:
+		var q := s.los_a.x if i == 0 else s.los_b.x
+		var r := s.los_a.y if i == 0 else s.los_b.y
+		var ci := _hex_img(q, r)
+		var top := Vector3(ci.x * _world, _top_y(s, q, r) + 0.55, ci.y * _world)
+		var mk := MeshInstance3D.new()
+		var sph := SphereMesh.new()
+		sph.radius = 0.16
+		sph.height = 0.32
+		mk.mesh = sph
+		mk.material_override = _mat(col)
+		mk.position = top
+		_los_layer.add_child(mk)
+		_los_badge(top + Vector3(0, 0.45, 0), "A" if i == 0 else "B", Color.WHITE)
+	# Etichetta dell'esito a metà linea.
+	var ca := _hex_img(s.los_a.x, s.los_a.y)
+	var cb := _hex_img(s.los_b.x, s.los_b.y)
+	var mid := Vector3((ca.x + cb.x) * 0.5 * _world,
+		(_top_y(s, s.los_a.x, s.los_a.y) + _top_y(s, s.los_b.x, s.los_b.y)) * 0.5 + 1.1,
+		(ca.y + cb.y) * 0.5 * _world)
+	_los_badge(mid, _los_label_3d(s, kind), col)
+
+
+## Targhetta (Label3D) nel layer LOS, indipendente da _dynamic.
+func _los_badge(pos: Vector3, txt: String, col: Color) -> void:
+	var lbl := Label3D.new()
+	lbl.text = txt
+	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	lbl.font_size = 56
+	lbl.pixel_size = 0.012
+	lbl.modulate = col
+	lbl.outline_size = 16
+	lbl.outline_modulate = Color(0.05, 0.05, 0.05, 0.95)
+	lbl.no_depth_test = true
+	lbl.position = pos
+	_los_layer.add_child(lbl)
+
+
+func _los_color_3d(kind: int) -> Color:
+	match kind:
+		HexGrid.LOS_CLEAR:    return Color(0.30, 1.0, 0.35, 0.95)
+		HexGrid.LOS_HINDERED: return Color(1.0, 0.85, 0.2, 0.95)
+		_:                    return Color(1.0, 0.25, 0.2, 0.95)
+
+
+func _los_label_3d(s: GameState, kind: int) -> String:
+	match kind:
+		HexGrid.LOS_CLEAR:
+			return "LOS LIBERA"
+		HexGrid.LOS_HINDERED:
+			return "LOS OSTACOLATA (-%d)" % HexGrid.los_hindrance(s.los_a.x, s.los_a.y, s.los_b.x, s.los_b.y, s)
+		_:
+			return "LOS BLOCCATA"
 
 
 func _add_pieces(s: GameState) -> void:
@@ -924,6 +1000,43 @@ func _update_camera() -> void:
 
 ## Traduce un punto del viewport nell'esagono (q,r) sotto di esso (raggio della
 ## camera ∩ piano del tabellone → esagono più vicino). (-1,-1) se fuori.
+## Input della Modalità LOS in 3D: afferra l'estremità più vicina al click e la
+## segue durante il trascinamento. Restituisce true se l'evento è stato gestito
+## (così la camera non ruota); il wheel-zoom resta libero.
+func _handle_los_input_3d(event: InputEvent) -> bool:
+	var s := Game.state
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT:
+			return false  # lascia passare il wheel-zoom
+		if mb.pressed:
+			var h := _pick_hex(mb.position)
+			if h.x >= 0:
+				var da := HexGrid.distance(h.x, h.y, s.los_a.x, s.los_a.y)
+				var db := HexGrid.distance(h.x, h.y, s.los_b.x, s.los_b.y)
+				_los_drag = 0 if da <= db else 1
+				_set_los_endpoint_3d(_los_drag, h)
+		else:
+			_los_drag = -1
+		return true
+	elif event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
+		if _los_drag >= 0 and (mm.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+			var h := _pick_hex(mm.position)
+			if h.x >= 0:
+				_set_los_endpoint_3d(_los_drag, h)
+			return true
+	return false
+
+
+func _set_los_endpoint_3d(idx: int, h: Vector2i) -> void:
+	if idx == 0:
+		Game.state.los_a = h
+	else:
+		Game.state.los_b = h
+	_draw_los_3d(Game.state)  # ridisegna solo il layer LOS: trascinamento fluido
+
+
 func _pick_hex(vpos: Vector2) -> Vector2i:
 	if Game.state == null:
 		return Vector2i(-1, -1)
@@ -1013,6 +1126,9 @@ func _orbit(rel: Vector2) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Modalità LOS: il tasto sinistro sposta le estremità (no rotazione camera).
+	if Game.state != null and Game.state.los_mode and _handle_los_input_3d(event):
+		return
 	# Gesti del trackpad: pinch (magnify) e pan a due dita.
 	if event is InputEventMagnifyGesture:
 		_zoom(1.0 / maxf(0.2, (event as InputEventMagnifyGesture).factor))

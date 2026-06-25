@@ -98,6 +98,21 @@ static func line(q1: int, r1: int, q2: int, r2: int) -> Array[Vector2i]:
 	return result
 
 
+# Tipo di linea di vista (per la "Modalità LOS" dell'interfaccia).
+const LOS_CLEAR := 0     ## libera (verde)
+const LOS_HINDERED := 1  ## libera ma con ostacolo/hindrance (giallo)
+const LOS_BLOCKED := 2   ## bloccata (rosso)
+
+
+## Classifica la LOS tra due esagoni in libera / ostacolata / bloccata.
+static func los_kind(q1: int, r1: int, q2: int, r2: int, state: GameState) -> int:
+	if not has_los(q1, r1, q2, r2, state):
+		return LOS_BLOCKED
+	if los_hindrance(q1, r1, q2, r2, state) > 0:
+		return LOS_HINDERED
+	return LOS_CLEAR
+
+
 ## Linea di vista da (q1,r1) a (q2,r2). Bloccata da terreno opaco o elevazione
 ## più alta degli estremi negli esagoni intermedi, e da lati BOCAGE (sempre) o
 ## MURO/SIEPE su un lato NON di estremità. Un lato LOS_CLEAR è un varco libero.

@@ -57,6 +57,7 @@ func _ready() -> void:
 	_test_fate_jam()
 	_test_los_hexside()
 	_test_los_hindrance()
+	_test_los_kind()
 	_test_min_fp_hindrance()
 	_test_step_cost()
 	_test_event_air_support()
@@ -721,6 +722,17 @@ func _test_los_hindrance() -> void:
 	ss.hexes["3,0"].has_smoke = true
 	_check(HexGrid.los_hindrance(0, 0, 3, 0, ss) == HexGrid.SMOKE_HINDRANCE,
 		"il fumo sul bersaglio ostacola (10.3.4)")
+
+
+func _test_los_kind() -> void:
+	print("· LOS: classificazione libera/ostacolata/bloccata (Modalità LOS)")
+	_check(HexGrid.los_kind(0, 0, 3, 0, _new_state()) == HexGrid.LOS_CLEAR, "terreno aperto: libera")
+	var sh := _new_state()
+	sh.hexes["1,0"].terrain = Domain.TerrainType.BRUSH
+	_check(HexGrid.los_kind(0, 0, 3, 0, sh) == HexGrid.LOS_HINDERED, "Brush intermedio: ostacolata")
+	var sb := _new_state()
+	sb.side_features.append(_side(Vector2i(1, 0), Vector2i(2, 0), Domain.HexsideFeature.WALL))
+	_check(HexGrid.los_kind(0, 0, 3, 0, sb) == HexGrid.LOS_BLOCKED, "muro su lato intermedio: bloccata")
 
 
 func _test_step_cost() -> void:

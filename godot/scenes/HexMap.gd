@@ -14,6 +14,7 @@ var view_scale: float = 1.0      ## Scala immagine→schermo (calcolata per adat
 var view_origin: Vector2 = Vector2.ZERO
 var _map_image_id: String = ""   ## id immagine attualmente caricata
 var _terrain_debug: bool = false  ## true = mostra le tinte del terreno (tasto T)
+var _los_drag: int = -1            ## estremità LOS trascinata (0=A, 1=B, -1=nessuna)
 
 ## Pedine
 const CW := 62.0   ## Larghezza pedina uomo
@@ -257,6 +258,50 @@ func _draw() -> void:
 	# Pedine
 	_draw_all_units(s)
 
+	# Strumento Modalità LOS (sopra tutto)
+	if s.los_mode:
+		_draw_los_tool(s)
+
+
+## Strumento di verifica della Linea di Vista: linea colorata tra le due estremità
+## (verde=libera, gialla=ostacolata, rossa=bloccata) coi marcatori A/B e l'esito.
+func _draw_los_tool(s: GameState) -> void:
+	if s.los_a.x < 0 or s.los_b.x < 0:
+		return
+	var a := _hex_center(s.los_a.x, s.los_a.y)
+	var b := _hex_center(s.los_b.x, s.los_b.y)
+	var kind := HexGrid.los_kind(s.los_a.x, s.los_a.y, s.los_b.x, s.los_b.y, s)
+	var col := _los_color(kind)
+	draw_line(a, b, Color(0, 0, 0, 0.55), 6.0)  # contorno scuro per leggibilità
+	draw_line(a, b, col, 3.5)
+	for i in 2:
+		var p: Vector2 = a if i == 0 else b
+		draw_circle(p, 12.0, Color(0.05, 0.05, 0.08, 0.92))
+		draw_arc(p, 12.0, 0, TAU, 24, col, 3.0)
+		_draw_text("A" if i == 0 else "B", p, 13.0, Color.WHITE, true)
+	var lbl := _los_label(s, kind)
+	var mid := (a + b) * 0.5 - Vector2(0, 18)
+	var w := _font.get_string_size(lbl, HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x if _font else 90.0
+	draw_rect(Rect2(mid.x - w * 0.5 - 6, mid.y - 12, w + 12, 22), Color(0.05, 0.05, 0.08, 0.88))
+	_draw_text(lbl, mid, 15.0, col, true)
+
+
+func _los_color(kind: int) -> Color:
+	match kind:
+		HexGrid.LOS_CLEAR:    return Color(0.30, 1.0, 0.35, 0.95)
+		HexGrid.LOS_HINDERED: return Color(1.0, 0.85, 0.2, 0.95)
+		_:                    return Color(1.0, 0.25, 0.2, 0.95)
+
+
+func _los_label(s: GameState, kind: int) -> String:
+	match kind:
+		HexGrid.LOS_CLEAR:
+			return "LOS LIBERA"
+		HexGrid.LOS_HINDERED:
+			return "LOS OSTACOLATA (-%d)" % HexGrid.los_hindrance(s.los_a.x, s.los_a.y, s.los_b.x, s.los_b.y, s)
+		_:
+			return "LOS BLOCCATA"
+
 
 ## Disegna i lati di esagono (siepi = verde, muri = grigio) sul bordo condiviso.
 func _draw_side_features(s: GameState) -> void:
@@ -402,11 +447,47 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		_handle_key(event as InputEventKey)
 		return
+	# In Modalità LOS i click/trascinamenti spostano le estremità, non le pedine.
+	if Game.state != null and Game.state.los_mode:
+		_los_input(event)
+		return
 	if not (event is InputEventMouseButton):
 		return
 	var mb := event as InputEventMouseButton
 	if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed:
 		_on_click(mb.position)
+
+
+## Input della Modalità LOS: premendo si afferra l'estremità più vicina e la si
+## porta sull'esagono cliccato; trascinando, la linea si aggiorna in tempo reale.
+func _los_input(event: InputEvent) -> void:
+	var s := Game.state
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index != MOUSE_BUTTON_LEFT:
+			return
+		if mb.pressed:
+			var h := _hex_at(mb.position)
+			if h.x < 0:
+				return
+			var da := HexGrid.distance(h.x, h.y, s.los_a.x, s.los_a.y)
+			var db := HexGrid.distance(h.x, h.y, s.los_b.x, s.los_b.y)
+			_los_drag = 0 if da <= db else 1
+			_set_los_endpoint(_los_drag, h)
+		else:
+			_los_drag = -1
+	elif event is InputEventMouseMotion and _los_drag >= 0:
+		var h := _hex_at((event as InputEventMouseMotion).position)
+		if h.x >= 0:
+			_set_los_endpoint(_los_drag, h)
+
+
+func _set_los_endpoint(idx: int, h: Vector2i) -> void:
+	if idx == 0:
+		Game.state.los_a = h
+	else:
+		Game.state.los_b = h
+	queue_redraw()
 
 
 func _handle_key(k: InputEventKey) -> void:
@@ -495,23 +576,27 @@ func _draw_command_aura(s: GameState) -> void:
 				_draw_hex_fill(q, r, COL_CMD_AURA)
 
 
-func _on_click(mouse_pos: Vector2) -> void:
+## Esagono (q,r) sotto una posizione del mouse, o (-1,-1) se nessuno è abbastanza
+## vicino. Condiviso da selezione pedine e Modalità LOS.
+func _hex_at(mouse_pos: Vector2) -> Vector2i:
 	if Game.state == null:
-		return
+		return Vector2i(-1, -1)
 	var s := Game.state
-	# Trova l'esagono cliccato
-	var clicked_q := -1
-	var clicked_r := -1
+	var best_q := -1
+	var best_r := -1
 	var best_dist := _hsize() * 0.9
 	for q in s.map_cols:
 		for r in s.map_rows:
-			var c := _hex_center(q, r)
-			var d := mouse_pos.distance_to(c)
+			var d := mouse_pos.distance_to(_hex_center(q, r))
 			if d < best_dist:
 				best_dist = d
-				clicked_q = q
-				clicked_r = r
-	if clicked_q < 0:
-		return
+				best_q = q
+				best_r = r
+	return Vector2i(best_q, best_r)
 
-	Game.click_hex(clicked_q, clicked_r)
+
+func _on_click(mouse_pos: Vector2) -> void:
+	var h := _hex_at(mouse_pos)
+	if h.x < 0:
+		return
+	Game.click_hex(h.x, h.y)
