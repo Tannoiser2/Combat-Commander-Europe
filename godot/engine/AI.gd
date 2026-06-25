@@ -134,7 +134,7 @@ static func best_advance(state: GameState, faction: int) -> Dictionary:
 	var best: Dictionary = {}
 	var best_margin := 0
 	for u in state.units_of(faction):
-		if u.activated or not u.efficient or u.is_weapon():
+		if not Rules.can_be_ordered(u) or u.is_weapon():
 			continue
 		for nb in HexGrid.neighbors(u.q, u.r):
 			if nb.x < 0 or nb.x >= state.map_cols or nb.y < 0 or nb.y >= state.map_rows:

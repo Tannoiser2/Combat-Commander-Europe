@@ -156,6 +156,13 @@ static func clear_suppression(state: GameState, faction: int) -> int:
 	return freed
 
 
+## Un'unità può ricevere un ordine "attivo" (Mossa/Fuoco/Avanzata) solo se è
+## efficiente, NON soppressa e NON già attivata. Le unità rotte o soppresse sono
+## immobilizzate: possono solo difendersi e (le rotte) ritirarsi/recuperare.
+static func can_be_ordered(u: Unit) -> bool:
+	return u != null and u.efficient and not u.suppressed and not u.activated
+
+
 # ─── Corpo a corpo / Avanzata (O21) ──────────────────────────────────────────
 
 class MeleeResult:

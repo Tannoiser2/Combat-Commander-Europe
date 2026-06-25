@@ -34,6 +34,7 @@ func _ready() -> void:
 	_test_command_stats()
 	_test_recover()
 	_test_recover_suppression()
+	_test_can_be_ordered()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -274,6 +275,29 @@ func _test_recover_suppression() -> void:
 	_check(not brk.efficient, "la rimozione della soppressione non ripristina le unità rotte")
 	# Idempotente: senza unità soppresse non libera nulla.
 	_check(Rules.clear_suppression(s, GER) == 0, "nessuna soppressione residua → 0 liberate")
+
+
+func _test_can_be_ordered() -> void:
+	print("· Idoneità agli ordini attivi (Mossa/Fuoco/Avanzata)")
+	var healthy := _mk("h", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	_check(Rules.can_be_ordered(healthy), "unità efficiente, non soppressa, non attivata → può ricevere ordini")
+	var sup := _mk("s", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	sup.suppress()
+	_check(not Rules.can_be_ordered(sup), "unità soppressa → immobilizzata (no Mossa/Fuoco/Avanzata)")
+	var brk := _mk("b", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	brk.break_unit()
+	_check(not Rules.can_be_ordered(brk), "unità rotta → no ordini attivi (solo Rotta/Recupero)")
+	var act := _mk("a", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	act.activated = true
+	_check(not Rules.can_be_ordered(act), "unità già attivata → non rigiocabile")
+	# Coerenza col fuoco: una soppressa non può sparare anche entro gittata/LOS.
+	var s := _new_state()
+	var shooter := _mk("sh", GER, SQUAD, RIFLE, 0, 0, 5, 7, 3)
+	shooter.suppress()
+	var tgt := _mk("tg", RUS, SQUAD, RIFLE, 1, 0, 5, 7)
+	s.units[shooter.id] = shooter
+	s.units[tgt.id] = tgt
+	_check(not Combat.can_fire(shooter, 1, 0, s), "can_fire rifiuta la soppressa (coerente con can_be_ordered)")
 
 
 func _test_melee_winner_and_losses() -> void:
