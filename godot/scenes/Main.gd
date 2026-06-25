@@ -5,21 +5,24 @@ extends Control
 # ─── Nodi ─────────────────────────────────────────────────────────────────────
 
 @onready var hex_map: Node2D = $HexMap
+@onready var top_bar: PanelContainer = $TopBar
 @onready var sidebar: PanelContainer = $Sidebar
 @onready var log_list: ItemList = $Sidebar/SideVBox/LogList
 @onready var log_toggle_btn: Button = $Sidebar/SideVBox/SideHeader/SideToggleBtn
 @onready var view3d_btn: Button = $Sidebar/SideVBox/Tools/View3DBtn
 @onready var los_btn: Button = $Sidebar/SideVBox/Tools/LosBtn
 @onready var help_btn: Button = $Sidebar/SideVBox/Tools/HelpBtn
-@onready var phase_label: Label = $TopBar/Bar/HBox/PhaseLabel
-@onready var turn_label: Label = $TopBar/Bar/HBox/TurnLabel
-@onready var init_label: Label = $TopBar/Bar/HBox/InitLabel
-@onready var time_label: Label = $TopBar/Bar/HBox/TimeLabel
-@onready var vp_label: Label = $TopBar/Bar/HBox/VPLabel
-@onready var deck_label: Label = $TopBar/Bar/HBox/DeckLabel
-@onready var menu_btn: Button = $TopBar/Bar/HBox/MenuBtn
-@onready var hint_label: Label = $TopBar/Bar/Hint
+@onready var menu_btn: Button = $Sidebar/SideVBox/Tools2/MenuBtn
+@onready var editor_btn: Button = $Sidebar/SideVBox/Tools2/EditorBtn
+@onready var phase_label: Label = $TopBar/HBox/PhaseLabel
+@onready var turn_label: Label = $TopBar/HBox/TurnLabel
+@onready var orders_label: Label = $TopBar/HBox/OrdersLabel
+@onready var init_label: Label = $TopBar/HBox/InitLabel
+@onready var time_label: Label = $TopBar/HBox/TimeLabel
+@onready var vp_label: Label = $TopBar/HBox/VPLabel
+@onready var deck_label: Label = $TopBar/HBox/DeckLabel
 @onready var info_label: RichTextLabel = $Sidebar/SideVBox/InfoPanel/InfoMargin/InfoLabel
+@onready var hand_panel: PanelContainer = $HandPanel
 @onready var hand_container: HBoxContainer = $HandPanel/VBox/Cards
 @onready var end_turn_btn: Button = $HandPanel/VBox/Header/EndTurnBtn
 @onready var hand_toggle_btn: Button = $HandPanel/VBox/Header/ToggleBtn
@@ -53,10 +56,34 @@ func _ready() -> void:
 	_build_pass_ui()
 	log_toggle_btn.pressed.connect(_toggle_sidebar)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
+	editor_btn.tooltip_text = "Apri l'editor delle mappe"
+	editor_btn.pressed.connect(func() -> void:
+		get_tree().change_scene_to_file("res://scenes/MapEditor.tscn"))
+	# La mappa occupa solo l'area libera (sotto la barra, a sinistra della
+	# colonna, sopra la mano): si ricalcola quando i pannelli cambiano dimensione.
+	top_bar.resized.connect(_update_map_rect)
+	sidebar.resized.connect(_update_map_rect)
+	hand_panel.resized.connect(_update_map_rect)
+	resized.connect(_update_map_rect)
 	_refresh_ui()
+	_update_map_rect.call_deferred()
 	# Riempi il registro con le righe già accumulate
 	for line in Game.state.log:
 		log_list.add_item(line)
+
+
+## Comunica alla mappa l'area di disegno libera dai pannelli (top bar, colonna a
+## destra se visibile, mano in basso). La mappa si re-inquadra al suo interno.
+func _update_map_rect() -> void:
+	if hex_map == null:
+		return
+	var vp := get_viewport_rect().size
+	var top := top_bar.size.y if top_bar.size.y > 0 else 40.0
+	var right := sidebar.size.x if sidebar.visible and sidebar.size.x > 0 else 0.0
+	var bottom := hand_panel.size.y if hand_panel.visible and hand_panel.size.y > 0 else 0.0
+	var rect := Rect2(0, top, maxf(200.0, vp.x - right), maxf(120.0, vp.y - top - bottom))
+	hex_map.set("map_rect", rect)
+	hex_map.queue_redraw()
 
 
 var _v3d: SubViewportContainer = null
@@ -262,6 +289,7 @@ func _toggle_sidebar() -> void:
 	sidebar.visible = not _sidebar_collapsed
 	if _sidebar_reopen_btn != null:
 		_sidebar_reopen_btn.visible = _sidebar_collapsed
+	_update_map_rect()  # la mappa riprende lo spazio della colonna
 
 
 ## Attiva/disattiva la "Modalità LOS": uno strumento per verificare la linea di
@@ -517,11 +545,13 @@ func _refresh_ui() -> void:
 	deck_label.text = "Mazzi  GER:%d  RUS:%d" % [
 		s.german_deck.size(), s.russian_deck.size()
 	]
+	# Conteggio Ordini nella barra in alto (5.1): evidenziato quando esauriti.
+	orders_label.text = "Ordini %d/%d" % [s.order_count, s.max_orders]
+	orders_label.modulate = Color(1, 0.6, 0.5) if s.order_count >= s.max_orders else Color(1, 1, 1)
 	end_turn_btn.disabled = not _is_player_phase(s.phase)
 	# Passare si può solo nella fase ordini (non a metà di una mossa/fuoco).
 	if _pass_btn != null:
 		_pass_btn.disabled = s.phase != Domain.Phase.PLAYER_TURN
-	hint_label.text = _guidance_text(s)
 	_refresh_hand()
 	_refresh_unit_info()
 
@@ -598,13 +628,16 @@ func _guidance_text(s: GameState) -> String:
 
 func _refresh_unit_info() -> void:
 	var s := Game.state
+	# Guida contestuale, discreta in cima alla colonna (non più sovrapposta alla
+	# mappa): cosa fare adesso.
+	var guide := "[color=#cfe3ff]%s[/color]\n\n" % _guidance_text(s)
 	var u := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
 	if u == null:
-		info_label.text = "[color=#9aa]Nessuna unità selezionata.\nClicca una pedina sulla mappa.[/color]"
+		info_label.text = guide + "[color=#9aa]Nessuna unità selezionata.\nClicca una pedina sulla mappa.[/color]"
 		return
 	var fac: String = Domain.FACTION_SHORT.get(u.faction, "?")
 	var cls: String = Domain.UNIT_CLASS_LABEL.get(u.unit_class, "")
-	var lines := "[b]%s[/b]  (%s)\n" % [u.unit_name, fac]
+	var lines := guide + "[b]%s[/b]  (%s)\n" % [u.unit_name, fac]
 	lines += "%s\n" % cls
 	lines += "PdF %d   Gittata %d   Movimento %d\n" % [u.fp, u.range, u.move]
 	lines += "Morale %d" % u.morale
@@ -712,7 +745,7 @@ func _on_phase_changed(phase: int) -> void:
 	if phase != Domain.Phase.PLAYER_TURN:
 		_close_pass_dialog()
 	if Game.state:
-		hint_label.text = _guidance_text(Game.state)
+		_refresh_unit_info()
 
 
 func _on_end_turn() -> void:
@@ -754,6 +787,7 @@ func _on_action_pressed(index: int) -> void:
 func _toggle_hand() -> void:
 	_hand_collapsed = not _hand_collapsed
 	_refresh_hand()
+	_update_map_rect.call_deferred()  # la mappa riprende lo spazio della mano
 
 
 func _on_menu() -> void:

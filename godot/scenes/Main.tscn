@@ -17,69 +17,68 @@ script = ExtResource("2_hexmap")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 78.0
+offset_bottom = 40.0
 
-[node name="Bar" type="VBoxContainer" parent="TopBar"]
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 10
 
-[node name="HBox" type="HBoxContainer" parent="TopBar/Bar"]
-layout_mode = 2
-theme_override_constants/separation = 18
-
-[node name="TurnLabel" type="Label" parent="TopBar/Bar/HBox"]
+[node name="TurnLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "Turno 1"
-custom_minimum_size = Vector2(78, 0)
+custom_minimum_size = Vector2(80, 0)
 vertical_alignment = 1
 
-[node name="PhaseLabel" type="Label" parent="TopBar/Bar/HBox"]
+[node name="Sep1" type="VSeparator" parent="TopBar/HBox"]
+layout_mode = 2
+
+[node name="PhaseLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "—"
-custom_minimum_size = Vector2(190, 0)
+custom_minimum_size = Vector2(196, 0)
 vertical_alignment = 1
 
-[node name="InitLabel" type="Label" parent="TopBar/Bar/HBox"]
+[node name="OrdersLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+text = "Ordini 0/0"
+custom_minimum_size = Vector2(112, 0)
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Sep2" type="VSeparator" parent="TopBar/HBox"]
+layout_mode = 2
+
+[node name="InitLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "Iniz: —"
-custom_minimum_size = Vector2(110, 0)
+custom_minimum_size = Vector2(108, 0)
 vertical_alignment = 1
 
-[node name="TimeLabel" type="Label" parent="TopBar/Bar/HBox"]
+[node name="TimeLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "Tempo —"
-custom_minimum_size = Vector2(150, 0)
+custom_minimum_size = Vector2(156, 0)
 vertical_alignment = 1
 
-[node name="VPLabel" type="Label" parent="TopBar/Bar/HBox"]
+[node name="Sep3" type="VSeparator" parent="TopBar/HBox"]
 layout_mode = 2
-text = "VP: 0"
+
+[node name="VPLabel" type="Label" parent="TopBar/HBox"]
+layout_mode = 2
+text = "VP 0"
 custom_minimum_size = Vector2(120, 0)
 vertical_alignment = 1
 
-[node name="DeckLabel" type="Label" parent="TopBar/Bar/HBox"]
-layout_mode = 2
-text = "Mazzi —"
-custom_minimum_size = Vector2(150, 0)
-vertical_alignment = 1
-
-[node name="Spacer" type="Control" parent="TopBar/Bar/HBox"]
+[node name="Spacer" type="Control" parent="TopBar/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="MenuBtn" type="Button" parent="TopBar/Bar/HBox"]
+[node name="DeckLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
-text = "Menù"
-
-[node name="Hint" type="Label" parent="TopBar/Bar"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.4, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 16
-horizontal_alignment = 1
+text = "Mazzi —"
+custom_minimum_size = Vector2(150, 0)
+horizontal_alignment = 2
 vertical_alignment = 1
-text = ""
 
 [node name="Sidebar" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -88,12 +87,11 @@ anchor_left = 1.0
 anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -350.0
-offset_top = 84.0
-offset_right = -10.0
-offset_bottom = -150.0
+offset_left = -340.0
+offset_top = 44.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 0
-self_modulate = Color(1, 1, 1, 0.92)
 
 [node name="SideVBox" type="VBoxContainer" parent="Sidebar"]
 layout_mode = 2
@@ -110,7 +108,7 @@ vertical_alignment = 1
 
 [node name="SideToggleBtn" type="Button" parent="Sidebar/SideVBox/SideHeader"]
 layout_mode = 2
-text = "Nascondi"
+text = "Nascondi ▶"
 
 [node name="Tools" type="HBoxContainer" parent="Sidebar/SideVBox"]
 layout_mode = 2
@@ -130,6 +128,20 @@ text = "LOS"
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Comandi"
+
+[node name="Tools2" type="HBoxContainer" parent="Sidebar/SideVBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MenuBtn" type="Button" parent="Sidebar/SideVBox/Tools2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Menù"
+
+[node name="EditorBtn" type="Button" parent="Sidebar/SideVBox/Tools2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Editor mappe"
 
 [node name="InfoPanel" type="PanelContainer" parent="Sidebar/SideVBox"]
 layout_mode = 2
@@ -166,7 +178,6 @@ anchor_right = 0.5
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 0
-self_modulate = Color(1, 1, 1, 0.9)
 
 [node name="VBox" type="VBoxContainer" parent="HandPanel"]
 layout_mode = 2
