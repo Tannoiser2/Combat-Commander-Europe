@@ -96,11 +96,6 @@ static func resolve_fire(
 		res.log_line = "Nessuna linea di vista verso (%d,%d)" % [tq, tr]
 		return res
 
-	# Sparare rivela la posizione: il tiratore perde la mimetizzazione (anche se
-	# l'ordnance poi manca il Targeting Roll). I pezzi di supporto del gruppo di
-	# fuoco sono rivelati più sotto, una volta formato il gruppo.
-	attacker.concealed = false
-
 	# Ostacolo (hindrance) lungo la LOS (NON cumulativo, 10.3.3; il fumo sul
 	# bersaglio/tiratore è già incluso in los_hindrance, 10.3.4). Per le armi
 	# normali riduce la FP; per l'ordnance modifica il Targeting Roll (O20.2.3).
@@ -140,9 +135,6 @@ static func resolve_fire(
 		res.log_line = "%s su (%d,%d): FP %d − hindrance %d ≤ 0 ⇒ attacco ANNULLATO (10.3.2.1)" % [
 			attacker.unit_name, tq, tr, fp, hind]
 		return res
-	# L'attacco si effettua: i pezzi del gruppo che sparano si rivelano.
-	for gu in group:
-		gu.concealed = false
 	var attack_fp := maxi(1, fp) if attacker.ordnance else (fp - hind)
 	res.fp_total = attack_fp
 	res.dice_roll = atk_dice.x + atk_dice.y
@@ -197,8 +189,10 @@ static func _resolve_hex_defenders(
 		var def_cmd := Rules.unit_command_bonus(state, t)
 		var defense := t.morale + cover + def_roll + def_cmd - Rules.wire_penalty(state, t)
 		if t.concealed:
-			defense += 1         # mimetizzazione: più difficile da colpire
-			t.concealed = false  # il fuoco la rivela comunque
+			# A29 Concealment (one-shot): riduce il totale d'attacco del valore della
+			# Copertura dell'esagono (qui: +cover alla difesa), poi è consumata.
+			defense += cover
+			t.concealed = false
 		var moving := t.id == state.moving_unit_id
 		if attack_total > defense:
 			_apply_hit(t, res)
