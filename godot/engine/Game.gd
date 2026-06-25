@@ -529,19 +529,11 @@ func click_hex_move(tq: int, tr: int) -> void:
 	if path.is_empty():
 		_log("(%d,%d) irraggiungibile coi PM rimasti." % [tq, tr])
 		return
-	for step in path:
-		# Interrompi se il mover non è più attivo (rotto/eliminato/op-fire) o senza PM.
-		if state.phase != Domain.Phase.PLAYER_MOVING:
-			break
-		if state.selected_unit_id != uid and state.moving_unit_id != uid:
-			break
-		if int(state.group_mp.get(uid, 0)) <= 0:
-			break
-		var bq := u.q
-		var br := u.r
-		_execute_move_step(u, step.x, step.y)
-		if u.q == bq and u.r == br:
-			break  # passo non eseguito: non proseguire (evita salti non adiacenti)
+	# Movimento PASSO-PASSO: un clic = UN solo esagono (il primo passo verso il
+	# bersaglio). Clic su un adiacente = ci entra; clic su uno lontano = avvicina
+	# di un esagono. Così Mine, Filo e Fuoco di Opportunità scattano a OGNI
+	# esagono e il giocatore decide passo per passo (niente "salti" multipli).
+	_execute_move_step(u, path[0].x, path[0].y)
 
 
 ## Colonna del bordo AVVERSARIO da cui una fazione può uscire (7.2): i Tedeschi

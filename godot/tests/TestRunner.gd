@@ -432,7 +432,7 @@ func _test_weapon_portage() -> void:
 
 
 func _test_move_path_cost() -> void:
-	print("· Movimento: clic su esagono lontano paga il costo del PERCORSO (no salti)")
+	print("· Movimento: passo-passo (un clic = un esagono) e percorso a costo minimo")
 	var s := _new_state(9, 1)
 	s.human_faction = GER
 	var u := _mk("u", GER, SQUAD, RIFLE, 0, 0, 5, 7)
@@ -452,10 +452,14 @@ func _test_move_path_cost() -> void:
 	s.selected_unit_id = "u"
 	s.moving_unit_id = "u"
 	Game.state = s
-	# Prima del fix: il clic lontano costava un solo passo (l'unità "saltava".)
+	# Passo-passo: un clic (anche su un esagono lontano) muove UN solo esagono
+	# verso il bersaglio, spendendo il costo di quell'unico passo.
 	Game.click_hex_move(3, 0)
-	_check(u.q == 3 and u.r == 0, "il mover arriva a (3,0)")
-	_check(int(s.group_mp["u"]) == 1, "ha speso 3 PM lungo il percorso (non 1)")
+	_check(u.q == 1 and u.r == 0, "un clic muove di UN esagono verso il bersaglio")
+	_check(int(s.group_mp["u"]) == 3, "ha speso 1 PM (un solo passo, non l'intero percorso)")
+	# Un secondo clic avanza di un altro esagono.
+	Game.click_hex_move(3, 0)
+	_check(u.q == 2 and u.r == 0 and int(s.group_mp["u"]) == 2, "secondo clic: un altro passo")
 
 
 func _test_sudden_death_initiative() -> void:
