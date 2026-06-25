@@ -243,6 +243,62 @@ func _compute_fire_ready() -> void:
 			state.fire_ready_ids.append(u.id)
 
 
+## C'è almeno un'unità del giocatore che può sparare ora (≥1 bersaglio valido)?
+func _any_fire_ready() -> bool:
+	for u in state.units_of(state.human_faction):
+		if not Rules.can_be_ordered(u):
+			continue
+		if not (u.is_man() or u.ordnance):
+			continue
+		if not _fire_targets(u).is_empty():
+			return true
+	return false
+
+
+## Un ordine di questo tipo è davvero eseguibile ora dal giocatore? Usato per
+## illuminare i badge solo quando hanno effetto (3.x/5.1). Non controlla il limite
+## di Ordini (lo fa il chiamante): qui conta solo se esiste un bersaglio/unità.
+func order_feasible(order: int) -> bool:
+	if state == null:
+		return false
+	var human := state.human_faction
+	match order:
+		Domain.OrderType.PASS:
+			return true
+		Domain.OrderType.ARTY:
+			return has_artillery_available()
+		Domain.OrderType.RECOVER:
+			# Recupero utile se ci sono unità rotte o soppresse da ripristinare.
+			if not state.broken_men_of(human).is_empty():
+				return true
+			for u in state.units_of(human):
+				if u.suppressed:
+					return true
+			return false
+		Domain.OrderType.ROUT:
+			return not state.broken_men_of(human).is_empty()
+		Domain.OrderType.FIRE:
+			return _any_fire_ready()
+		Domain.OrderType.MOVE:
+			for u in state.units_of(human):
+				if not (Rules.can_be_ordered(u) and u.is_man()):
+					continue
+				var mp := Rules.move_allowance(state, u)
+				if mp > 0 and not HexGrid.reachable(u, state, mp).is_empty():
+					return true
+			return false
+		Domain.OrderType.ADVANCE:
+			for u in state.units_of(human):
+				if not (Rules.can_be_ordered(u) and u.is_man()):
+					continue
+				for h in HexGrid.neighbors(u.q, u.r):
+					if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
+						return true
+			return false
+		_:
+			return true
+
+
 func deselect() -> void:
 	if state == null:
 		return
