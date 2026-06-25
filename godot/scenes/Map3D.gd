@@ -390,9 +390,23 @@ func _rect_wall(st: SurfaceTool, ta: Vector3, tb: Vector3) -> void:
 ## evidenziazioni della 2D: gruppo di comando, assemblaggio del gruppo di fuoco
 ## e finestra di Fuoco di Opportunità.
 func _add_highlights(s: GameState) -> void:
+	# Durante una Mossa il colore dell'esagono indica il COSTO in PM (verde=poco →
+	# rosso=tanto) con una targhetta col numero; l'alone arancio tenue mostra il
+	# raggio di Comando del leader del gruppo. Gli altri ordini restano gialli.
+	var cost_map := _move_cost_map(s)
+	_add_command_aura(s, cost_map)
 	for key in s.highlighted_hexes:
 		var p := String(key).split(",")
-		_hex_disc(int(p[0]), int(p[1]), s, Color(1.0, 0.95, 0.2, 0.5))
+		var hq := int(p[0])
+		var hr := int(p[1])
+		if cost_map.has(key):
+			var c := int(cost_map[key])
+			_hex_disc(hq, hr, s, _cost_disc(c))
+			var ci := _hex_img(hq, hr)
+			_badge(Vector3(ci.x * _world, _top_y(s, hq, hr) + 0.45, ci.y * _world),
+				"%d" % c, Color(1.0, 1.0, 1.0, 0.97))
+		else:
+			_hex_disc(hq, hr, s, Color(1.0, 0.95, 0.2, 0.5))
 	# Gruppo di comando attivato dall'ordine del leader (arancio).
 	for gid in s.ordered_group:
 		if gid == s.selected_unit_id:
@@ -452,6 +466,53 @@ func _hex_disc(q: int, r: int, s: GameState, col: Color) -> void:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mi.material_override = m
 	_dynamic.add_child(mi)
+
+
+## Mappa "q,r" → costo in PM, valida solo durante una Mossa con un mover scelto.
+func _move_cost_map(s: GameState) -> Dictionary:
+	if s.phase != Domain.Phase.PLAYER_MOVING or s.current_order != Domain.OrderType.MOVE:
+		return {}
+	if s.selected_unit_id == "":
+		return {}
+	var u := s.unit_by_id(s.selected_unit_id)
+	if u == null:
+		return {}
+	return HexGrid.reachable_costs(u, s, int(s.group_mp.get(u.id, u.move)))
+
+
+## Colore del disco in base al costo in PM: verde (1) → rosso (4+).
+func _cost_disc(cost: int) -> Color:
+	match cost:
+		1:  return Color(0.30, 0.85, 0.30, 0.50)
+		2:  return Color(0.85, 0.85, 0.25, 0.50)
+		3:  return Color(0.95, 0.60, 0.15, 0.55)
+		_:  return Color(0.95, 0.25, 0.20, 0.55)
+
+
+## Alone tenue del raggio di Comando del leader del gruppo di Mossa, disegnato
+## solo sugli esagoni NON raggiungibili (quelli raggiungibili hanno già il disco
+## di costo) per evitare sovrapposizioni e z-fighting.
+func _add_command_aura(s: GameState, cost_map: Dictionary) -> void:
+	if s.phase != Domain.Phase.PLAYER_MOVING or s.current_order != Domain.OrderType.MOVE:
+		return
+	if s.ordered_group.size() <= 1:
+		return
+	var leader: Unit = null
+	for gid in s.ordered_group:
+		var g := s.unit_by_id(gid)
+		if g != null and g.is_leader() and g.command > 0:
+			leader = g
+			break
+	if leader == null:
+		return
+	for q in s.map_cols:
+		for r in s.map_rows:
+			if q == leader.q and r == leader.r:
+				continue
+			if cost_map.has("%d,%d" % [q, r]):
+				continue
+			if HexGrid.distance(leader.q, leader.r, q, r) <= leader.command:
+				_hex_disc(q, r, s, Color(1.0, 0.55, 0.0, 0.10))
 
 
 ## Linee di LOS dall'unità selezionata (se può sparare) verso i nemici in

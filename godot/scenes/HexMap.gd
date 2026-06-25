@@ -34,6 +34,8 @@ const COL_SELECT := Color(0.0,  0.8,  1.0,  0.55)
 const COL_GROUP  := Color(1.0,  0.55, 0.0,  0.9)   ## contorno arancio del gruppo di comando
 const COL_GROUP_OFF := Color(0.6, 0.6, 0.6, 0.7)   ## pezzo idoneo ma escluso dal gruppo di fuoco
 const COL_FIRE_TARGET := Color(0.95, 0.15, 0.15, 0.5)  ## esagono bersaglio del fuoco
+const COL_CMD_AURA := Color(1.0, 0.55, 0.0, 0.10)      ## alone tenue del raggio di comando
+const COL_MP_TEXT := Color(0.06, 0.06, 0.06, 0.97)     ## numero costo PM (scuro, leggibile)
 
 ## Fortificazioni: lettera e colore del badge
 const FORT_LETTERS := { 1: "T", 2: "C", 3: "B", 4: "≋", 5: "✸" }  # Trincea/Casamatta/Bunker/Filo/Mine
@@ -181,10 +183,24 @@ func _draw() -> void:
 			draw_circle(fc, 8.0, Color(0.08, 0.08, 0.08, 0.9))
 			_draw_text(FORT_LETTERS.get(hd.fortification, "?"), fc, 11.0, col, true)
 
-	# Esagoni evidenziati (movimento)
+	# Raggio di comando del leader del gruppo di Mossa: alone arancio tenue
+	_draw_command_aura(s)
+
+	# Esagoni evidenziati. Durante una Mossa il riempimento indica il COSTO in PM
+	# per raggiungere l'esagono (verde=poco → rosso=tanto), col numero sopra.
+	var cost_map := _move_cost_map(s)
 	for key in s.highlighted_hexes:
 		var parts := String(key).split(",")
-		_draw_hex_fill(int(parts[0]), int(parts[1]), COL_HIGHLIGHT)
+		var hq := int(parts[0])
+		var hr := int(parts[1])
+		if cost_map.has(key):
+			_draw_hex_fill(hq, hr, _cost_fill(int(cost_map[key])))
+		else:
+			_draw_hex_fill(hq, hr, COL_HIGHLIGHT)
+	for ckey in cost_map:
+		var cp := String(ckey).split(",")
+		var cc := _hex_center(int(cp[0]), int(cp[1])) - Vector2(0, _hsize() * 0.5)
+		_draw_text("%d" % int(cost_map[ckey]), cc, 14.0, COL_MP_TEXT, true)
 
 	# Unità attivate dall'ordine del leader (gruppo di comando)
 	for gid in s.ordered_group:
@@ -386,6 +402,50 @@ func _handle_key(k: InputEventKey) -> void:
 	if k.keycode == KEY_T:
 		_terrain_debug = not _terrain_debug
 		queue_redraw()
+
+
+## Mappa "q,r" → costo in PM per raggiungere l'esagono, valida solo durante una
+## Mossa con un mover selezionato (altrimenti vuota: gli altri ordini non mostrano
+## il costo). Ricalcolata a ogni redraw dallo stato corrente (niente cache).
+func _move_cost_map(s: GameState) -> Dictionary:
+	if s.phase != Domain.Phase.PLAYER_MOVING or s.current_order != Domain.OrderType.MOVE:
+		return {}
+	if s.selected_unit_id == "":
+		return {}
+	var u := s.unit_by_id(s.selected_unit_id)
+	if u == null:
+		return {}
+	var budget := int(s.group_mp.get(u.id, u.move))
+	return HexGrid.reachable_costs(u, s, budget)
+
+
+## Colore di riempimento in base al costo in PM: verde (1) → rosso (4+).
+func _cost_fill(cost: int) -> Color:
+	match cost:
+		1:  return Color(0.30, 0.85, 0.30, 0.45)
+		2:  return Color(0.85, 0.85, 0.25, 0.45)
+		3:  return Color(0.95, 0.60, 0.15, 0.50)
+		_:  return Color(0.95, 0.25, 0.20, 0.52)
+
+
+## Alone tenue che mostra il raggio di Comando del leader del gruppo di Mossa.
+func _draw_command_aura(s: GameState) -> void:
+	if s.phase != Domain.Phase.PLAYER_MOVING or s.current_order != Domain.OrderType.MOVE:
+		return
+	if s.ordered_group.size() <= 1:
+		return
+	var leader: Unit = null
+	for gid in s.ordered_group:
+		var g := s.unit_by_id(gid)
+		if g != null and g.is_leader() and g.command > 0:
+			leader = g
+			break
+	if leader == null:
+		return
+	for q in s.map_cols:
+		for r in s.map_rows:
+			if HexGrid.distance(leader.q, leader.r, q, r) <= leader.command:
+				_draw_hex_fill(q, r, COL_CMD_AURA)
 
 
 func _on_click(mouse_pos: Vector2) -> void:

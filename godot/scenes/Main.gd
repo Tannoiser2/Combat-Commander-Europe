@@ -220,12 +220,13 @@ func _guidance_text(s: GameState) -> String:
 					if not has_unit:
 						if n > 1:
 							return "MOSSA DI GRUPPO — scegli il prossimo membro (arancio) o «Fine Turno»"
-						return "MOSSA — clicca l'unità da muovere"
+						return "MOSSA — clicca l'unità (o il leader) da muovere"
+					var pm := int(s.group_mp.get(s.selected_unit_id, 0))
 					if n > 1:
-						return "MOSSA DI GRUPPO (%d) — esagono giallo per muovere · membro arancio per cambiare · l'unità attiva per concludere" % n
+						return "MOSSA DI GRUPPO (%d) — PM %d · il numero sull'esagono = costo · membro arancio per cambiare · l'unità attiva per concludere" % [n, pm]
 					if s.move_committed:
-						return "MOSSA — clicca un esagono giallo · clicca l'unità per concludere"
-					return "MOSSA — clicca un esagono giallo · clicca l'unità per annullare"
+						return "MOSSA — PM %d · clicca un esagono (il numero = costo) · l'unità per concludere" % pm
+					return "MOSSA — PM %d · clicca un esagono (il numero = costo) · l'unità per annullare" % pm
 				Domain.OrderType.FIRE:
 					if s.fire_target_q >= 0:
 						var msg := "FUOCO — gruppo %d, FP ~%d · pezzi (arancio) · dx carta = modificatore · bersaglio per sparare" % [s.fire_group_ids.size(), Game.projected_fire_fp()]
@@ -269,6 +270,11 @@ func _refresh_unit_info() -> void:
 		lines += "   Comando %d" % u.command
 	if u.is_weapon():
 		lines += "   (malus mov. %d)" % u.move_penalty
+	# PM rimasti quando l'unità fa parte del gruppo che sta muovendo.
+	if s.phase == Domain.Phase.PLAYER_MOVING and s.current_order == Domain.OrderType.MOVE \
+			and s.group_mp.has(u.id):
+		lines += "\n[color=#ffd24a]PM rimasti: %d / %d[/color]" % [
+			int(s.group_mp[u.id]), Rules.move_with_command(s, u)]
 	var stato: Array[String] = []
 	if not u.efficient: stato.append("rotta")
 	if u.suppressed: stato.append("soppressa")
