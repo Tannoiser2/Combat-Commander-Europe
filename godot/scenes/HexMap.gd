@@ -47,6 +47,7 @@ const COL_SELECT := Color(0.0,  0.8,  1.0,  0.55)
 const COL_GROUP  := Color(1.0,  0.55, 0.0,  0.9)   ## contorno arancio del gruppo di comando
 const COL_GROUP_OFF := Color(0.6, 0.6, 0.6, 0.7)   ## pezzo idoneo ma escluso dal gruppo di fuoco
 const COL_FIRE_TARGET := Color(0.95, 0.15, 0.15, 0.5)  ## esagono bersaglio del fuoco
+const COL_FIRE_READY := Color(0.2, 0.9, 1.0, 0.95)     ## unità che può sparare ora (anello ciano)
 const COL_CMD_AURA := Color(1.0, 0.55, 0.0, 0.10)      ## alone tenue del raggio di comando
 const COL_MP_TEXT := Color(0.06, 0.06, 0.06, 0.97)     ## numero costo PM (scuro, leggibile)
 
@@ -274,6 +275,23 @@ func _draw() -> void:
 				_draw_aim_line(_hex_center(gu.q, gu.r), tgt)
 		# Riquadro di anteprima sopra il bersaglio: FP attacco vs DIF stimata + esito.
 		_draw_fire_readout(tgt)
+
+	# FUOCO, prima di scegliere il bersaglio: evidenzia chi può sparare (anello
+	# ciano) e, per l'unità selezionata, traccia le linee verso TUTTI i bersagli
+	# validi — così si vede subito "chi spara a chi".
+	if s.current_order == Domain.OrderType.FIRE and s.fire_target_q < 0:
+		for fid in s.fire_ready_ids:
+			if fid == s.selected_unit_id:
+				continue
+			var fv := s.unit_by_id(fid)
+			if fv:
+				_draw_hex_outline(fv.q, fv.r, COL_FIRE_READY, 2.5)
+		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
+		if sel != null:
+			var from := _hex_center(sel.q, sel.r)
+			for key in s.highlighted_hexes:
+				var p := String(key).split(",")
+				_draw_aim_line(from, _hex_center(int(p[0]), int(p[1])))
 
 	# Finestra di reazione (Fuoco di Opportunità): mover in rosso, tiratori in giallo
 	if s.phase == Domain.Phase.REACTION_WINDOW:

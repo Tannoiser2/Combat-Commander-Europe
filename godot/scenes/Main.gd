@@ -170,9 +170,12 @@ func _help_text() -> String:
 		+ " - Il numero sull'esagono = Punti Movimento per entrarci (verde = pochi, rosso = molti).\n" \
 		+ " - Clicca di nuovo l'unità attiva per concludere la sua mossa.\n\n" \
 		+ "[b]Fuoco[/b]\n" \
-		+ " - Clicca un bersaglio evidenziato: la linea rossa mostra chi spara a chi.\n" \
-		+ " - La targhetta sul bersaglio = FP d'attacco vs Difesa stimata, con l'esito.\n" \
-		+ " - Click su un pezzo arancione = aggiungilo/toglilo dalla squadra di fuoco.\n\n" \
+		+ " - Dopo l'ordine, le unità che possono sparare hanno un [color=#4fd8ff]anello ciano[/color].\n" \
+		+ " - Clicca una di esse: le linee rosse mostrano i bersagli validi (chi spara a chi).\n" \
+		+ " - Clicca un BERSAGLIO: il [color=#ffae5a]gruppo di fuoco[/color] si forma da solo (i pezzi co-locati e quelli\n" \
+		+ "   entro il Comando del leader che possono colpirlo). I pezzi nel gruppo sono cerchiati d'arancio.\n" \
+		+ " - Clic su un pezzo arancione = aggiungilo/toglilo dal gruppo. La targhetta = FP vs Difesa + esito.\n" \
+		+ " - Clicca di nuovo il bersaglio per sparare.\n\n" \
 		+ "[b]Avanzata / Artiglieria[/b]\n" \
 		+ " - Avanzata: clicca un esagono adiacente (può scatenare il corpo a corpo).\n" \
 		+ " - Artiglieria: serve Radio + spotter; clicca il bersaglio nella LOS. «S» alterna fumo/esplosivo.\n\n" \
@@ -556,15 +559,18 @@ func _guidance_text(s: GameState) -> String:
 						if int(pv.get("defense", -1)) >= 0:
 							msg += " vs DIF %d (cop %d) -> %s" % [
 								int(pv["defense"]), int(pv["cover"]), pv.get("verdict", "")]
-						msg += " · pezzo arancio = aggiungi/togli · dx carta = modificatore · clicca il BERSAGLIO per sparare"
+						msg += " · pezzo arancio nel gruppo (clic = aggiungi/togli) · dx carta = modificatore · clicca il BERSAGLIO per sparare"
 						if not s.fire_modifiers.is_empty():
 							msg += "  [%s]" % ", ".join(s.fire_modifiers)
 						if s.spray_active:
 							msg += "  [SVENTAGLIATA]"
 						return msg
 					if not has_unit:
-						return "FUOCO — clicca l'unità che spara"
-					return "FUOCO — clicca un bersaglio nemico evidenziato (apparirà la linea di tiro) · l'unità per annullare"
+						var n := s.fire_ready_ids.size()
+						if n == 0:
+							return "FUOCO — nessuna unità ha un bersaglio valido · «Fine Turno» o gioca un'Azione"
+						return "FUOCO — clicca un'unità con l'anello ciano (%d possono sparare)" % n
+					return "FUOCO — le linee rosse mostrano i bersagli validi · clicca un BERSAGLIO per sparare (il gruppo di fuoco si forma da solo) · l'unità per annullare"
 				Domain.OrderType.ADVANCE:
 					if not has_unit:
 						return "AVANZATA — clicca l'unità che avanza"
