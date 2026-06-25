@@ -233,8 +233,14 @@ static func reachable(u: Unit, state: GameState, budget_override: int = -1) -> A
 			if u.is_man() and state.soldier_icons_at(nb.x, nb.y) + u.soldier_icons() > 7:
 				continue
 			visited[key] = total
-			frontier.append({"q": nb.x, "r": nb.y, "spent": total})
 			result.append(Vector2i(nb.x, nb.y))
+			# Filo (F106) / Mine (F103): entrando, il movimento si ferma qui —
+			# non espandere oltre, così l'anteprima riflette lo stop reale.
+			var nhd: GameState.HexData = state.hex_at(nb.x, nb.y)
+			var stops := nhd != null and (nhd.fortification == Domain.Fort.WIRE \
+				or nhd.fortification == Domain.Fort.MINES)
+			if not stops:
+				frontier.append({"q": nb.x, "r": nb.y, "spent": total})
 
 	return result
 

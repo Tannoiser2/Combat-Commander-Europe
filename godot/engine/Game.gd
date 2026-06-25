@@ -351,6 +351,9 @@ func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, pre
 		res["eliminated"].size(), res["broken"].size(), res["suppressed"].size(), fort_txt])
 	for id in res["eliminated"]:
 		emit_signal("unit_eliminated", id)
+	# Un bombardamento può annientare/far arrendere una fazione: chiudi la partita
+	# anche quando l'ordine arriva dall'IA (il percorso umano ricontrolla a parte).
+	_check_end_conditions()
 
 
 ## FP della bombardamento in base al calibro della Radio.
