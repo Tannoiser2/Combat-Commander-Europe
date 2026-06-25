@@ -86,6 +86,7 @@ func _ready() -> void:
 	_test_fortifications()
 	_test_objectives_vp()
 	_test_op_fire()
+	_test_op_fire_card_cost()
 	_test_actions()
 	_test_grenade()
 	_test_melee_tie()
@@ -1496,6 +1497,36 @@ func _test_op_fire() -> void:
 		if u.id == "rus-far":
 			has_far = true
 	_check(not has_far, "un tiratore fuori gittata non è idoneo all'opportunità")
+
+
+func _test_op_fire_card_cost() -> void:
+	print("· Op Fire: serve una carta Fuoco, la consuma e attiva il tiratore (A24.1/.3)")
+	var s := _new_state(6, 3)
+	s.human_faction = GER          # difensore IA = RUS
+	var mover := _mk("ger", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	var sh := _mk("rus", RUS, SQUAD, RIFLE, 2, 1, 9, 7)  # adiacente, FP alto: tiro conveniente
+	s.units[mover.id] = mover
+	s.units[sh.id] = sh
+	# Mazzi minimi (carte PASS) per il rifornimento e i dadi del Fato.
+	for i in 5:
+		var rc := Card.new(); rc.order = Domain.OrderType.PASS; s.russian_deck.append(rc)
+		var gc := Card.new(); gc.order = Domain.OrderType.PASS; s.german_deck.append(gc)
+	Game.state = s
+	# Senza carta Fuoco: l'IA non reagisce e non attiva nessuno.
+	s.russian_hand.clear()
+	_check(Game._op_fire(mover, RUS) == false, "senza carta Fuoco l'IA non reagisce")
+	_check(not sh.activated, "nessun tiratore attivato senza reazione")
+	# A24.3: un'unità già attivata non è idonea all'op-fire.
+	sh.activated = true
+	_check(OpFire.eligible_shooters(s, mover, RUS).is_empty(), "un'unità attivata non fa op-fire")
+	sh.activated = false
+	# Con una carta Fuoco: reagisce, consuma la carta e attiva il tiratore.
+	var fcard := Card.new()
+	fcard.order = Domain.OrderType.FIRE
+	s.russian_hand.append(fcard)
+	Game._op_fire(mover, RUS)
+	_check(Game._fire_card_index(RUS) < 0, "la carta Fuoco è stata consumata (A24.1)")
+	_check(sh.activated, "il tiratore è stato attivato dall'op-fire (A24.3)")
 
 
 func _act(name: String) -> Card:

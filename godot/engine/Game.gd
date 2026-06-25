@@ -1366,14 +1366,32 @@ signal _opfire_decided()                 ## Interno: il giocatore ha scelto
 var _opfire_choice: String = ""          ## Tiratore scelto ("" = non sparare)
 
 
+## Indice in mano di una carta con ordine FUOCO (da giocare come Azione di Op
+## Fire, A24.1), oppure -1 se la fazione non ne ha.
+func _fire_card_index(faction: int) -> int:
+	var hand := state.hand_of(faction)
+	for i in hand.size():
+		if hand[i].order == Domain.OrderType.FIRE:
+			return i
+	return -1
+
+
 ## Risolve un Fuoco di Opportunità con uno SPECIFICO tiratore. Restituisce true se
 ## il mover è stato rotto o eliminato (movimento da interrompere).
+## A24.1: è un'Azione → si gioca SCARTANDO una carta Fuoco dalla mano del
+## difensore (col rifornimento standard). A24.3: l'Op Fire ATTIVA il tiratore,
+## che quindi non può reagire una seconda volta nello stesso turno.
 func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
+	var fci := _fire_card_index(defender)
+	if fci < 0:
+		return false  # nessuna carta Fuoco in mano: nessuna reazione possibile
 	var group := Combat.fire_group(shooter, mover.q, mover.r, state)
 	var weapon_ids: Array = []
 	for g in group:
 		if g.is_weapon():
 			weapon_ids.append(g.id)
+	shooter.activated = true             # A24.3
+	_discard_for(defender, fci)          # A24.1: la carta Fuoco giocata come Azione
 	var atk_fate := _draw_fate(defender)
 	var def_fate := _draw_fate(mover.faction)
 	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
@@ -1385,19 +1403,37 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	return res.eliminated.has(mover.id) or res.broken.has(mover.id)
 
 
-## Op Fire AUTOMATICO: il difensore reagisce col miglior tiratore idoneo. Usato
-## quando il difensore è l'IA (durante il movimento del giocatore).
+## Op Fire AUTOMATICO: il difensore IA reagisce col miglior tiratore idoneo, ma
+## solo se ha una carta Fuoco e il tiro è ragionevole (come farebbe un giocatore:
+## non spreca carte su tiri velleitari).
 func _op_fire(mover: Unit, defender: int) -> bool:
+	if _fire_card_index(defender) < 0:
+		return false
 	var shooter := OpFire.best_shooter(state, mover, defender)
 	if shooter == null:
 		return false
+	if not _op_fire_worthwhile(shooter, mover):
+		return false
 	return _resolve_op_fire(shooter, mover, defender)
+
+
+## Euristica dell'IA: vale la pena reagire se l'FP proiettato (con Comando, meno
+## l'ostacolo della LOS) è almeno pari alla difesa statica del mover (i dadi
+## decidono il resto). Evita di bruciare carte Fuoco su tiri deboli.
+func _op_fire_worthwhile(shooter: Unit, mover: Unit) -> bool:
+	var fp := Rules.fp_with_command(state, shooter)
+	fp -= HexGrid.los_hindrance(shooter.q, shooter.r, mover.q, mover.r, state)
+	var cover := Rules.cover_at(state, mover.q, mover.r, shooter.ordnance)
+	return fp >= mover.morale + cover
 
 
 ## Op Fire come FINESTRA DI REAZIONE (A33). Se il difensore è l'umano, apre la
 ## scelta del tiratore (o «non sparare») e attende la decisione; se è l'IA, fuoco
 ## automatico. Coroutine: il chiamante deve usare `await`.
 func _reactive_op_fire(mover: Unit, defender: int) -> bool:
+	# A24.1: senza una carta Fuoco in mano il difensore non può reagire.
+	if _fire_card_index(defender) < 0:
+		return false
 	var shooters := OpFire.eligible_shooters(state, mover, defender)
 	if shooters.is_empty():
 		return false
