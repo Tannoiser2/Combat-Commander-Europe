@@ -33,7 +33,8 @@ var efficient: bool = true    ## true = efficiente, false = inefficiente (rovesc
 var suppressed: bool = false  ## marcatore di soppressione
 var activated: bool = false   ## già attivata in questo turno
 var veteran: bool = false     ## marcatore veterano
-var concealed: bool = false   ## mimetizzata (Mimetizzazione): +1 morale finché non rivelata
+var concealed: bool = false   ## Mimetizzazione A29 armata (one-shot): sul prossimo
+                              ## attacco subìto riduce il totale d'attacco della Copertura, poi si consuma
 var hero: bool = false        ## Eroe (E58): leader a figura singola, mai sul Casualty Track
 
 

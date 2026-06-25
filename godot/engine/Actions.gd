@@ -64,14 +64,24 @@ static func _entrench(state: GameState, faction: int, lines: Array[String]) -> v
 	lines.append("Trincerarsi: nessun esagono idoneo.")
 
 
-## Mimetizzazione: nasconde le unità amiche efficienti (+1 morale da colpire).
+## Mimetizzazione (A29 Concealment): arma UNA unità (one-shot). Quando quell'unità
+## sarà bersaglio di un attacco di fuoco, il totale d'attacco è ridotto del valore
+## della Copertura dell'esagono, poi la Mimetizzazione si consuma. Modello:
+## pre-armata sull'unità selezionata (o, in mancanza, la prima idonea).
 static func _camouflage(state: GameState, faction: int, lines: Array[String]) -> void:
-	var n := 0
-	for u in state.units_of(faction):
-		if u.is_man() and u.efficient and not u.concealed:
-			u.concealed = true
-			n += 1
-	lines.append("Mimetizzazione: %d unità nascoste." % n)
+	var target: Unit = state.unit_by_id(state.selected_unit_id) if state.selected_unit_id != "" else null
+	if target == null or target.faction != faction or not target.is_man() \
+			or not target.efficient or target.concealed:
+		target = null
+		for u in state.units_of(faction):
+			if u.is_man() and u.efficient and not u.concealed:
+				target = u
+				break
+	if target == null:
+		lines.append("Mimetizzazione: nessuna unità idonea.")
+		return
+	target.concealed = true
+	lines.append("Mimetizzazione: %s userà la Copertura sul prossimo attacco subìto." % target.unit_name)
 
 
 ## Granate fumogene: posa fumo (hindrance) sull'esagono indicato dalla carta.
@@ -105,7 +115,7 @@ static func grenade_attack(
 			continue
 		var threshold := t.morale
 		if t.concealed:
-			threshold += 1
+			threshold += cover  # A29 Concealment (one-shot): riduce l'attacco della Copertura
 			t.concealed = false
 		if final_score >= threshold:
 			if t.efficient:

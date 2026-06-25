@@ -1404,29 +1404,39 @@ func _test_actions() -> void:
 	Actions.play(s2, _act("TRINCERARSI"), GER)
 	_check(s2.hex_at(2, 2).has_foxhole, "Trincerarsi crea una buca sull'esagono dell'unità")
 
-	# Mimetizzazione → concealed (sopravvive a un tiro al limite del morale)
-	var s3 := _new_state()
-	var atk := _mk("ger", GER, SQUAD, RIFLE, 0, 0, 5, 7)
-	var def := _mk("rus", RUS, SQUAD, RIFLE, 0, 1, 5, 7)
-	s3.units[atk.id] = atk
-	s3.units[def.id] = def
-	Actions.play(s3, _act("MIMETIZZAZIONE"), RUS)
-	_check(def.concealed, "Mimetizzazione nasconde le unità")
-	# attacco 5+2=7; difesa 7+1(mimetica)+6=14 → nessun effetto, ma rivelata
-	var r := Combat.resolve_fire(atk, 0, 1, s3, Vector2i(1, 1), Vector2i(3, 3))
-	_check(r.broken.is_empty(), "una unità mimetizzata resiste meglio")
-	_check(not def.concealed, "il fuoco rivela la mimetizzazione")
+	# Mimetizzazione (A29): la carta arma UNA sola unità (one-shot), non tutte.
+	var sc := _new_state()
+	var cu1 := _mk("cu1", RUS, SQUAD, RIFLE, 0, 0, 5, 7)
+	var cu2 := _mk("cu2", RUS, SQUAD, RIFLE, 1, 0, 5, 7)
+	sc.units[cu1.id] = cu1
+	sc.units[cu2.id] = cu2
+	sc.selected_unit_id = ""
+	Actions.play(sc, _act("MIMETIZZAZIONE"), RUS)
+	_check((1 if cu1.concealed else 0) + (1 if cu2.concealed else 0) == 1,
+		"MIMETIZZAZIONE arma UNA sola unità (one-shot), non tutte")
 
-	# Sparare rivela il TIRATORE: una unità mimetizzata che fa fuoco si scopre.
-	var s3b := _new_state()
-	var hidden_shooter := _mk("ger-h", GER, SQUAD, RIFLE, 0, 0, 5, 7)
-	var foe := _mk("rus-f", RUS, SQUAD, RIFLE, 0, 1, 5, 7)
-	s3b.units[hidden_shooter.id] = hidden_shooter
-	s3b.units[foe.id] = foe
-	Actions.play(s3b, _act("MIMETIZZAZIONE"), GER)
-	_check(hidden_shooter.concealed, "la pedina è mimetizzata prima di sparare")
-	Combat.resolve_fire(hidden_shooter, 0, 1, s3b, Vector2i(3, 3), Vector2i(2, 2))
-	_check(not hidden_shooter.concealed, "sparare rivela il tiratore (perde la mimetizzazione)")
+	# A29 effetto: riduce il totale d'attacco del valore della Copertura.
+	# Bersaglio nel bosco (cover 2), morale 7. Attacco FP6 + dadi(5+5=10) = 16.
+	# Senza A29: difesa 7+2+ (3+3=6) = 15 → 16>15 colpisce. Con A29: 15+2 = 17 → no.
+	var sn := _new_state()
+	sn.hex_at(0, 1).terrain = Domain.TerrainType.WOODS
+	var an := _mk("g", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	var dn := _mk("r", RUS, SQUAD, RIFLE, 0, 1, 5, 7)
+	sn.units[an.id] = an
+	sn.units[dn.id] = dn
+	var r0 := Combat.resolve_fire(an, 0, 1, sn, Vector2i(5, 5), Vector2i(3, 3))
+	_check(r0.broken.has("r"), "senza Mimetizzazione (att 16 vs dif 15) il difensore si rompe")
+	# Con A29 armata: stesso attacco, nessun effetto, e mimetizzazione consumata.
+	var sm := _new_state()
+	sm.hex_at(0, 1).terrain = Domain.TerrainType.WOODS
+	var am := _mk("g2", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	var dm := _mk("r2", RUS, SQUAD, RIFLE, 0, 1, 5, 7)
+	sm.units[am.id] = am
+	sm.units[dm.id] = dm
+	dm.concealed = true
+	var r1 := Combat.resolve_fire(am, 0, 1, sm, Vector2i(5, 5), Vector2i(3, 3))
+	_check(r1.broken.is_empty(), "con A29 (+Copertura) lo stesso attacco non ha effetto")
+	_check(not dm.concealed, "la Mimetizzazione A29 è consumata (one-shot)")
 
 	# Granate fumogene → fumo → hindrance lungo la LOS
 	var s4 := _new_state()
