@@ -267,12 +267,8 @@ static func resolve_artillery(
 
 ## Verifica se un'unità può sparare legalmente.
 static func can_fire(attacker: Unit, tq: int, tr: int, state: GameState) -> bool:
-	if attacker.activated:
-		return false
-	if not attacker.efficient:
-		return false  # unità rotta: non può sparare
-	if attacker.suppressed:
-		return false  # unità soppressa: non può sparare
+	if not Rules.can_be_ordered(attacker):
+		return false  # attivata, rotta o soppressa: non può sparare
 	var dist := HexGrid.distance(attacker.q, attacker.r, tq, tr)
 	if dist == 0 or dist > Rules.range_with_command(state, attacker):
 		return false

@@ -101,7 +101,7 @@ func select_unit(unit_id: String) -> void:
 	# un membro all'altro, ma non aggiungere unità a un ordine già avviato.
 	if state.phase == Domain.Phase.PLAYER_MOVING and state.current_order == Domain.OrderType.MOVE:
 		if state.ordered_group.is_empty():
-			if u.faction != state.human_faction or u.activated:
+			if u.faction != state.human_faction or not Rules.can_be_ordered(u):
 				return
 			_form_move_group(u)
 		elif not state.ordered_group.has(unit_id):
@@ -137,7 +137,7 @@ func _form_move_group(u: Unit) -> void:
 	var ids: Array[String] = []
 	if u.is_leader() and u.command > 0:
 		for v in state.units_of(state.human_faction):
-			if v.is_man() and v.efficient and v.move > 0 and not v.activated \
+			if v.is_man() and v.move > 0 and Rules.can_be_ordered(v) \
 					and HexGrid.distance(u.q, u.r, v.q, v.r) <= u.command:
 				ids.append(v.id)
 		if not ids.has(u.id):
@@ -898,6 +898,9 @@ func click_hex_advance(tq: int, tr: int) -> void:
 	var u := state.unit_by_id(uid)
 	if u == null or u.faction != state.human_faction:
 		return
+	if not Rules.can_be_ordered(u):
+		_log("Avanzata: l'unità è immobilizzata (rotta o soppressa).")
+		return
 	if HexGrid.distance(u.q, u.r, tq, tr) != 1:
 		_log("Avanzata: scegli un esagono adiacente.")
 		return
@@ -1488,7 +1491,7 @@ func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
 ## Ordine di Mossa dell'IA: avvicina gli uomini all'obiettivo più vicino.
 func _ai_move_order(faction: int) -> void:
 	for u in state.units_of(faction):
-		if u.activated or u.is_weapon() or not u.efficient:
+		if not Rules.can_be_ordered(u) or u.is_weapon():
 			continue
 		var obj := _nearest_objective(faction, u)
 		if obj != null:
