@@ -144,6 +144,18 @@ static func try_recover(
 	return { "unit": u.id, "roll": roll, "target": target, "success": success }
 
 
+## Recupero (O22): un ordine di Recupero rimuove AUTOMATICAMENTE (senza tiro) la
+## soppressione da tutte le unità efficienti soppresse della fazione. Le unità
+## ROTTE restano gestite a parte da try_recover (richiede il tiro di morale).
+## Restituisce quante unità sono state liberate dalla soppressione.
+static func clear_suppression(state: GameState, faction: int) -> int:
+	var freed := 0
+	for u in state.suppressed_men_of(faction):
+		u.suppressed = false
+		freed += 1
+	return freed
+
+
 # ─── Corpo a corpo / Avanzata (O21) ──────────────────────────────────────────
 
 class MeleeResult:

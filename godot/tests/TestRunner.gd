@@ -33,6 +33,7 @@ func _ready() -> void:
 	_test_command_multihex()
 	_test_command_stats()
 	_test_recover()
+	_test_recover_suppression()
 	_test_melee_winner_and_losses()
 	_test_rout_retreat()
 	_test_rout_trapped()
@@ -250,6 +251,29 @@ func _test_recover() -> void:
 	s.units[u2.id] = u2
 	var r2 := Rules.try_recover(s, u2, Vector2i(1, 1))  # 2 > 1 → fallito
 	_check(not r2["success"] and not u2.efficient, "morale 1 → recupero sempre fallito")
+
+
+func _test_recover_suppression() -> void:
+	print("· Recupero: rimozione della soppressione (O22)")
+	var s := _new_state()
+	var sup := _mk("ger-s", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	sup.suppress()                       # efficiente ma soppressa
+	var brk := _mk("ger-b", GER, SQUAD, RIFLE, 2, 2, 5, 7)
+	brk.break_unit()                     # rotta
+	var ok := _mk("ger-ok", GER, SQUAD, RIFLE, 3, 3, 5, 7)  # nessuno stato
+	s.units[sup.id] = sup
+	s.units[brk.id] = brk
+	s.units[ok.id] = ok
+	# Query: solo l'unità efficiente soppressa.
+	var sm := s.suppressed_men_of(GER)
+	_check(sm.size() == 1 and sm[0].id == "ger-s", "suppressed_men_of trova solo le efficienti soppresse")
+	# Il Recupero rimuove la soppressione automaticamente (senza tiro).
+	var freed := Rules.clear_suppression(s, GER)
+	_check(freed == 1 and not sup.suppressed, "il Recupero rimuove la soppressione (senza tiro)")
+	_check(s.suppressed_men_of(GER).is_empty(), "nessuna unità soppressa dopo il Recupero")
+	_check(not brk.efficient, "la rimozione della soppressione non ripristina le unità rotte")
+	# Idempotente: senza unità soppresse non libera nulla.
+	_check(Rules.clear_suppression(s, GER) == 0, "nessuna soppressione residua → 0 liberate")
 
 
 func _test_melee_winner_and_losses() -> void:
