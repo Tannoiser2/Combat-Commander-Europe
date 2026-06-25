@@ -105,35 +105,65 @@ static func setup(state: GameState, num: int) -> bool:
 	return true
 
 
-## Piazza le forze di un lato nelle sue caselle di setup.
+## Piazza le forze di un lato nelle sue caselle di setup. Le squadre/team sono
+## distribuite nella zona; i leader e le armi vanno negli stessi esagoni degli
+## uomini, così ogni arma parte «posseduta» da un'unità (11.2) e nessuna resta a
+## terra (niente anelli gialli al via).
 static func _place_side(state: GameState, e: Dictionary, side: String, faction: int) -> void:
 	var hexes := _setup_hexes(state, e, side)
 	if hexes.is_empty():
 		hexes.append(Vector2i(0, 0))
 	# Nazione reale del lato → statistiche esatte (l'arte resta stand-in).
 	var nat := UnitChart.nation_code(String(e.get("fazione_%s" % side, "")))
-	var forces: Array = e.get("forze_%s" % side, [])
-	var idx := 0
+	# Suddividi le forze per categoria (l'ordine nel catalogo non conta).
+	var squads: Array = []
+	var leaders: Array = []
+	var weapons: Array = []
 	var fox := 0
-	var seq := 0
-	for f in forces:
+	for f in e.get("forze_%s" % side, []):
 		var label := String(f.get("tipo", ""))
 		var count := int(f.get("n", 1))
-		var cat := UnitChart.category(label)
-		if cat == UnitChart.Cat.SKIP:
-			continue
-		for k in count:
-			if cat == UnitChart.Cat.FOXHOLE:
-				var fh: GameState.HexData = state.hex_at(hexes[fox % hexes.size()].x, hexes[fox % hexes.size()].y)
-				if fh:
-					fh.has_foxhole = true
-				fox += 1
+		match UnitChart.category(label):
+			UnitChart.Cat.SKIP:
 				continue
-			var pos: Vector2i = hexes[idx % hexes.size()]
-			idx += 1
-			var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
-			seq += 1
-			state.units[id] = UnitChart.build_unit(id, faction, label, pos.x, pos.y, nat)
+			UnitChart.Cat.FOXHOLE:
+				fox += count
+			UnitChart.Cat.LEADER:
+				for k in count: leaders.append(label)
+			UnitChart.Cat.WEAPON:
+				for k in count: weapons.append(label)
+			_:
+				for k in count: squads.append(label)
+
+	var seq := 0
+	var man_hexes: Array = []  # esagoni con almeno un uomo (per leader e armi)
+	# Squadre/team: una per esagono lungo la zona di schieramento.
+	for i in squads.size():
+		var pos: Vector2i = hexes[i % hexes.size()]
+		var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
+		seq += 1
+		state.units[id] = UnitChart.build_unit(id, faction, squads[i], pos.x, pos.y, nat)
+		man_hexes.append(pos)
+	if man_hexes.is_empty():
+		man_hexes = hexes.duplicate()
+	# Leader: insieme alle squadre (uno per gruppo, a giro).
+	for i in leaders.size():
+		var pos: Vector2i = man_hexes[i % man_hexes.size()]
+		var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
+		seq += 1
+		state.units[id] = UnitChart.build_unit(id, faction, leaders[i], pos.x, pos.y, nat)
+	# Armi: negli esagoni con uomini → vengono raccolte da una squadra (11.2).
+	for i in weapons.size():
+		var pos: Vector2i = man_hexes[i % man_hexes.size()]
+		var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
+		seq += 1
+		state.units[id] = UnitChart.build_unit(id, faction, weapons[i], pos.x, pos.y, nat)
+	# Buche.
+	for i in fox:
+		var hp: Vector2i = hexes[i % hexes.size()]
+		var fh: GameState.HexData = state.hex_at(hp.x, hp.y)
+		if fh:
+			fh.has_foxhole = true
 
 
 ## Caselle di setup di un lato: ancore (in/adiacenti) o bordo+profondità.

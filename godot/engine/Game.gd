@@ -60,21 +60,56 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 	_change_phase(Domain.Phase.PLAYER_TURN)
 
 
-## Assegna ogni arma a un uomo co-locato della stessa fazione (11.2): all'avvio
-## le pedine arma sono "sopra" il loro trasportatore. Ogni uomo porta al più
-## un'arma; si preferisce una squadra/team a un leader, così il leader resta libero.
+## Assegna ogni arma a un uomo della stessa fazione (11.2): a inizio partita le
+## armi sono sempre «possedute» da un'unità, mai a terra. Si cerca prima un
+## portatore co-locato; se l'arma è stata schierata in un esagono senza uomini
+## (capita coi dati di setup grezzi), la si sposta sull'uomo libero più vicino e
+## gli viene affidata — così nessun'arma resta «a terra» (niente anelli gialli al
+## via). Ogni uomo porta al più un'arma; si preferisce una squadra/team a un
+## leader, così il leader resta libero.
 func _assign_initial_carriers(s: GameState) -> void:
 	for w in s.units.values():
 		if not w.is_weapon() or w.carrier_id != "":
 			continue
-		var best: Unit = null
-		for m in s.men_at(w.q, w.r):
-			if m.faction != w.faction or s.weapon_carried_by(m.id) != null:
-				continue
-			if best == null or (best.is_leader() and not m.is_leader()):
-				best = m
+		# 1) portatore già nello stesso esagono
+		var best := _best_carrier_at(s, w, w.q, w.r)
+		# 2) altrimenti, sposta l'arma sull'uomo libero più vicino
+		if best == null:
+			best = _nearest_free_carrier(s, w)
+			if best != null:
+				w.q = best.q
+				w.r = best.r
 		if best != null:
 			w.carrier_id = best.id
+
+
+## Miglior uomo libero (senza arma) della fazione di `w` nell'esagono (q,r):
+## preferisce una squadra/team a un leader. null se nessuno è idoneo.
+func _best_carrier_at(s: GameState, w: Unit, q: int, r: int) -> Unit:
+	var best: Unit = null
+	for m in s.men_at(q, r):
+		if m.faction != w.faction or s.weapon_carried_by(m.id) != null:
+			continue
+		if best == null or (best.is_leader() and not m.is_leader()):
+			best = m
+	return best
+
+
+## Uomo libero della stessa fazione più vicino all'arma (per spostarvela sopra).
+func _nearest_free_carrier(s: GameState, w: Unit) -> Unit:
+	var best: Unit = null
+	var best_d := 1 << 30
+	for m in s.units.values():
+		if not m.is_man() or m.faction != w.faction:
+			continue
+		if s.weapon_carried_by(m.id) != null:
+			continue
+		var d := HexGrid.distance(w.q, w.r, m.q, m.r)
+		# A parità di distanza preferisci una squadra/team a un leader.
+		if d < best_d or (d == best_d and best != null and best.is_leader() and not m.is_leader()):
+			best_d = d
+			best = m
+	return best
 
 
 ## Salva la partita corrente sul file di salvataggio. true se riuscito.

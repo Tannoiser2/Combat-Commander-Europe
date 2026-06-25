@@ -89,6 +89,9 @@ func _ready() -> void:
 	_test_op_fire()
 	_test_op_fire_card_cost()
 	_test_pass_turn()
+	_test_initial_carriers_relocate()
+	_test_scenario1_no_orphan_weapons()
+	_test_loader_weapons_with_squads()
 	_test_actions()
 	_test_grenade()
 	_test_melee_tie()
@@ -1584,6 +1587,82 @@ func _test_pass_turn() -> void:
 	_check(s2.german_hand.size() == 2 and s2.german_discard.is_empty(),
 		"passare senza scartare conserva la mano")
 	_check(s2.turn_number == 2, "passare senza scartare cede comunque il turno")
+
+
+func _weapon(id: String, faction: int, q: int, r: int) -> Unit:
+	var u := Unit.new(id, faction, Domain.UnitType.WEAPON, Domain.UnitClass.MG, "Light MG")
+	u.q = q
+	u.r = r
+	return u
+
+
+func _test_initial_carriers_relocate() -> void:
+	print("· Setup armi (11.2): l'arma orfana viene spostata sull'uomo libero e affidata")
+	# Arma schierata in un esagono vuoto, squadra lontana: deve essere ricollocata.
+	var s := _new_state(8, 3)
+	s.units["sq"] = _mk("sq", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	var w := _weapon("w", GER, 5, 1)
+	s.units["w"] = w
+	Game._assign_initial_carriers(s)
+	_check(w.carrier_id == "sq", "l'arma orfana è affidata alla squadra")
+	_check(w.q == 1 and w.r == 1, "l'arma orfana è spostata sull'esagono della squadra")
+	# Arma già co-locata con un uomo: resta dov'è.
+	var s2 := _new_state(8, 3)
+	s2.units["sq2"] = _mk("sq2", GER, SQUAD, RIFLE, 2, 1, 5, 7)
+	var w2 := _weapon("w2", GER, 2, 1)
+	s2.units["w2"] = w2
+	Game._assign_initial_carriers(s2)
+	_check(w2.carrier_id == "sq2" and w2.q == 2 and w2.r == 1,
+		"l'arma co-locata resta col suo portatore")
+	# Si preferisce una squadra a un leader (il leader resta libero di comandare).
+	var s3 := _new_state(8, 3)
+	s3.units["ld"] = _mk("ld", GER, LEADER, ELITE, 3, 1, 1, 8)
+	s3.units["sq3"] = _mk("sq3", GER, SQUAD, RIFLE, 3, 1, 5, 7)
+	var w3 := _weapon("w3", GER, 3, 1)
+	s3.units["w3"] = w3
+	Game._assign_initial_carriers(s3)
+	_check(w3.carrier_id == "sq3", "a parità di esagono l'arma va alla squadra, non al leader")
+
+
+func _test_scenario1_no_orphan_weapons() -> void:
+	print("· Scenario 1: dopo il setup nessun'arma resta «a terra»")
+	var s := GameState.new()
+	Scenario1.setup(s)
+	Game._assign_initial_carriers(s)
+	var orphans := 0
+	var weapons := 0
+	for u in s.units.values():
+		if not u.is_weapon():
+			continue
+		weapons += 1
+		if u.carrier_id == "":
+			orphans += 1
+		else:
+			var c := s.unit_by_id(u.carrier_id)
+			_check(c != null and c.q == u.q and c.r == u.r,
+				"%s è co-locata col portatore" % u.unit_name)
+	_check(weapons > 0, "lo scenario 1 ha delle armi da verificare")
+	_check(orphans == 0, "nessun'arma senza portatore (niente anelli gialli al via)")
+
+
+func _test_loader_weapons_with_squads() -> void:
+	print("· Loader generico: le armi sono schierate negli esagoni delle squadre")
+	var s := GameState.new()
+	if not ScenarioLoader.setup(s, 2):
+		_check(false, "ScenarioLoader.setup(2) riuscito")
+		return
+	var weapons := 0
+	for u in s.units.values():
+		if not u.is_weapon():
+			continue
+		weapons += 1
+		var has_man := false
+		for m in s.men_at(u.q, u.r):
+			if m.faction == u.faction:
+				has_man = true
+				break
+		_check(has_man, "%s schierata in un esagono con una squadra amica" % u.unit_name)
+	_check(weapons > 0, "lo scenario 2 ha delle armi da verificare")
 
 
 func _act(name: String) -> Card:
