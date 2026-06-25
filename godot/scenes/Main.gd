@@ -5,19 +5,21 @@ extends Control
 # ─── Nodi ─────────────────────────────────────────────────────────────────────
 
 @onready var hex_map: Node2D = $HexMap
-@onready var log_panel: PanelContainer = $LogPanel
-@onready var log_list: ItemList = $LogPanel/LogVBox/LogList
-@onready var log_toggle_btn: Button = $LogPanel/LogVBox/LogHeader/LogToggleBtn
-@onready var phase_label: Label = $TopBar/HBox/PhaseLabel
-@onready var turn_label: Label = $TopBar/HBox/TurnLabel
-@onready var init_label: Label = $TopBar/HBox/InitLabel
-@onready var time_label: Label = $TopBar/HBox/TimeLabel
-@onready var vp_label: Label = $TopBar/HBox/VPLabel
-@onready var deck_label: Label = $TopBar/HBox/DeckLabel
-@onready var menu_btn: Button = $TopBar/HBox/MenuBtn
-@onready var hint_label: Label = $Hint
-@onready var unit_info: Panel = $UnitInfo
-@onready var info_label: RichTextLabel = $UnitInfo/Margin/InfoLabel
+@onready var sidebar: PanelContainer = $Sidebar
+@onready var log_list: ItemList = $Sidebar/SideVBox/LogList
+@onready var log_toggle_btn: Button = $Sidebar/SideVBox/SideHeader/SideToggleBtn
+@onready var view3d_btn: Button = $Sidebar/SideVBox/Tools/View3DBtn
+@onready var los_btn: Button = $Sidebar/SideVBox/Tools/LosBtn
+@onready var help_btn: Button = $Sidebar/SideVBox/Tools/HelpBtn
+@onready var phase_label: Label = $TopBar/Bar/HBox/PhaseLabel
+@onready var turn_label: Label = $TopBar/Bar/HBox/TurnLabel
+@onready var init_label: Label = $TopBar/Bar/HBox/InitLabel
+@onready var time_label: Label = $TopBar/Bar/HBox/TimeLabel
+@onready var vp_label: Label = $TopBar/Bar/HBox/VPLabel
+@onready var deck_label: Label = $TopBar/Bar/HBox/DeckLabel
+@onready var menu_btn: Button = $TopBar/Bar/HBox/MenuBtn
+@onready var hint_label: Label = $TopBar/Bar/Hint
+@onready var info_label: RichTextLabel = $Sidebar/SideVBox/InfoPanel/InfoMargin/InfoLabel
 @onready var hand_container: HBoxContainer = $HandPanel/VBox/Cards
 @onready var end_turn_btn: Button = $HandPanel/VBox/Header/EndTurnBtn
 @onready var hand_toggle_btn: Button = $HandPanel/VBox/Header/ToggleBtn
@@ -27,8 +29,8 @@ var _hand_collapsed := false
 
 var _legend: Panel = null
 var _help: Panel = null
-var _log_collapsed := false
-var _log_reopen_btn: Button = null
+var _sidebar_collapsed := false
+var _sidebar_reopen_btn: Button = null
 
 # «Passa» (O15): pulsante nell'header + finestra per scegliere le carte da scartare.
 var _pass_btn: Button = null
@@ -47,9 +49,9 @@ func _ready() -> void:
 	_build_view3d_button()
 	_build_los_button()
 	_build_help_panel()
-	_build_log_reopen()
+	_build_sidebar_reopen()
 	_build_pass_ui()
-	log_toggle_btn.pressed.connect(_toggle_log)
+	log_toggle_btn.pressed.connect(_toggle_sidebar)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	_refresh_ui()
 	# Riempi il registro con le righe già accumulate
@@ -58,12 +60,10 @@ func _ready() -> void:
 
 
 var _v3d: SubViewportContainer = null
-var _los_btn: Button = null
 var _board3d: Node = null
-var _view3d_btn: Button = null
 
 
-## Vista 3D embeddata (SubViewport) + pulsante di toggle in alto a destra.
+## Vista 3D embeddata (SubViewport); il pulsante di toggle vive nella sidebar.
 func _build_view3d_button() -> void:
 	# Contenitore 3D a tutto schermo, dietro alla HUD.
 	_v3d = SubViewportContainer.new()
@@ -78,15 +78,8 @@ func _build_view3d_button() -> void:
 	_board3d = load("res://scenes/Map3D.tscn").instantiate()
 	_board3d.active = false
 	sub.add_child(_board3d)
-
-	_view3d_btn = Button.new()
-	_view3d_btn.text = "Vista 3D"
-	_view3d_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_view3d_btn.offset_left = -150
-	_view3d_btn.offset_top = 40
-	_view3d_btn.offset_right = -12
-	_view3d_btn.pressed.connect(func() -> void: _set_3d(not _v3d.visible))
-	add_child(_view3d_btn)
+	view3d_btn.tooltip_text = "Alterna mappa 2D / 3D (anche coi tasti «2» e «3»)"
+	view3d_btn.pressed.connect(func() -> void: _set_3d(not _v3d.visible))
 
 
 ## Mostra/nasconde la mappa 3D (alternativa alla 2D). La HUD resta sopra entrambe.
@@ -99,8 +92,7 @@ func _set_3d(on: bool) -> void:
 		_board3d.active = on
 		if on:
 			_board3d.refresh()
-	if _view3d_btn != null:
-		_view3d_btn.text = "Vista 2D" if on else "Vista 3D"
+	view3d_btn.text = "Vista 2D" if on else "Vista 3D"
 
 
 ## Legenda dei simboli della mappa (toggle col tasto «L»), creata via codice per
@@ -134,17 +126,12 @@ func _build_legend() -> void:
 ## Pannello "Come si gioca": un pulsante nell'header della mano e il tasto «H» lo
 ## aprono/chiudono. Riassume selezione, carte, mossa, fuoco e tasti rapidi.
 func _build_help_panel() -> void:
-	var btn := Button.new()
-	btn.text = "Comandi"
-	btn.tooltip_text = "Come si gioca: selezione, carte, mossa, fuoco, tasti (anche col tasto «H»)"
-	btn.custom_minimum_size = Vector2(96, 0)
-	btn.pressed.connect(func() -> void:
+	# Il pulsante «Comandi» è nella barra strumenti della sidebar; apre/chiude
+	# il pannello d'aiuto (anche col tasto «H»).
+	help_btn.tooltip_text = "Come si gioca: selezione, carte, mossa, fuoco, tasti (anche col tasto «H»)"
+	help_btn.pressed.connect(func() -> void:
 		if _help != null:
 			_help.visible = not _help.visible)
-	# Insieme al Registro: nell'intestazione della colonna del registro.
-	var header: HBoxContainer = $LogPanel/LogVBox/LogHeader
-	header.add_child(btn)
-	header.move_child(btn, 1)  # tra il titolo «Registro» e «Nascondi»
 
 	_help = Panel.new()
 	_help.visible = false
@@ -193,7 +180,7 @@ func _help_text() -> String:
 		+ " - «Passa» (tasto «P»): non dai ordini — scegli quali carte scartare e ne ripeschi altrettante (O15).\n" \
 		+ " - «Fine Turno»: concludi e passa all'avversario (anche a ordini finiti).\n\n" \
 		+ "[b]Tasti rapidi[/b]\n" \
-		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = carte    R = registro    V = LOS    P = passa\n" \
+		+ " - L = legenda mappa    2 / 3 = vista 2D / 3D    C = carte    R = pannello laterale    V = LOS    P = passa\n" \
 		+ " - X = esci dal bordo nemico (VP)    S = fumo/esplosivo    SPAZIO = non sparare\n" \
 		+ " - F5 = salva    F9 = carica    M = muto    H = questo aiuto"
 
@@ -238,43 +225,36 @@ func _action_playable(card: Card, s: GameState) -> bool:
 	return false
 
 
-## Colonna del Registro (a destra) collassabile. Da nascosta, un pulsante
-## «Registro» in alto a destra la riapre (anche col tasto «R»).
-func _build_log_reopen() -> void:
-	_log_reopen_btn = Button.new()
-	_log_reopen_btn.text = "Registro"
-	_log_reopen_btn.tooltip_text = "Mostra il registro (R)"
-	_log_reopen_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_log_reopen_btn.offset_left = -150
-	_log_reopen_btn.offset_top = 84
-	_log_reopen_btn.offset_right = -12
-	_log_reopen_btn.visible = false
-	_log_reopen_btn.pressed.connect(_toggle_log)
-	add_child(_log_reopen_btn)
+## Colonna laterale (a destra) collassabile. Da nascosta, un pulsante «Pannello»
+## in alto a destra la riapre (anche col tasto «R»).
+func _build_sidebar_reopen() -> void:
+	_sidebar_reopen_btn = Button.new()
+	_sidebar_reopen_btn.text = "Pannello"
+	_sidebar_reopen_btn.tooltip_text = "Mostra la colonna laterale (registro, info, strumenti) — tasto «R»"
+	_sidebar_reopen_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_sidebar_reopen_btn.offset_left = -150
+	_sidebar_reopen_btn.offset_top = 84
+	_sidebar_reopen_btn.offset_right = -12
+	_sidebar_reopen_btn.visible = false
+	_sidebar_reopen_btn.pressed.connect(_toggle_sidebar)
+	add_child(_sidebar_reopen_btn)
 
 
-func _toggle_log() -> void:
-	_log_collapsed = not _log_collapsed
-	log_panel.visible = not _log_collapsed
-	if _log_reopen_btn != null:
-		_log_reopen_btn.visible = _log_collapsed
+func _toggle_sidebar() -> void:
+	_sidebar_collapsed = not _sidebar_collapsed
+	sidebar.visible = not _sidebar_collapsed
+	if _sidebar_reopen_btn != null:
+		_sidebar_reopen_btn.visible = _sidebar_collapsed
 
 
 ## Attiva/disattiva la "Modalità LOS": uno strumento per verificare la linea di
 ## vista tra due esagoni (estremità trascinabili, linea colorata). Inizializza le
 ## estremità così la linea è subito visibile; funziona sia in 2D sia in 3D.
-## Pulsante «LOS» (in alto a destra, a fianco di «Vista 3D») per attivare la
-## Modalità LOS senza dover ricordare il tasto «V».
+## Il pulsante «LOS» vive nella barra strumenti della sidebar e attiva la
+## Modalità LOS (equivalente al tasto «V»).
 func _build_los_button() -> void:
-	_los_btn = Button.new()
-	_los_btn.text = "LOS"
-	_los_btn.tooltip_text = "Modalità LOS: verifica la linea di vista tra due esagoni (anche col tasto «V»)"
-	_los_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_los_btn.offset_left = -296
-	_los_btn.offset_top = 40
-	_los_btn.offset_right = -158
-	_los_btn.pressed.connect(_toggle_los_mode)
-	add_child(_los_btn)
+	los_btn.tooltip_text = "Modalità LOS: verifica la linea di vista tra due esagoni (anche col tasto «V»)"
+	los_btn.pressed.connect(_toggle_los_mode)
 
 
 func _toggle_los_mode() -> void:
@@ -287,9 +267,8 @@ func _toggle_los_mode() -> void:
 		var a := Vector2i(u.q, u.r) if u != null else Vector2i(int(s.map_cols / 2), int(s.map_rows / 2))
 		s.los_a = a
 		s.los_b = Vector2i(clampi(a.x + 3, 0, s.map_cols - 1), a.y)
-	if _los_btn != null:
-		_los_btn.text = "LOS: ON" if s.los_mode else "LOS"
-		_los_btn.modulate = Color(0.5, 1.0, 0.6) if s.los_mode else Color(1, 1, 1)
+	los_btn.text = "LOS: ON" if s.los_mode else "LOS"
+	los_btn.modulate = Color(0.5, 1.0, 0.6) if s.los_mode else Color(1, 1, 1)
 	Game.emit_signal("state_changed")
 	_refresh_ui()
 
@@ -460,8 +439,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			if _help != null:
 				_help.visible = not _help.visible
 			get_viewport().set_input_as_handled()
-		KEY_R:  # mostra/nascondi la colonna del Registro
-			_toggle_log()
+		KEY_R:  # mostra/nascondi la colonna laterale (registro, info, strumenti)
+			_toggle_sidebar()
 			get_viewport().set_input_as_handled()
 		KEY_V:  # Modalità LOS: verifica la linea di vista tra due esagoni
 			_toggle_los_mode()
@@ -601,9 +580,8 @@ func _refresh_unit_info() -> void:
 	var s := Game.state
 	var u := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
 	if u == null:
-		unit_info.visible = false
+		info_label.text = "[color=#9aa]Nessuna unità selezionata.\nClicca una pedina sulla mappa.[/color]"
 		return
-	unit_info.visible = true
 	var fac: String = Domain.FACTION_SHORT.get(u.faction, "?")
 	var cls: String = Domain.UNIT_CLASS_LABEL.get(u.unit_class, "")
 	var lines := "[b]%s[/b]  (%s)\n" % [u.unit_name, fac]

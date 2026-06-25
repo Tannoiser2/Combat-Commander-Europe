@@ -42,3 +42,15 @@ jobs:
           fi
           # 2) Esito positivo esplicito dei test.
           grep -q "TEST_RESULT: PASS" test_output.txt
+
+      - name: Smoke test della scena di gioco (HUD)
+        run: |
+          set -euxo pipefail
+          # Istanzia Main.tscn con gli autoload attivi: cattura percorsi @onready
+          # rotti o errori di struttura della HUD che i test del motore non vedono.
+          "$GODOT" --headless --path godot --script res://tests/SceneCheck.gd 2>&1 | tee scene_output.txt
+          if grep -q "SCRIPT ERROR" scene_output.txt; then
+            echo "::error::Errori di script durante l'istanziazione di Main.tscn"
+            exit 1
+          fi
+          grep -q "SCENE_RESULT: PASS" scene_output.txt
