@@ -22,6 +22,7 @@
 - Regole speciali e di setup di tutti i 24 scenari, in italiano, visibili in gioco ("Regole scenario").
 - Piazzamento per scenario: zone di schieramento fedeli alle schede, fortificazioni iniziali (trincee, filo, mine, bunker) sulla mappa.
 - Effetti automatici: gettoni Obiettivo esclusi, carte garantite in mano a inizio partita, ostacolo globale di mappa (Nebbia).
+- Rinforzi dalla Tabella del Tempo: le unita designate entrano dal bordo amico quando il segnalino Tempo raggiunge il loro spazio (scenari 4, 9, 11, 12, 13).
 
 [b]v0.9.0[/b]
 
