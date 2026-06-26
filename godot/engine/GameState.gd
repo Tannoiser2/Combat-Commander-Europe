@@ -102,6 +102,9 @@ var turn_number: int = 1
 var order_count: int = 0
 var max_orders: int = 2
 var ai_max_orders: int = 2  ## Ordini giocati dall'IA nel suo turno
+## Disposizione del bot (FlipBot): Offensiva/Difensiva. Ricalcolata a inizio
+## turno IA e a ogni avanzamento del Tempo. Guida le mosse/avanzate del bot.
+var disposition: int = Domain.Disposition.OFFENSIVE
 
 
 # ─── Traccia del tempo ────────────────────────────────────────────────────────

@@ -236,6 +236,16 @@ const PHASE_LABELS := {
 enum OrderType { MOVE, FIRE, ADVANCE, RECOVER, ROUT, PASS, ARTY, ARTY_DENIED }
 enum ActionType { ASSAULT_FIRE, OPPORTUNITY_FIRE, GRENADE, HERO, ENTRENCH }
 
+## Disposizione del bot (FlipBot): Offensiva = avanza verso obiettivi/nemico,
+## Difensiva = tiene gli obiettivi controllati. Decisa a inizio battaglia e a
+## ogni avanzamento del segnalino Tempo (vedi FlipBot.compute_disposition).
+enum Disposition { OFFENSIVE, DEFENSIVE }
+
+const DISPOSITION_LABELS := {
+	Disposition.OFFENSIVE: "Offensiva",
+	Disposition.DEFENSIVE: "Difensiva",
+}
+
 const ORDER_LABELS := {
 	OrderType.MOVE:        "Mossa",
 	OrderType.FIRE:        "Fuoco",

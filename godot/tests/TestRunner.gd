@@ -112,6 +112,7 @@ func _ready() -> void:
 	_test_setup_zones()
 	_test_smart_deploy()
 	_test_manual_setup()
+	_test_flipbot()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -159,6 +160,13 @@ func _mk(
 	u.q = q
 	u.r = r
 	return u
+
+
+func _card(order: int) -> Card:
+	var c := Card.new()
+	c.order = order
+	c.faction = GER
+	return c
 
 
 # ─── Test ───────────────────────────────────────────────────────────────────────
@@ -1735,6 +1743,62 @@ func _test_smart_deploy() -> void:
 					break
 		_check(float(commanded) / float(squads.size()) >= 0.6,
 			"≥60%% delle squadre è nel raggio di Comando di un leader (%d/%d)" % [commanded, squads.size()])
+
+
+func _test_flipbot() -> void:
+	print("· FlipBot: disposizione, carte dud, passa-e-scarta, scelta ordine")
+	# Disposizione: il bot è il Tedesco. VP +7 a favore → Difensiva.
+	var s := _new_state(6, 6)
+	s.human_faction = RUS
+	s.vp_tracker = 7
+	_check(FlipBot.compute_disposition(s, GER) == Domain.Disposition.DEFENSIVE,
+		"VP +7 a favore del bot → Difensiva")
+	s.vp_tracker = 2
+	_check(FlipBot.compute_disposition(s, GER) == Domain.Disposition.OFFENSIVE,
+		"VP +2 (sotto soglia) → Offensiva")
+	# Obiettivi controllati spingono verso la Difensiva (peso 2 ciascuno).
+	s.vp_tracker = 3
+	s.objectives = [Objective.new(1, 0, 0, 1), Objective.new(2, 1, 0, 1)]
+	s.objectives[0].controller = GER
+	s.objectives[1].controller = GER
+	_check(FlipBot.compute_disposition(s, GER) == Domain.Disposition.DEFENSIVE,
+		"VP +3 + 2 obiettivi controllati (×2) = 7 → Difensiva")
+
+	# Carte dud: Confusione d'Ordini (PASS) sempre; Artiglieria senza radio.
+	var pass_card := _card(Domain.OrderType.PASS)
+	var arty_card := _card(Domain.OrderType.ARTY)
+	var move_card := _card(Domain.OrderType.MOVE)
+	var s2 := _new_state(6, 6)
+	s2.human_faction = RUS
+	_check(FlipBot.is_dud(s2, pass_card, GER), "Confusione d'Ordini è sempre dud")
+	_check(FlipBot.is_dud(s2, arty_card, GER), "Richiesta d'Artiglieria senza radio è dud")
+	_check(not FlipBot.is_dud(s2, move_card, GER), "una Mossa non è mai dud")
+
+	# Mano per lo più dud → passa e scarta.
+	s2.german_hand = [pass_card, _card(Domain.OrderType.PASS), move_card]
+	_check(FlipBot.should_pass_and_discard(s2, GER), "2 dud su 3 → passa e scarta")
+	_check(FlipBot.dud_indices(s2, GER).size() == 2, "trova 2 carte dud nella mano")
+
+	# Scelta ordine: Recupero per primo se c'è un'unità rotta (anche non a sinistra).
+	var s3 := _new_state(6, 6)
+	s3.human_faction = RUS
+	var sq := _mk("g1", GER, SQUAD, RIFLE, 0, 0)
+	sq.efficient = false
+	s3.units[sq.id] = sq
+	s3.german_hand = [_card(Domain.OrderType.MOVE), _card(Domain.OrderType.RECOVER)]
+	var play := FlipBot.choose_turn_order(s3, GER)
+	_check(int(play.get("order", -1)) == Domain.OrderType.RECOVER,
+		"con un'unità rotta gioca prima il Recupero")
+
+	# Senza rotti: primo ordine giocabile da sinistra (PASS saltata, MOVE giocata).
+	var s4 := _new_state(6, 6)
+	s4.human_faction = RUS
+	var sq2 := _mk("g2", GER, SQUAD, RIFLE, 0, 0)
+	s4.units[sq2.id] = sq2
+	s4.german_hand = [_card(Domain.OrderType.PASS), _card(Domain.OrderType.MOVE)]
+	var play2 := FlipBot.choose_turn_order(s4, GER)
+	_check(int(play2.get("order", -1)) == Domain.OrderType.MOVE,
+		"salta la dud a sinistra e gioca la prima Mossa giocabile")
 
 
 func _test_manual_setup() -> void:

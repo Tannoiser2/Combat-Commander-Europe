@@ -1765,6 +1765,8 @@ func _apply_fate(card: Card, faction: int, context: Dictionary = {}) -> void:
 	if state.time_marker > prev_time:
 		# Rinforzi (Tabella del Tempo): entrano quando il Tempo raggiunge il loro spazio.
 		_check_reinforcements()
+		# FlipBot: la Disposizione si rivaluta a ogni avanzamento del Tempo.
+		state.disposition = FlipBot.compute_disposition(state, _ai_faction())
 		if state.time_marker >= state.sudden_death_space \
 				and state.phase != Domain.Phase.GAME_OVER:
 			_check_sudden_death(faction)
@@ -1851,9 +1853,20 @@ func _end_player_turn() -> void:
 func _run_ai_turn() -> void:
 	_change_phase(Domain.Phase.AI_TURN)
 	var faction := _ai_faction()
+	# FlipBot: ricalcola la Disposizione (Offensiva/Difensiva) a inizio turno.
+	state.disposition = FlipBot.compute_disposition(state, faction)
+	_log("FlipBot: disposizione %s." % Domain.DISPOSITION_LABELS.get(state.disposition, "?"))
+	# FlipBot: se più di metà della mano è fatta di carte "dud", passa e scarta.
+	if FlipBot.should_pass_and_discard(state, faction):
+		_ai_pass_discard(faction)
+		if state.phase != Domain.Phase.GAME_OVER:
+			_change_phase(Domain.Phase.PLAYER_TURN)
+			_log("Turno %d — il tuo ordine" % state.turn_number)
+		return
+	# FlipBot: Recupero per primo, poi il primo ordine giocabile da sinistra.
 	var plays := 0
 	while plays < state.ai_max_orders:
-		var play := AI.choose_play(state, faction)
+		var play := FlipBot.choose_turn_order(state, faction)
 		if play.is_empty():
 			break
 		await _ai_execute(faction, play)
@@ -1862,12 +1875,33 @@ func _run_ai_turn() -> void:
 		if state.phase == Domain.Phase.GAME_OVER:
 			return
 	if plays == 0:
+		# Nessun ordine giocabile: passa e scarta le dud (o cicla una carta).
 		_log("IA: nessun ordine giocabile.")
+		_ai_pass_discard(faction)
 	# Fine del turno IA → al giocatore (qui, non in _end_player_turn, perché questa
 	# coroutine può essersi sospesa sulla finestra di reazione).
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
 		_log("Turno %d — il tuo ordine" % state.turn_number)
+
+
+## FlipBot passa e scarta: scarta le carte "dud" (Confusione d'Ordini,
+## Artiglieria inutile) e ne ripesca altrettante. Se non ci sono dud, cicla la
+## carta più a sinistra per non restare con la mano bloccata.
+func _ai_pass_discard(faction: int) -> void:
+	var hand := state.hand_of(faction)
+	var dud_cards: Array = []
+	for i in FlipBot.dud_indices(state, faction):
+		dud_cards.append(hand[int(i)])
+	if dud_cards.is_empty() and not hand.is_empty():
+		dud_cards.append(hand[0])  # cicla una carta per sbloccare la mano
+	# Scarta per identità (gli indici cambiano via via); ripesca a ogni scarto.
+	for c in dud_cards:
+		var idx := hand.find(c)
+		if idx >= 0:
+			_discard_for(faction, idx)
+	if not dud_cards.is_empty():
+		_log("IA passa e scarta %d carta/e." % dud_cards.size())
 
 
 ## Esegue un ordine scelto dall'IA (vedi AI.choose_play) e scarta la carta.
