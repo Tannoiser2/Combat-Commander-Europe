@@ -1,3 +1,10 @@
+[b]v0.13.0[/b]
+
+[b]IA — FlipBot (2/n): Mossa[/b]
+- L'IA muove ora secondo le priorità di destinazione del FlipBot: conquista l'obiettivo libero più vicino (entro 5), tiene gli obiettivi amici in Disposizione Difensiva, altrimenti punta agli obiettivi/unità nemiche o al bordo mappa avversario.
+- Muove più esagoni (fino ai suoi PM), non più uno solo, scegliendo i passi in copertura e verso il fronte nemico.
+- Le unità rotte si ritirano verso il bordo amico; l'ultima unità su un obiettivo controllato non lo abbandona.
+
 [b]v0.12.0[/b]
 
 [b]IA — FlipBot (1/n)[/b]

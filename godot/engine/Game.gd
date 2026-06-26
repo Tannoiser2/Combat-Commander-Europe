@@ -1991,69 +1991,90 @@ func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
 	_apply_fate(df, def_faction)
 
 
-## Ordine di Mossa dell'IA: avvicina gli uomini all'obiettivo più vicino.
+## Ordine di Mossa dell'IA (FlipBot): muove prima le unità rotte (in ritirata),
+## poi le altre; ciascuna verso la sua destinazione strategica (priorità FlipBot
+## + Disposizione), un esagono alla volta fino ai suoi PM.
 func _ai_move_order(faction: int) -> void:
-	for u in state.units_of(faction):
-		if not Rules.can_be_ordered(u) or u.is_weapon():
+	var movers: Array = state.units_of(faction).filter(
+		func(u: Unit) -> bool: return Rules.can_be_ordered(u) and not u.is_weapon())
+	# Rotti per primi (si ritirano), poi le unità efficienti.
+	movers.sort_custom(func(a: Unit, b: Unit) -> bool:
+		return (not a.efficient) and b.efficient)
+	for u in movers:
+		if not state.units.has(u.id) or not Rules.can_be_ordered(u):
 			continue
-		var obj := _nearest_objective(faction, u)
-		if obj != null:
-			await _ai_move_toward(u, obj.q, obj.r, faction)
+		# Non abbandonare un obiettivo presidiato dall'unica unità amica.
+		if FlipBot.should_hold_objective(state, faction, u):
+			u.activated = true
+			continue
+		var dest := FlipBot.move_destination(state, faction, u)
+		for _step in maxi(1, u.move):
+			if u.q == dest.x and u.r == dest.y:
+				break
+			var moved: bool = await _ai_move_toward(u, dest.x, dest.y, faction)
+			if not moved or state.phase == Domain.Phase.GAME_OVER:
+				break
 		u.activated = true
 
 
-## Obiettivo più vicino non controllato dall'IA (o il primo disponibile).
-func _nearest_objective(faction: int, u: Unit) -> Objective:
-	var best: Objective = null
-	var best_d := 99999
-	for o in state.objectives:
-		if o.controller == faction:
-			continue
-		var d := HexGrid.distance(u.q, u.r, o.q, o.r)
-		if d < best_d:
-			best_d = d
-			best = o
-	if best == null and state.objectives.size() > 0:
-		best = state.objectives[0]
-	return best
-
-
-func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> void:
+## Sposta l'unità di UN esagono verso (tq,tr), scegliendo tra gli esagoni che si
+## avvicinano quello migliore per (copertura, vicinanza al bordo nemico). Evita
+## nemici e sovraccarico. Restituisce true se si è mossa (coroutine: può attendere
+## la finestra di reazione del difensore umano).
+func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> bool:
 	if u.move <= 0:
-		return
-	# (coroutine: può attendere la finestra di reazione del giocatore)
-	var best: Vector2i = Vector2i(u.q, u.r)
-	var best_dist := HexGrid.distance(u.q, u.r, tq, tr)
+		return false
+	var here := Vector2i(u.q, u.r)
+	var cur_dist := HexGrid.distance(u.q, u.r, tq, tr)
+	if cur_dist == 0:
+		return false
+	var enemy_col := FlipBot.enemy_edge_col(state, faction)
+	var best := here
+	var best_key := [cur_dist, 0, 9999]  # [distanza, -copertura, dist. bordo nemico]
 	for n in HexGrid.neighbors(u.q, u.r):
 		if n.x < 0 or n.x >= state.map_cols or n.y < 0 or n.y >= state.map_rows:
 			continue
 		var d := HexGrid.distance(n.x, n.y, tq, tr)
-		if d >= best_dist:
-			continue
-		var men := state.men_at(n.x, n.y)
+		if d >= cur_dist:
+			continue  # il passo deve avvicinare alla destinazione
 		var enemy := false
-		for m in men:
+		for m in state.men_at(n.x, n.y):
 			if m.faction != faction:
 				enemy = true
 				break
-		if not enemy and state.soldier_icons_at(n.x, n.y) + u.soldier_icons() <= 7:
-			best_dist = d
+		if enemy:
+			continue
+		if state.soldier_icons_at(n.x, n.y) + u.soldier_icons() > 7:
+			continue
+		var key := [d, -Rules.cover_at(state, n.x, n.y, false), absi(n.x - enemy_col)]
+		if _key_less(key, best_key):
+			best_key = key
 			best = n
-	if best != Vector2i(u.q, u.r):
-		var oq := u.q
-		var orr := u.r
-		state.set_unit_pos(u, best.x, best.y)  # porta con sé l'eventuale arma (11.1)
-		emit_signal("unit_moved", u.id, best.x, best.y)
-		# Mine (F103) sull'IA che si muove: se colpita, il movimento si ferma.
-		if _mine_attack_on_move(u, oq, orr):
-			_check_end_conditions()
-			return
-		# Il difensore reagisce col Fuoco di Opportunità (finestra interattiva se il
-		# difensore è l'umano). Marca l'unità «in movimento» per il pareggio (A33).
-		var prev_moving := state.moving_unit_id
-		state.moving_unit_id = u.id
-		await _reactive_op_fire(u, _opponent(u.faction))
-		state.moving_unit_id = prev_moving
+	if best == here:
+		return false
+	var oq := u.q
+	var orr := u.r
+	state.set_unit_pos(u, best.x, best.y)  # porta con sé l'eventuale arma (11.1)
+	emit_signal("unit_moved", u.id, best.x, best.y)
+	# Mine (F103) sull'IA che si muove: se colpita, il movimento si ferma.
+	if _mine_attack_on_move(u, oq, orr):
+		_check_end_conditions()
+		return false
+	# Il difensore reagisce col Fuoco di Opportunità (finestra interattiva se il
+	# difensore è l'umano). Marca l'unità «in movimento» per il pareggio (A33).
+	var prev_moving := state.moving_unit_id
+	state.moving_unit_id = u.id
+	await _reactive_op_fire(u, _opponent(u.faction))
+	state.moving_unit_id = prev_moving
+	return true
+
+
+## Confronto lessicografico fra due chiavi (array di interi): a < b?
+func _key_less(a: Array, b: Array) -> bool:
+	for i in a.size():
+		if a[i] != b[i]:
+			return a[i] < b[i]
+	return false
 
 
 # ─── Fine partita ─────────────────────────────────────────────────────────────
