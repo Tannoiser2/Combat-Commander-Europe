@@ -172,35 +172,18 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 			_:
 				for k in count: squads.append(label)
 
-	var seq := 0
-	var man_hexes: Array = []  # esagoni con almeno un uomo (per leader e armi)
-	# Squadre/team: una per esagono lungo la zona di schieramento.
-	for i in squads.size():
-		var pos: Vector2i = hexes[i % hexes.size()]
-		var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
-		seq += 1
-		state.units[id] = UnitChart.build_unit(id, faction, squads[i], pos.x, pos.y, nat)
-		man_hexes.append(pos)
+	# Schieramento intelligente: squadre raggruppate attorno ai leader (entro il
+	# Comando), gruppi distanziati tra loro e su esagoni con copertura/altura.
+	var man_hexes: Array = _deploy_combat_groups(state, hexes, squads, leaders, faction, nat)
 	if man_hexes.is_empty():
 		man_hexes = hexes.duplicate()
-	# Leader: insieme alle squadre (uno per gruppo, a giro).
-	for i in leaders.size():
-		var pos: Vector2i = man_hexes[i % man_hexes.size()]
-		var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
-		seq += 1
-		state.units[id] = UnitChart.build_unit(id, faction, leaders[i], pos.x, pos.y, nat)
 	# Armi: negli esagoni con uomini → vengono raccolte da una squadra (11.2).
 	for i in weapons.size():
 		var pos: Vector2i = man_hexes[i % man_hexes.size()]
-		var id := "%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
-		seq += 1
+		var id := "%s-W%d" % [Domain.FACTION_SHORT.get(faction, "U"), i]
 		state.units[id] = UnitChart.build_unit(id, faction, weapons[i], pos.x, pos.y, nat)
-	# Buche.
-	for i in fox:
-		var hp: Vector2i = hexes[i % hexes.size()]
-		var fh: GameState.HexData = state.hex_at(hp.x, hp.y)
-		if fh:
-			fh.has_foxhole = true
+	# Buche: rinforzano gli esagoni occupati con minore copertura naturale.
+	_place_foxholes(state, man_hexes, hexes, fox)
 	# Fortificazioni iniziali del difensore (Trincea/Bunker/Filo/Mine/Casamatta):
 	# distribuite nella zona di schieramento, su esagoni ancora liberi (un solo
 	# tipo per esagono). Le posizioni esatte le sceglie il giocatore nella sua
@@ -215,6 +198,130 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 		var hd2: GameState.HexData = state.hex_at(hp2.x, hp2.y)
 		if hd2 != null and hd2.fortification == Domain.Fort.NONE:
 			hd2.fortification = int(ordered[i])
+			placed += 1
+
+
+# ─── Schieramento intelligente (Auto) ────────────────────────────────────────
+
+## Chiave "q,r" di un esagono.
+static func _k(h: Vector2i) -> String:
+	return "%d,%d" % [h.x, h.y]
+
+
+## Qualità difensiva di un esagono: copertura del terreno/fortificazioni + altura.
+static func _hex_score(state: GameState, h: Vector2i) -> int:
+	var hd: GameState.HexData = state.hex_at(h.x, h.y)
+	var cov := Rules.cover_at(state, h.x, h.y, false)
+	var elev := hd.elevation if hd != null else 0
+	return cov + elev * 2
+
+
+## Esagoni della zona entro `radius` dal centro.
+static func _area_around(state: GameState, hexes: Array, center: Vector2i, radius: int) -> Array:
+	var out: Array = []
+	for h in hexes:
+		if HexGrid.distance(center.x, center.y, h.x, h.y) <= radius:
+			out.append(h)
+	return out
+
+
+## Sceglie `n` centri di gruppo su esagoni di alta qualità, distanziati di almeno
+## `spread`; se la zona è troppo piccola riempie coi migliori rimanenti.
+static func _pick_centers(state: GameState, hexes: Array, n: int, spread: int) -> Array:
+	var scored: Array = hexes.duplicate()
+	scored.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
+	var centers: Array = []
+	for h in scored:
+		if centers.size() >= n:
+			break
+		var ok := true
+		for c in centers:
+			if HexGrid.distance(c.x, c.y, h.x, h.y) < spread:
+				ok = false
+				break
+		if ok:
+			centers.append(h)
+	for h in scored:  # completa se non bastano (zona piccola)
+		if centers.size() >= n:
+			break
+		if not centers.has(h):
+			centers.append(h)
+	return centers
+
+
+## Schiera squadre/leader in gruppi di comando: ogni leader al centro di un'area
+## di qualità, le sue squadre negli esagoni vicini (entro il Comando) migliori;
+## i gruppi sono distanziati. Restituisce gli esagoni occupati da uomini.
+static func _deploy_combat_groups(state: GameState, hexes: Array, squads: Array, leaders: Array, faction: int, nat: String) -> Array:
+	var man_hexes: Array = []
+	if hexes.is_empty():
+		return man_hexes
+	var pfx := String(Domain.FACTION_SHORT.get(faction, "U"))
+	var seq := 0
+	var used := {}
+	var n_groups := maxi(1, leaders.size())
+	# Distribuisci le squadre tra i gruppi (una per leader, a giro).
+	var group_sq: Array = []
+	for g in n_groups:
+		group_sq.append([])
+	for i in squads.size():
+		group_sq[i % n_groups].append(squads[i])
+	var spread := clampi(int(round(sqrt(float(hexes.size())))), 2, 5)
+	var centers := _pick_centers(state, hexes, n_groups, spread)
+	for gi in n_groups:
+		var center: Vector2i = centers[gi] if gi < centers.size() else hexes[gi % hexes.size()]
+		var cmd := 2
+		if gi < leaders.size():
+			var lid := "%s-%d" % [pfx, seq]
+			seq += 1
+			var lu := UnitChart.build_unit(lid, faction, leaders[gi], center.x, center.y, nat)
+			state.units[lid] = lu
+			cmd = maxi(1, lu.command)
+			man_hexes.append(center)
+			used[_k(center)] = int(used.get(_k(center), 0)) + 1
+		# Esagoni del gruppo entro il Comando, dal migliore al peggiore.
+		var area := _area_around(state, hexes, center, cmd)
+		area.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
+		var ai := 0
+		for label in group_sq[gi]:
+			var pos: Vector2i = center
+			while ai < area.size() and int(used.get(_k(area[ai]), 0)) >= 2:
+				ai += 1
+			if ai < area.size():
+				pos = area[ai]
+				ai += 1
+			var sid := "%s-%d" % [pfx, seq]
+			seq += 1
+			state.units[sid] = UnitChart.build_unit(sid, faction, label, pos.x, pos.y, nat)
+			man_hexes.append(pos)
+			used[_k(pos)] = int(used.get(_k(pos), 0)) + 1
+	return man_hexes
+
+
+## Piazza `fox` buche: prima sugli esagoni occupati più scoperti (per dare loro
+## copertura), poi sul resto della zona se ne avanzano.
+static func _place_foxholes(state: GameState, man_hexes: Array, hexes: Array, fox: int) -> void:
+	if fox <= 0:
+		return
+	var targets: Array = man_hexes.duplicate()
+	targets.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return Rules.cover_at(state, a.x, a.y, false) < Rules.cover_at(state, b.x, b.y, false))
+	var placed := 0
+	for h in targets:
+		if placed >= fox:
+			break
+		var hd: GameState.HexData = state.hex_at(h.x, h.y)
+		if hd != null and not hd.has_foxhole:
+			hd.has_foxhole = true
+			placed += 1
+	for h in hexes:
+		if placed >= fox:
+			break
+		var hd2: GameState.HexData = state.hex_at(h.x, h.y)
+		if hd2 != null and not hd2.has_foxhole:
+			hd2.has_foxhole = true
 			placed += 1
 
 
