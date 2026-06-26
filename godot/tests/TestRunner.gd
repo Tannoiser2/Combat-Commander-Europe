@@ -110,6 +110,7 @@ func _ready() -> void:
 	_test_scenario_rules()
 	_test_setup_depth()
 	_test_setup_zones()
+	_test_scenario_effects()
 	_test_surrender()
 	_test_sudden_death_roll()
 	_test_ordnance()
@@ -1622,6 +1623,31 @@ func _test_move_command_group() -> void:
 	Game.select_unit("C")
 	_check(s2.ordered_group.size() == 1 and s2.ordered_group.has("C"),
 		"una squadra fuori comando si muove da sola")
+
+
+func _test_scenario_effects() -> void:
+	print("· SSR: gettoni Obiettivo esclusi dal sacchetto e carte garantite in mano")
+	# Esclusione: con exclude i gettoni V/W/X non vengono mai pescati (22 = tutti).
+	var s := _new_state(6, 6)
+	s.objectives.append(Objective.new(1, 2, 2, 0))
+	s.objectives.append(Objective.new(2, 3, 3, 0))
+	s.objectives.append(Objective.new(3, 4, 4, 0))
+	s.objectives.append(Objective.new(4, 1, 4, 0))
+	s.objectives.append(Objective.new(5, 4, 1, 0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 99
+	var res := ObjectiveChits.assign(s, 22, rng, ["V", "W", "X"])
+	var drawn: Array = res["drawn"]
+	_check(not drawn.has("V") and not drawn.has("W") and not drawn.has("X"),
+		"i gettoni esclusi non vengono pescati")
+	_check(drawn.size() == 19, "restano 19 gettoni nel sacchetto (22 − 3 esclusi)")
+	# Carte iniziali: lo scenario 3 mette G-65 in mano all'Asse (mazzo tedesco).
+	Game.start_new_game(GER, 3)
+	var has65 := false
+	for c in Game.state.german_hand:
+		if int(c.number) == 65:
+			has65 = true
+	_check(has65, "lo scenario 3 garantisce G-65 in mano all'Asse")
 
 
 func _test_setup_zones() -> void:

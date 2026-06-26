@@ -83,7 +83,8 @@ static func setup(state: GameState, num: int) -> bool:
 	if chits > 0:
 		var rng := RandomNumberGenerator.new()
 		rng.randomize()
-		ObjectiveChits.assign(state, chits, rng)
+		# SSR: alcuni scenari escludono certi gettoni Obiettivo dal sacchetto.
+		ObjectiveChits.assign(state, chits, rng, ScenarioEffects.exclude_chits(num))
 
 	# ─── Parametri ──────────────────────────────────────────────────────────
 	state.scenario_number = num
