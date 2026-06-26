@@ -735,9 +735,9 @@ func _add_pieces(s: GameState) -> void:
 			var top_y := _top_y(s, u.q, u.r)
 			var ci := _hex_img(u.q, u.r)
 			var off := Vector3(0.26 * i - 0.18, 0.0, -0.26 * i + 0.18)
-			# La pedina selezionata si solleva sopra l'impilamento per essere vista.
-			var lift := 0.7 if sel else 0.0
-			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off + Vector3(0.0, lift, 0.0)
+			# La selezione si indica colorando il fondo del badge (vedi _attach_badge),
+			# non sollevando la pedina: meno invasivo e più chiaro.
+			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off
 			_last_unit_pos[u.id] = Vector2i(u.q, u.r)
 			# Figure 3D dei soldati (tante quante le "soldier icons": squadra 4,
 			# team 2, leader/arma 1) con segnalino sopra. Ripiego al segnalino
@@ -789,7 +789,7 @@ func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 	var holder := Node3D.new()
 	_dynamic.add_child(holder)
 	var count := maxi(1, u.soldier_icons())   # squadra 4, team 2, leader 1, arma → 1
-	var target_h := 0.98 if sel else 0.86
+	var target_h := 0.90  # uguale per tutte: la selezione è nel fondo del badge
 	var offs := _figure_offsets(count)
 	var placed := 0
 	for fi in count:
@@ -952,12 +952,11 @@ func _attach_badge(holder: Node3D, u: Unit, y: float, sel: bool) -> void:
 	sp.position = Vector3(0.0, y, 0.0)
 	sp.modulate = Color(1, 1, 1, 1)
 	holder.add_child(sp)
-	sp.set_meta("sel", sel)
-	var key := _badge_key(u, tokens)
+	var key := _badge_key(u, tokens, sel)
 	if _badge_cache.has(key):
 		_apply_badge(sp, _badge_cache[key])
 	else:
-		_render_badge(sp, u, tokens, key)
+		_render_badge(sp, u, tokens, key, sel)
 
 
 ## Imposta texture e scala del badge sullo Sprite3D, in base all'altezza texture.
@@ -965,13 +964,12 @@ func _apply_badge(sp: Sprite3D, tex: Texture2D) -> void:
 	if not is_instance_valid(sp) or tex == null:
 		return
 	sp.texture = tex
-	var sel: bool = sp.get_meta("sel", false)
-	sp.pixel_size = (0.34 if sel else 0.28) / float(maxi(1, tex.get_height()))
+	sp.pixel_size = 0.30 / float(maxi(1, tex.get_height()))
 
 
 ## Renderizza il badge in un SubViewport 2D, lo mette in cache e lo applica a tutti
 ## gli sprite in attesa della stessa chiave (dedup tra pedine identiche).
-func _render_badge(sp: Sprite3D, u: Unit, tokens: Array, key: String) -> void:
+func _render_badge(sp: Sprite3D, u: Unit, tokens: Array, key: String, sel: bool) -> void:
 	if _badge_pending.has(key):
 		_badge_pending[key].append(sp)
 		return
@@ -983,7 +981,7 @@ func _render_badge(sp: Sprite3D, u: Unit, tokens: Array, key: String) -> void:
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	vp.size = Vector2i(8, 8)
 	add_child(vp)
-	var panel := _build_badge_control(u, tokens)
+	var panel := _build_badge_control(u, tokens, sel)
 	vp.add_child(panel)
 	await get_tree().process_frame
 	var ms := panel.get_combined_minimum_size()
@@ -1004,17 +1002,20 @@ func _render_badge(sp: Sprite3D, u: Unit, tokens: Array, key: String) -> void:
 	_badge_pending.erase(key)
 
 
-## Costruisce la UI del badge: pannello scuro con angoli stondati (rosso se rotta,
-## bordo tinto per fazione) e una riga di valori; i token "in box" hanno un
-## riquadro stondato del loro colore.
-func _build_badge_control(u: Unit, tokens: Array) -> Control:
-	var border := Color(0.66, 0.70, 0.58) if u.faction == Domain.Faction.GERMAN \
-		else Color(0.78, 0.60, 0.42)
+## Costruisce la UI del badge: pannello con angoli stondati e una riga di valori;
+## i token "in box" hanno un riquadro stondato del loro colore. Il fondo indica lo
+## stato: azzurro acceso se SELEZIONATA, rosso se rotta, altrimenti scuro neutro;
+## il bordo è azzurro se selezionata, sennò tinto per fazione.
+func _build_badge_control(u: Unit, tokens: Array, sel: bool) -> Control:
+	var border := Color(0.40, 0.85, 1.0) if sel \
+		else (Color(0.66, 0.70, 0.58) if u.faction == Domain.Faction.GERMAN \
+		else Color(0.78, 0.60, 0.42))
+	var bg := Color(0.42, 0.10, 0.10, 0.92) if not u.efficient \
+		else (Color(0.10, 0.34, 0.52, 0.94) if sel else Color(0.10, 0.11, 0.13, 0.90))
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.10, 0.11, 0.13, 0.90) if u.efficient \
-		else Color(0.42, 0.10, 0.10, 0.92)
+	sb.bg_color = bg
 	sb.set_corner_radius_all(10)
-	sb.set_border_width_all(2)
+	sb.set_border_width_all(3 if sel else 2)
 	sb.border_color = border
 	sb.content_margin_left = 8; sb.content_margin_right = 8
 	sb.content_margin_top = 3; sb.content_margin_bottom = 3
@@ -1071,11 +1072,11 @@ func _badge_tokens(u: Unit) -> Array:
 	return out
 
 
-func _badge_key(u: Unit, tokens: Array) -> String:
+func _badge_key(u: Unit, tokens: Array, sel: bool) -> String:
 	var parts := PackedStringArray()
 	for t in tokens:
 		parts.append("%s/%s/%d" % [t["text"], t["color"].to_html(), 1 if t["box"] else 0])
-	return "%d|%d|%s" % [u.faction, 1 if u.efficient else 0, "|".join(parts)]
+	return "%d|%d|%d|%s" % [u.faction, 1 if u.efficient else 0, 1 if sel else 0, "|".join(parts)]
 
 
 func _counter_tex(u: Unit) -> Texture2D:
