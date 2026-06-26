@@ -93,6 +93,7 @@ func _ready() -> void:
 	_test_initial_carriers_relocate()
 	_test_scenario1_no_orphan_weapons()
 	_test_loader_weapons_with_squads()
+	_test_initial_fortifications()
 	_test_fire_command_group()
 	_test_fire_ready()
 	_test_order_feasible()
@@ -1620,6 +1621,28 @@ func _test_move_command_group() -> void:
 	Game.select_unit("C")
 	_check(s2.ordered_group.size() == 1 and s2.ordered_group.has("C"),
 		"una squadra fuori comando si muove da sola")
+
+
+func _test_initial_fortifications() -> void:
+	print("· Setup: fortificazioni iniziali del difensore (trincee/filo/mine/bunker)")
+	# Categoria FORT: prima Wire/Mines/Bunker erano ignorate, Trench era una buca.
+	_check(UnitChart.category("Wire") == UnitChart.Cat.FORT, "Wire è una fortificazione")
+	_check(UnitChart.fort_type("Trench") == Domain.Fort.TRENCH, "Trench → Trincea")
+	_check(UnitChart.fort_type("Mines") == Domain.Fort.MINES, "Mines → Mine")
+	_check(UnitChart.fort_type("Bunker Complex") == Domain.Fort.BUNKER, "Bunker Complex → Bunker")
+	_check(UnitChart.category("Foxholes") == UnitChart.Cat.FOXHOLE, "Foxholes resta una buca")
+	# Scenario 11 «Hold the Line»: Filo + Mine (Asse) + Bunker (Alleati).
+	var s := GameState.new()
+	if not ScenarioLoader.setup(s, 11):
+		_check(false, "setup scenario 11 riuscito")
+		return
+	var kinds := {}
+	for hd in s.hexes.values():
+		if hd.fortification != Domain.Fort.NONE:
+			kinds[hd.fortification] = int(kinds.get(hd.fortification, 0)) + 1
+	_check(int(kinds.get(Domain.Fort.WIRE, 0)) > 0, "ci sono esagoni con Filo spinato")
+	_check(int(kinds.get(Domain.Fort.MINES, 0)) > 0, "ci sono esagoni con Mine")
+	_check(int(kinds.get(Domain.Fort.BUNKER, 0)) > 0, "c'è almeno un Bunker")
 
 
 func _test_fire_command_group() -> void:
