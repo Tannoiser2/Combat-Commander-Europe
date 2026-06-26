@@ -1,3 +1,9 @@
+[b]v0.18.2[/b]
+
+[b]Correzioni[/b]
+- Scenario 1 «Fat Lipki»: corrette le posizioni di schieramento, che erano sui lati sbagliati. Ora rispettano la scheda: Alleati negli angoli in alto (in/adiacente ad A2 e O1), Asse sul bordo basso (in/adiacente a G10 e N10).
+- Vista 3D: i modelli (edifici, alberi, erba) non sono più bianchi — ripristinata la texture dei colori mancante.
+
 [b]v0.18.1[/b]
 
 [b]Correzioni[/b]

@@ -2017,11 +2017,17 @@ func _test_setup_phase_routing() -> void:
 	_check(Game.state.phase == Domain.Phase.PLAYER_TURN,
 		"scenario 1 (piazzamento fisso) inizia il turno senza fase di setup")
 	_check(Game.state.setup_zone.is_empty(), "scenario 1 non ha una zona di schieramento")
+	# Schieramento dalla scheda: Axis in/adiacente a G10(6,9)/N10(13,9), bordo basso.
 	var g0 := Game.state.unit_by_id("ger-0")
-	_check(g0 != null and g0.q == 13 and g0.r == 4,
-		"Lt. v. Karstens al suo esagono storico (13,4)")
-	var g3 := Game.state.unit_by_id("ger-3")
-	_check(g3 != null and g3.q == 14 and g3.r == 3, "Rifle 2 al suo esagono storico (14,3)")
+	_check(g0 != null and g0.q == 6 and g0.r == 9,
+		"Lt. v. Karstens schierato su G10 (6,9)")
+	var g1 := Game.state.unit_by_id("ger-1")
+	_check(g1 != null and g1.q == 13 and g1.r == 9, "Cpl. Winkler schierato su N10 (13,9)")
+	# Allies in/adiacente ad A2(0,1)/O1(14,0), angoli in alto.
+	var r0 := Game.state.unit_by_id("rus-0")
+	_check(r0 != null and r0.q == 0 and r0.r == 1, "Sgt. Kovalev schierato su A2 (0,1)")
+	var r1 := Game.state.unit_by_id("rus-1")
+	_check(r1 != null and r1.q == 14 and r1.r == 0, "Cpl. Koylov schierato su O1 (14,0)")
 	# Uno scenario con zona di schieramento (dalla scheda) apre il setup manuale.
 	Game.start_new_game(Domain.Faction.GERMAN, 2)
 	_check(Game.state.phase == Domain.Phase.PLAYER_SETUP,
