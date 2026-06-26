@@ -109,6 +109,7 @@ func _ready() -> void:
 	_test_scenario_fidelity()
 	_test_scenario_rules()
 	_test_setup_depth()
+	_test_setup_zones()
 	_test_surrender()
 	_test_sudden_death_roll()
 	_test_ordnance()
@@ -1621,6 +1622,26 @@ func _test_move_command_group() -> void:
 	Game.select_unit("C")
 	_check(s2.ordered_group.size() == 1 and s2.ordered_group.has("C"),
 		"una squadra fuori comando si muove da sola")
+
+
+func _test_setup_zones() -> void:
+	print("· Setup: zone fedeli dalle schede (setup_zones.json) hanno priorità")
+	# Scenario 3: gli Alleati sono ancorati a N5 (assente nel catalogo, presente in
+	# setup_zones) → tutte le loro unità devono stare in/adiacenti a N5.
+	var s := GameState.new()
+	if not ScenarioLoader.setup(s, 3):
+		_check(false, "setup scenario 3 riuscito")
+		return
+	var anchor := Domain.label_to_qr("N5")
+	var n := 0
+	var all_near := true
+	for u in s.units.values():
+		if u.faction == RUS and u.is_man():
+			n += 1
+			if HexGrid.distance(u.q, u.r, anchor.x, anchor.y) > 1:
+				all_near = false
+	_check(n > 0, "lo scenario 3 ha unità alleate da verificare")
+	_check(all_near, "le unità alleate sono in/adiacenti all'ancora N5")
 
 
 func _test_initial_fortifications() -> void:
