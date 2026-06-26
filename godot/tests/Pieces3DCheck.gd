@@ -1,0 +1,109 @@
+## Verifica headless della costruzione delle pedine 3D: per ogni unità il numero
+## di figure (squadra 4, team 2, leader 1, arma 1), il badge numerico sopra la
+## pila e l'orientamento (yaw) verso la direzione di marcia. Stampa
+## PIECES_RESULT: PASS/FAIL. Va eseguito come scena (root Node), così gli
+## autoload (Game, Domain) sono attivi.
+extends Node
+
+var _map: Node3D = null
+var _frames := 0
+var _ok := true
+
+
+func _fail(msg: String) -> void:
+	print("  [NO] ", msg)
+	_ok = false
+
+
+func _ready() -> void:
+	Game.start_new_game(Domain.Faction.GERMAN, 1)
+	_map = load("res://scenes/Map3D.tscn").instantiate()
+	_map.active = true
+	add_child(_map)
+
+
+func _process(_dt: float) -> void:
+	_frames += 1
+	if _frames < 4:
+		return
+	_run_checks()
+	print("PIECES_RESULT: ", "PASS" if _ok else "FAIL")
+	get_tree().quit(0 if _ok else 1)
+
+
+func _expected_figs(u) -> int:
+	return maxi(1, u.soldier_icons())
+
+
+func _run_checks() -> void:
+	var s = Game.state
+	if s == null:
+		_fail("nessuno stato di gioco")
+		return
+	var pieces: Array = _map._pieces
+	if pieces.is_empty():
+		_fail("nessuna pedina costruita")
+		return
+
+	var by_id := {}
+	for p in pieces:
+		by_id[p["id"]] = p["node"]
+
+	var checked_squad := false
+	var checked_leader := false
+	for u in s.units.values():
+		if not by_id.has(u.id):
+			continue  # arma trasportata o non in mappa: salta
+		var node = by_id[u.id]
+		# Conta le figure (Node3D interni) e il badge (Sprite3D).
+		var figs := 0
+		var badges := 0
+		for c in node.get_children():
+			if c is Sprite3D:
+				badges += 1
+			elif c is Node3D:
+				figs += 1
+		var want := _expected_figs(u)
+		if node is Node3D and figs > 0:
+			if figs != want:
+				_fail("unità %s (tipo %d): %d figure invece di %d" % [u.id, u.type, figs, want])
+			if badges < 1:
+				_fail("unità %s: badge mancante sopra la pila" % u.id)
+			if u.type == Domain.UnitType.SQUAD:
+				checked_squad = true
+			if u.type == Domain.UnitType.LEADER:
+				checked_leader = true
+
+	if not checked_squad:
+		_fail("nessuna squadra verificata (figure 4)")
+	if not checked_leader:
+		print("  [..] nessun leader presente in scenario 1 (ok)")
+
+	# Badge: texture valida e a striscia (più larga che alta) per squadra e leader.
+	var squad = _first_of_type(s, Domain.UnitType.SQUAD)
+	if squad != null:
+		var tex = _map._make_badge_tex(squad)
+		if tex == null:
+			_fail("badge squadra nullo")
+		elif tex.get_width() <= tex.get_height():
+			_fail("badge squadra non a striscia (%dx%d)" % [tex.get_width(), tex.get_height()])
+	var leader = _first_of_type(s, Domain.UnitType.LEADER)
+	if leader != null:
+		var tex2 = _map._make_badge_tex(leader)
+		if tex2 == null:
+			_fail("badge leader nullo (manca il valore comando)")
+
+	# Orientamento: dopo uno spostamento, lo yaw verso il nuovo esagono è memorizzato.
+	if squad != null:
+		_map._last_unit_pos[squad.id] = Vector2i(squad.q, squad.r)
+		_map._unit_heading.erase(squad.id)
+		_map._on_unit_moved(squad.id, squad.q + 1, squad.r)
+		if not _map._unit_heading.has(squad.id):
+			_fail("yaw di marcia non memorizzato dopo lo spostamento")
+
+
+func _first_of_type(s, t: int):
+	for u in s.units.values():
+		if u.type == t:
+			return u
+	return null
