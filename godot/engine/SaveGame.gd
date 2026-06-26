@@ -84,6 +84,7 @@ static func _state_to_dict(s: GameState) -> Dictionary:
 		"phase": s.phase, "turn_number": s.turn_number, "order_count": s.order_count,
 		"max_orders": s.max_orders, "ai_max_orders": s.ai_max_orders,
 		"time_marker": s.time_marker, "sudden_death_space": s.sudden_death_space,
+		"global_hindrance": s.global_hindrance,
 		"vp_tracker": s.vp_tracker, "bonus_vp": s.bonus_vp,
 		"chit_double_exit": s.chit_double_exit, "chit_double_elim": s.chit_double_elim,
 		# Per-fazione
@@ -134,6 +135,7 @@ static func _state_from_dict(d: Dictionary) -> GameState:
 	s.phase = int(d.get("phase", Domain.Phase.PLAYER_TURN)); s.turn_number = int(d.get("turn_number", 1))
 	s.order_count = int(d.get("order_count", 0)); s.max_orders = int(d.get("max_orders", 2)); s.ai_max_orders = int(d.get("ai_max_orders", 2))
 	s.time_marker = int(d.get("time_marker", 0)); s.sudden_death_space = int(d.get("sudden_death_space", 7))
+	s.global_hindrance = int(d.get("global_hindrance", 0))
 	s.vp_tracker = int(d.get("vp_tracker", 0)); s.bonus_vp = int(d.get("bonus_vp", 0))
 	s.chit_double_exit = bool(d.get("chit_double_exit", false))
 	s.chit_double_elim = bool(d.get("chit_double_elim", false))

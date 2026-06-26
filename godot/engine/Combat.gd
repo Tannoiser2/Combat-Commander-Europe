@@ -98,7 +98,8 @@ static func resolve_fire(
 	# Ostacolo (hindrance) lungo la LOS (NON cumulativo, 10.3.3; il fumo sul
 	# bersaglio/tiratore è già incluso in los_hindrance, 10.3.4). Per le armi
 	# normali riduce la FP; per l'ordnance modifica il Targeting Roll (O20.2.3).
-	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state)
+	# L'ostacolo globale dello scenario (SSR Nebbia) si aggiunge in ogni esagono.
+	var hind := HexGrid.los_hindrance(attacker.q, attacker.r, tq, tr, state) + maxi(0, state.global_hindrance)
 
 	# ─── Ordnance: Targeting Roll (O20.2.3) ──────────────────────────────────
 	# I due dadi si MOLTIPLICANO (non si sommano): per colpire il prodotto deve

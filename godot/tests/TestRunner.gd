@@ -111,6 +111,7 @@ func _ready() -> void:
 	_test_setup_depth()
 	_test_setup_zones()
 	_test_scenario_effects()
+	_test_global_hindrance()
 	_test_surrender()
 	_test_sudden_death_roll()
 	_test_ordnance()
@@ -1623,6 +1624,23 @@ func _test_move_command_group() -> void:
 	Game.select_unit("C")
 	_check(s2.ordered_group.size() == 1 and s2.ordered_group.has("C"),
 		"una squadra fuori comando si muove da sola")
+
+
+func _test_global_hindrance() -> void:
+	print("· SSR Nebbia: ostacolo globale (scenario 12) riduce la FP nel fuoco")
+	var sc := GameState.new()
+	ScenarioLoader.setup(sc, 12)
+	_check(sc.global_hindrance == 3, "lo scenario 12 (Nebbia) ha ostacolo globale 3")
+	# A parità di tutto, l'ostacolo globale taglia la FP dell'attacco.
+	var st := _new_state(8, 3)
+	var atk := _mk("a", GER, SQUAD, RIFLE, 0, 1, 8, 7, 9)
+	st.units["a"] = atk
+	st.units["d"] = _mk("d", RUS, SQUAD, RIFLE, 4, 1, 5, 7)
+	var d33 := Vector2i(3, 3)
+	var r0 := Combat.resolve_fire(atk, 4, 1, st, d33, d33)
+	st.global_hindrance = 3
+	var r1 := Combat.resolve_fire(atk, 4, 1, st, d33, d33)
+	_check(r1.fp_total == r0.fp_total - 3, "l'ostacolo globale riduce la FP dell'attacco di 3")
 
 
 func _test_scenario_effects() -> void:

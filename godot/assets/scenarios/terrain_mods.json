@@ -1,0 +1,7 @@
+{
+  "2": {"hedge_move_delta": 1, "hedge_cover_delta": 1, "note": "BOCAGE: tutte le Siepi (Hedge) hanno i valori di Movimento e Copertura aumentati di uno (rispettivamente a \"+2\" e \"2\")."},
+  "5": {"open_move_cost": 1.5, "note": "NEVE: il Costo di Movimento per il Terreno Aperto (Open Ground) e \"1 e 1/2\" invece di \"1\"."},
+  "7": {"note": "PARTIGIANI: le unita Alleate trattano ogni terreno come se avesse un Costo di Movimento di \"1\"."},
+  "12": {"global_hindrance": 3, "note": "NEBBIA: -3 di Ostacolo (Hindrance) in ogni esagono della mappa, indipendentemente dall'elevazione; cumulativo con gli Ostacoli normali. Ridotto di 1 a ogni Evento Brezza (a -2, poi -1, poi 0)."},
+  "22": {"note": "CREPUSCOLO: ogni esagono contiene un Ostacolo pari al numero nello spazio della Tabella del Tempo che contiene il segnalino Tempo (valore variabile); non cumulativo con gli Ostacoli normali."}
+}
