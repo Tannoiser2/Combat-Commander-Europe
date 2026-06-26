@@ -114,6 +114,7 @@ func _ready() -> void:
 	_test_manual_setup()
 	_test_flipbot()
 	_test_flipbot_move()
+	_test_flipbot_fire()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -1843,6 +1844,34 @@ func _test_flipbot_move() -> void:
 	s5.units[u2.id] = u2
 	_check(FlipBot.should_hold_objective(s5, GER, u2),
 		"l'unica unità su un obiettivo controllato non lo abbandona")
+
+
+func _test_flipbot_fire() -> void:
+	print("· FlipBot: scelta del Fuoco (massima FP, bersaglio a morale minimo)")
+	var s := _new_state(8, 3)
+	s.human_faction = RUS  # bot = Tedesco
+	var sh := _mk("g1", GER, SQUAD, RIFLE, 0, 1, 6, 7, 6)
+	s.units[sh.id] = sh
+	# Due bersagli russi in gittata e LOS: uno a morale basso, uno alto.
+	var lo := _mk("r1", RUS, SQUAD, RIFLE, 3, 1, 5, 5, 6)   # morale 5
+	var hi := _mk("r2", RUS, SQUAD, RIFLE, 2, 1, 5, 9, 6)   # morale 9
+	s.units[lo.id] = lo
+	s.units[hi.id] = hi
+	var f := FlipBot.best_fire(s, GER)
+	_check(not f.is_empty(), "il bot trova un fuoco utile")
+	_check(String(f.get("attacker_id", "")) == "g1", "attiva il tiratore disponibile")
+	_check(int(f.get("q", -1)) == 3 and int(f.get("r", -1)) == 1,
+		"bersaglia l'esagono col morale efficace più basso (r1, mor 5)")
+
+	# Minimum Firepower: tiratore troppo debole per un bersaglio coriaceo → niente.
+	var s2 := _new_state(8, 3)
+	s2.human_faction = RUS
+	var weak := _mk("g9", GER, SQUAD, RIFLE, 0, 1, 2, 7, 6)  # FP 2
+	s2.units[weak.id] = weak
+	var tough := _mk("r9", RUS, SQUAD, RIFLE, 3, 1, 5, 9, 6)  # morale 9
+	s2.units[tough.id] = tough
+	_check(FlipBot.best_fire(s2, GER).is_empty(),
+		"FP 2 contro difesa 9: sotto il minimo → nessun fuoco")
 
 
 func _test_manual_setup() -> void:
