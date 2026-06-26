@@ -14,11 +14,10 @@ extends RefCounted
 
 
 ## Categoria di un'etichetta: come va trattata dal loader di scenario.
-enum Cat { LEADER, SQUAD, WEAPON, FOXHOLE, SKIP }
+enum Cat { LEADER, SQUAD, WEAPON, FOXHOLE, FORT, SKIP }
 
-## Equipaggiamenti/fortificazioni non modellati come unità (per ora ignorati).
+## Equipaggiamenti non modellati come unità né fortificazioni (per ora ignorati).
 const _SKIP := {
-	"Wire": true, "Mines": true, "Bunker": true, "Bunker Complex": true,
 	"Flamethrower": true, "Satchel Charge": true, "Molotov Cocktail": true,
 }
 
@@ -117,13 +116,31 @@ static func nation_code(faz: String) -> String:
 static func category(label: String) -> int:
 	if _SKIP.has(label):
 		return Cat.SKIP
-	if label == "Foxholes" or label == "Trench":
+	if label == "Foxholes":
 		return Cat.FOXHOLE
+	if fort_type(label) != Domain.Fort.NONE:
+		return Cat.FORT
 	if _is_leader(label):
 		return Cat.LEADER
 	if _is_weapon(label):
 		return Cat.WEAPON
 	return Cat.SQUAD
+
+
+## Tipo di fortificazione (Domain.Fort) per un'etichetta di setup, o Fort.NONE.
+static func fort_type(label: String) -> int:
+	match label:
+		"Trench", "Trenches", "Trincea":
+			return Domain.Fort.TRENCH
+		"Bunker", "Bunker Complex", "Bunkers":
+			return Domain.Fort.BUNKER
+		"Pillbox", "Casemate", "Casamatta":
+			return Domain.Fort.PILLBOX
+		"Wire", "Barbed Wire", "Filo":
+			return Domain.Fort.WIRE
+		"Mines", "Minefield", "Mine":
+			return Domain.Fort.MINES
+	return Domain.Fort.NONE
 
 
 static func _is_leader(label: String) -> bool:

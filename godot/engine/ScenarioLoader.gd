@@ -119,6 +119,7 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 	var squads: Array = []
 	var leaders: Array = []
 	var weapons: Array = []
+	var forts: Array = []  # tipi Domain.Fort (Trincea/Bunker/Filo/Mine/Casamatta)
 	var fox := 0
 	for f in e.get("forze_%s" % side, []):
 		var label := String(f.get("tipo", ""))
@@ -128,6 +129,8 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 				continue
 			UnitChart.Cat.FOXHOLE:
 				fox += count
+			UnitChart.Cat.FORT:
+				for k in count: forts.append(UnitChart.fort_type(label))
 			UnitChart.Cat.LEADER:
 				for k in count: leaders.append(label)
 			UnitChart.Cat.WEAPON:
@@ -164,6 +167,44 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 		var fh: GameState.HexData = state.hex_at(hp.x, hp.y)
 		if fh:
 			fh.has_foxhole = true
+	# Fortificazioni iniziali del difensore (Trincea/Bunker/Filo/Mine/Casamatta):
+	# distribuite nella zona di schieramento, su esagoni ancora liberi (un solo
+	# tipo per esagono). Le posizioni esatte le sceglie il giocatore nella sua
+	# zona: qui le spalmiamo, interlacciando i tipi così quando lo spazio è poco
+	# nessun tipo monopolizza la zona (continuando dopo le buche).
+	var ordered := _interleave(forts)
+	var placed := 0
+	for i in ordered.size():
+		if placed >= hexes.size():
+			break  # zona piena: una fortificazione per esagono
+		var hp2: Vector2i = hexes[(fox + placed) % hexes.size()]
+		var hd2: GameState.HexData = state.hex_at(hp2.x, hp2.y)
+		if hd2 != null and hd2.fortification == Domain.Fort.NONE:
+			hd2.fortification = int(ordered[i])
+			placed += 1
+
+
+## Interlaccia gli elementi per valore (uno per tipo a giro): [A,A,A,B] → [A,B,A,A].
+static func _interleave(items: Array) -> Array:
+	var groups: Array = []
+	var index := {}
+	for it in items:
+		if not index.has(it):
+			index[it] = groups.size()
+			groups.append([])
+		groups[index[it]].append(it)
+	var out: Array = []
+	var k := 0
+	while out.size() < items.size():
+		var any := false
+		for g in groups:
+			if k < g.size():
+				out.append(g[k])
+				any = true
+		if not any:
+			break
+		k += 1
+	return out
 
 
 ## Caselle di setup di un lato: ancore (in/adiacenti) o bordo+profondità.
