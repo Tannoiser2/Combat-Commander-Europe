@@ -113,6 +113,7 @@ func _ready() -> void:
 	_test_smart_deploy()
 	_test_manual_setup()
 	_test_flipbot()
+	_test_flipbot_move()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -1799,6 +1800,49 @@ func _test_flipbot() -> void:
 	var play2 := FlipBot.choose_turn_order(s4, GER)
 	_check(int(play2.get("order", -1)) == Domain.OrderType.MOVE,
 		"salta la dud a sinistra e gioca la prima Mossa giocabile")
+
+
+func _test_flipbot_move() -> void:
+	print("· FlipBot: destinazioni di Mossa (obiettivi, Disposizione, ritirata)")
+	# Mappa 10×3; il bot è il Tedesco (bordo nemico = colonna 0).
+	var s := _new_state(10, 3)
+	s.human_faction = RUS
+	s.disposition = Domain.Disposition.OFFENSIVE
+	_check(FlipBot.enemy_edge_col(s, GER) == 0, "bordo nemico del Tedesco = colonna 0")
+	_check(FlipBot.friendly_edge_col(s, GER) == 9, "bordo amico del Tedesco = colonna 9")
+	var u := _mk("g1", GER, SQUAD, RIFLE, 6, 1)
+	s.units[u.id] = u
+	# Nessun obiettivo né nemico → destinazione = bordo mappa nemico (colonna 0).
+	var d0 := FlipBot.move_destination(s, GER, u)
+	_check(d0.x == 0, "senza obiettivi/nemici punta al bordo nemico (col 0)")
+	# Obiettivo non controllato entro 5 → lo conquista (priorità 1).
+	var obj := Objective.new(1, 4, 1, 2)
+	s.objectives = [obj]
+	var d1 := FlipBot.move_destination(s, GER, u)
+	_check(d1 == Vector2i(4, 1), "punta all'obiettivo conquistabile entro 5")
+	# Obiettivo già controllato dal bot: in Offensiva NON è una destinazione...
+	obj.controller = GER
+	var d2 := FlipBot.move_destination(s, GER, u)
+	_check(d2.x == 0, "obiettivo amico ignorato in Offensiva → bordo nemico")
+	# ...ma in Difensiva sì (priorità 2): lo tiene.
+	s.disposition = Domain.Disposition.DEFENSIVE
+	var d3 := FlipBot.move_destination(s, GER, u)
+	_check(d3 == Vector2i(4, 1), "in Difensiva tiene l'obiettivo amico entro 5")
+	# Unità rotta → ritirata verso il bordo amico (colonna 9).
+	u.efficient = false
+	var d4 := FlipBot.move_destination(s, GER, u)
+	_check(d4.x == 9, "un'unità rotta si ritira verso il bordo amico (col 9)")
+	# "Ultima sull'obiettivo non lo lascia": unità sola su un obiettivo controllato.
+	var u2 := _mk("g2", GER, SQUAD, RIFLE, 4, 1)
+	u2.efficient = true
+	var s5 := _new_state(10, 3)
+	s5.human_faction = RUS
+	var o2 := Objective.new(1, 4, 1, 2)
+	o2.controller = GER
+	s5.objectives = [o2]
+	s5.units[u2.id] = u2
+	_check(FlipBot.should_hold_objective(s5, GER, u2),
+		"l'unica unità su un obiettivo controllato non lo abbandona")
 
 
 func _test_manual_setup() -> void:

@@ -54,6 +54,7 @@ func _movable_unit(faction: int) -> Unit:
 func _test_move_loop() -> void:
 	print("· Loop MOSSA: unità → carta → esagono → conclusione")
 	Game.start_new_game(Domain.Faction.GERMAN, 2)
+	Game.finish_setup()  # esce dalla fase di Schieramento manuale → turno del giocatore
 	var s := Game.state
 	var hand := s.hand_of(s.human_faction)
 	hand[0] = _make_card(Domain.OrderType.MOVE, s.human_faction)
@@ -96,6 +97,7 @@ func _test_move_loop() -> void:
 func _test_fire_transition_and_cancel() -> void:
 	print("· FUOCO: transizione e annullamento (carta non consumata)")
 	Game.start_new_game(Domain.Faction.GERMAN, 2)
+	Game.finish_setup()  # esce dalla fase di Schieramento manuale → turno del giocatore
 	var s := Game.state
 	var hand := s.hand_of(s.human_faction)
 	hand[0] = _make_card(Domain.OrderType.FIRE, s.human_faction)
@@ -122,6 +124,7 @@ func _test_fire_transition_and_cancel() -> void:
 func _test_leader_group_move() -> void:
 	print("· Mossa di gruppo: il leader attiva e muove le unità nel suo raggio")
 	Game.start_new_game(Domain.Faction.GERMAN, 2)
+	Game.finish_setup()  # esce dalla fase di Schieramento manuale → turno del giocatore
 	var s := Game.state
 	# Leader umano con Comando>0 che ha almeno un altro uomo muovibile nel raggio.
 	var leader: Unit = null
@@ -289,6 +292,7 @@ func _test_fire_modifiers() -> void:
 func _test_order_limit() -> void:
 	print("· Limite ordini per turno (5.1)")
 	Game.start_new_game(Domain.Faction.GERMAN, 2)
+	Game.finish_setup()  # esce dalla fase di Schieramento manuale → turno del giocatore
 	var s := Game.state
 	s.max_orders = 2
 	s.order_count = 2  # ordini esauriti
@@ -324,6 +328,7 @@ func _test_opfire_reaction() -> void:
 	var mover := _mk_unit("mv", Domain.Faction.RUSSIAN, Domain.UnitType.SQUAD, 0, 0, 5, 5)
 	s.units[shooter.id] = shooter
 	s.units[mover.id] = mover
+	s.german_hand = [_make_card(Domain.OrderType.FIRE, Domain.Faction.GERMAN)]  # A24.1: serve una carta Fuoco
 	Game.state = s
 	var out := [false, false]
 	_kick_opfire(mover, Domain.Faction.GERMAN, out)  # coroutine: si sospende sulla scelta
@@ -345,6 +350,7 @@ func _test_opfire_reaction() -> void:
 	var mv2 := _mk_unit("mv", Domain.Faction.RUSSIAN, Domain.UnitType.SQUAD, 0, 0, 5, 5)
 	s2.units[sh2.id] = sh2
 	s2.units[mv2.id] = mv2
+	s2.german_hand = [_make_card(Domain.OrderType.FIRE, Domain.Faction.GERMAN)]
 	Game.state = s2
 	var out2 := [false, false]
 	_kick_opfire(mv2, Domain.Faction.GERMAN, out2)
@@ -365,6 +371,7 @@ func _test_opfire_reaction() -> void:
 	var amv := _mk_unit("mv", Domain.Faction.RUSSIAN, Domain.UnitType.SQUAD, 0, 0, 5, 5)
 	s3.units[hsh.id] = hsh
 	s3.units[amv.id] = amv
+	s3.german_hand = [_make_card(Domain.OrderType.FIRE, Domain.Faction.GERMAN)]
 	Game.state = s3
 	var out3 := [false]
 	_kick_ai_move(amv, 3, 0, Domain.Faction.RUSSIAN, out3)
