@@ -30,6 +30,8 @@ var _cam_yaw := 0.6
 var _cam_pitch := 0.85
 var _cam_dist := 30.0
 var _center := Vector3.ZERO
+var _home_center := Vector3.ZERO  ## inquadratura iniziale (reset col tasto «0»)
+var _home_dist := 30.0
 
 var _dynamic: Node3D
 var _fx: Node3D            ## layer effetti transitori (tracer, flash); non azzerato dai refresh
@@ -384,6 +386,9 @@ func _build_static(s: GameState) -> void:
 	_add_side_features(s)
 	_center = Vector3(ww * 0.5, 0.0, hh * 0.5)
 	_cam_dist = maxf(ww, hh) * 0.75 + 6.0
+	# "Casa" della camera (per il reinquadramento col tasto «0»).
+	_home_center = _center
+	_home_dist = _cam_dist
 
 
 ## Faccia superiore del vassoio: quad (0,0)-(ww,hh) con l'immagine completa.
@@ -1245,6 +1250,26 @@ func _orbit(rel: Vector2) -> void:
 	_update_camera()
 
 
+## Spostamento (pan) della vista 3D nel piano del tabellone, come il trascinamento
+## della 2D: trascina e la mappa segue il cursore. Scala con la distanza così il
+## pan è uniforme a ogni zoom.
+func _pan(rel: Vector2) -> void:
+	var fwd := Vector3(-sin(_cam_yaw), 0.0, -cos(_cam_yaw))  # dalla camera verso il centro
+	var right := Vector3(cos(_cam_yaw), 0.0, -sin(_cam_yaw))
+	var k := _cam_dist * 0.0016
+	_center += (right * (-rel.x) + fwd * rel.y) * k
+	_update_camera()
+
+
+## Reinquadra la vista 3D sull'inquadratura iniziale (tasto «0»).
+func _reset_camera() -> void:
+	_center = _home_center
+	_cam_dist = _home_dist
+	_cam_yaw = 0.6
+	_cam_pitch = 0.85
+	_update_camera()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	# Modalità LOS: il tasto sinistro sposta le estremità (no rotazione camera).
 	if Game.state != null and Game.state.los_mode and _handle_los_input_3d(event):
@@ -1297,9 +1322,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom(0.9)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_zoom(1.0 / 0.9)
+	elif event is InputEventKey:
+		var ke := event as InputEventKey
+		if ke.pressed and ke.keycode == KEY_0:
+			_reset_camera()  # reinquadra la vista 3D
 	elif event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
-		if (mm.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		# Tasto destro o centrale = spostamento (pan), come in 2D.
+		if (mm.button_mask & (MOUSE_BUTTON_MASK_RIGHT | MOUSE_BUTTON_MASK_MIDDLE)) != 0:
+			_hide_tooltip()
+			_pan(mm.relative)
+		elif (mm.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
 			if _touches.size() >= 2:
 				return
 			if mm.position.distance_to(_press_pos) > 5.0:

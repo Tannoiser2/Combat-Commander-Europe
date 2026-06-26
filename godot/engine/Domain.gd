@@ -8,7 +8,7 @@ extends Node
 
 ## Versione dell'applicazione (mostrata nella schermata iniziale, vedi
 ## res://assets/changelog.md per le modifiche).
-const VERSION := "0.18.2"
+const VERSION := "0.19.0"
 
 
 # ─── Fazioni ─────────────────────────────────────────────────────────────────

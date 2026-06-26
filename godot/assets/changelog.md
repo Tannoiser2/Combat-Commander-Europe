@@ -1,3 +1,8 @@
+[b]v0.19.0[/b]
+
+[b]Vista 3D — spostamento[/b]
+- Ora la mappa 3D si può spostare (pan) trascinando col tasto destro (o centrale) del mouse, come la 2D. Il tasto «0» reinquadra la vista. La rotazione resta sul tasto sinistro e lo zoom sulla rotella.
+
 [b]v0.18.2[/b]
 
 [b]Correzioni[/b]
