@@ -1,3 +1,8 @@
+[b]v0.24.1[/b]
+
+[b]Correzioni[/b]
+- Vista 3D: corretti i "buchi" nelle miniature dei soldati. La riduzione dei poligoni apriva delle crepe lungo le cuciture della texture; ora i vertici vengono saldati prima della decimazione, quindi le mesh restano chiuse (texture invariata).
+
 [b]v0.24.0[/b]
 
 [b]Vista 3D — soldati più grandi e badge migliore[/b]
