@@ -116,6 +116,7 @@ func _ready() -> void:
 	_test_flipbot_move()
 	_test_flipbot_fire()
 	_test_flipbot_opfire()
+	_test_flipbot_advance()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -1905,6 +1906,44 @@ func _test_flipbot_opfire() -> void:
 	s2.units[weak.id] = weak
 	_check(FlipBot.best_op_fire(s2, mv2, GER) == null,
 		"FP 2 contro difesa 10: sotto il minimo → nessuna reazione")
+
+
+func _test_flipbot_advance() -> void:
+	print("· FlipBot: Avanzata (conquista obiettivo, mischia con look-ahead)")
+	# Obiettivo libero adiacente + nemico debole adiacente: conquista (priorità).
+	var s := _new_state(6, 3)
+	s.human_faction = RUS
+	var u := _mk("g1", GER, SQUAD, RIFLE, 1, 1, 6, 7, 6)
+	s.units[u.id] = u
+	s.objectives = [Objective.new(1, 2, 1, 2)]  # neutro a (2,1)
+	var weak := _mk("r1", RUS, SQUAD, RIFLE, 0, 1, 2, 5, 6)  # nemico debole a (0,1)
+	s.units[weak.id] = weak
+	var a := FlipBot.best_advance(s, GER)
+	_check(int(a.get("q", -9)) == 2 and int(a.get("r", -9)) == 1,
+		"conquista l'obiettivo libero adiacente (priorità massima)")
+	_check(String(a.get("kind", "")) == "capture", "tipo avanzata = conquista")
+
+	# Solo un nemico FORTE adiacente (deficit ≥2): niente avanzata.
+	var s2 := _new_state(6, 3)
+	s2.human_faction = RUS
+	var u2 := _mk("g2", GER, SQUAD, RIFLE, 1, 1, 4, 7, 6)  # FP 4
+	s2.units[u2.id] = u2
+	var strong := _mk("r2", RUS, SQUAD, RIFLE, 2, 1, 8, 7, 6)  # FP 8 → margine -4
+	s2.units[strong.id] = strong
+	_check(FlipBot.best_advance(s2, GER).is_empty(),
+		"non avanza in una mischia in deficit di 2+ (look-ahead)")
+
+	# Nemico debole adiacente, nessun obiettivo: avanza in mischia favorevole.
+	var s3 := _new_state(6, 3)
+	s3.human_faction = RUS
+	var u3 := _mk("g3", GER, SQUAD, RIFLE, 1, 1, 7, 7, 6)
+	s3.units[u3.id] = u3
+	var w3 := _mk("r3", RUS, SQUAD, RIFLE, 2, 1, 3, 7, 6)  # FP 3 → margine +4
+	s3.units[w3.id] = w3
+	var a3 := FlipBot.best_advance(s3, GER)
+	_check(int(a3.get("q", -9)) == 2 and int(a3.get("r", -9)) == 1 \
+			and String(a3.get("kind", "")) == "melee",
+		"avanza nella mischia favorevole quando non ci sono obiettivi")
 
 
 func _test_manual_setup() -> void:

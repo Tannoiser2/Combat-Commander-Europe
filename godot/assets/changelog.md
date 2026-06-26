@@ -1,3 +1,9 @@
+[b]v0.16.0[/b]
+
+[b]IA — FlipBot (5/n): Avanzata[/b]
+- L'Avanzata dell'IA ora dà la priorità alla conquista degli obiettivi liberi adiacenti, poi al corpo a corpo (prima su obiettivo, poi ovunque).
+- Look-ahead della mischia: l'IA non avanza in un esagono nemico se vi resterebbe in deficit di mischia di 2 o più punti.
+
 [b]v0.15.0[/b]
 
 [b]IA — FlipBot (4/n): Fuoco di Opportunità[/b]
