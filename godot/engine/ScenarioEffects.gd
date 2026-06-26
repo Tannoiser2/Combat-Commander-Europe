@@ -73,3 +73,34 @@ static func terrain_mods(num: int) -> Dictionary:
 ## Ostacolo (Hindrance) aggiuntivo in OGNI esagono (nebbia, ecc.). 0 se assente.
 static func global_hindrance(num: int) -> int:
 	return int(terrain_mods(num).get("global_hindrance", 0))
+
+
+# ─── Rinforzi (Tabella del Tempo, reinforcements.json) ────────────────────────
+
+const REINF_PATH := "res://assets/scenarios/reinforcements.json"
+static var _reinf: Dictionary = {}
+static var _reinf_loaded := false
+
+
+static func _ensure_reinf() -> void:
+	if _reinf_loaded:
+		return
+	_reinf_loaded = true
+	var f := FileAccess.open(REINF_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var d: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	if d is Dictionary:
+		_reinf = d
+
+
+## Gruppi di rinforzo del lato ("axis"/"allies") per lo scenario: lista di
+## { "space": int, "units": [ {tipo, n} ] }. Vuoto se assenti.
+static func reinforcements(num: int, side: String) -> Array:
+	_ensure_reinf()
+	var s: Variant = _reinf.get(str(num), {})
+	if not (s is Dictionary):
+		return []
+	var r: Variant = s.get(side, [])
+	return r if r is Array else []

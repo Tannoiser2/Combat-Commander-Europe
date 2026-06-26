@@ -112,6 +112,13 @@ var sudden_death_space: int = 7
 ## (SSR Nebbia, ecc.). Sommato all'ostacolo della LOS in ogni attacco di fuoco.
 var global_hindrance: int = 0
 
+## Rinforzi in attesa sulla Tabella del Tempo (SSR): lista di gruppi
+## { "space": int, "faction": int, "forces": [ { "tipo": String, "n": int,
+## "nat": String } ] }. Quando il segnalino Tempo raggiunge `space`, le unità
+## entrano dal bordo amico e il gruppo è rimosso. NON sono in `units` finché non
+## entrano, così nessun'altra logica li considera prematuramente.
+var reinforcements: Array = []
+
 
 # ─── Punti Vittoria ──────────────────────────────────────────────────────────
 

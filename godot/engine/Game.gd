@@ -1659,10 +1659,60 @@ func _apply_fate(card: Card, faction: int, context: Dictionary = {}) -> void:
 	var prev_time := state.time_marker
 	for line in Fate.apply_consequence(state, card, faction, context):
 		_log("Fato — " + line)
-	if state.time_marker > prev_time \
-			and state.time_marker >= state.sudden_death_space \
-			and state.phase != Domain.Phase.GAME_OVER:
-		_check_sudden_death(faction)
+	if state.time_marker > prev_time:
+		# Rinforzi (Tabella del Tempo): entrano quando il Tempo raggiunge il loro spazio.
+		_check_reinforcements()
+		if state.time_marker >= state.sudden_death_space \
+				and state.phase != Domain.Phase.GAME_OVER:
+			_check_sudden_death(faction)
+
+
+## Fa entrare i rinforzi il cui spazio della Tabella del Tempo è stato raggiunto
+## dal segnalino: crea le unità sul bordo amico (esagoni liberi) e le rimuove dal
+## pool. Finora NON erano in `state.units`, quindi nessuna logica le considerava.
+func _check_reinforcements() -> void:
+	if state.reinforcements.is_empty():
+		return
+	var still_waiting: Array = []
+	for grp in state.reinforcements:
+		if int(grp.get("space", 99)) <= state.time_marker:
+			_enter_reinforcement(grp)
+		else:
+			still_waiting.append(grp)
+	state.reinforcements = still_waiting
+
+
+func _enter_reinforcement(grp: Dictionary) -> void:
+	var faction := int(grp.get("faction", Domain.Faction.GERMAN))
+	# Bordo amico: Axis entra dalle colonne di destra, Allied da sinistra.
+	var edge_q := state.map_cols - 1 if faction == Domain.Faction.GERMAN else 0
+	var rows: Array = []
+	for r in state.map_rows:
+		rows.append(r)
+	var seq := state.units.size() + 1000  # id univoci, lontani da quelli di setup
+	var entered := 0
+	for f in grp.get("forces", []):
+		var tipo := String(f.get("tipo", ""))
+		var nat := String(f.get("nat", ""))
+		for k in int(f.get("n", 1)):
+			var pos := _free_edge_hex(edge_q, rows)
+			var id := "R-%s-%d" % [Domain.FACTION_SHORT.get(faction, "U"), seq]
+			seq += 1
+			state.units[id] = UnitChart.build_unit(id, faction, tipo, pos.x, pos.y, nat)
+			entered += 1
+	if entered > 0:
+		_log("Rinforzi (spazio %d): entrano %d unità dal bordo." % [int(grp.get("space", 0)), entered])
+		_assign_initial_carriers(state)  # le armi dei rinforzi vanno a una squadra
+		emit_signal("state_changed")
+
+
+## Un esagono libero (senza uomini) sulla colonna di bordo `q`; se sono tutte
+## occupate, ripiega su una riga qualsiasi della colonna.
+func _free_edge_hex(q: int, rows: Array) -> Vector2i:
+	for r in rows:
+		if state.men_at(q, r).is_empty():
+			return Vector2i(q, r)
+	return Vector2i(q, int(rows[0]) if not rows.is_empty() else 0)
 
 
 func _end_player_turn() -> void:

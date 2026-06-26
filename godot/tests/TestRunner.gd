@@ -112,6 +112,7 @@ func _ready() -> void:
 	_test_setup_zones()
 	_test_scenario_effects()
 	_test_global_hindrance()
+	_test_reinforcements()
 	_test_surrender()
 	_test_sudden_death_roll()
 	_test_ordnance()
@@ -1624,6 +1625,32 @@ func _test_move_command_group() -> void:
 	Game.select_unit("C")
 	_check(s2.ordered_group.size() == 1 and s2.ordered_group.has("C"),
 		"una squadra fuori comando si muove da sola")
+
+
+func _test_reinforcements() -> void:
+	print("· Rinforzi: sottratti dal setup, entrano quando il Tempo raggiunge il loro spazio")
+	Game.start_new_game(GER, 9)  # «Rush to Contact»: molti rinforzi su entrambi i lati
+	var s := Game.state
+	_check(not s.reinforcements.is_empty(), "lo scenario 9 ha rinforzi in attesa nel pool")
+	var before := s.units.size()
+	var pending := 0
+	for grp in s.reinforcements:
+		for f in grp.get("forces", []):
+			pending += int(f.get("n", 0))
+	_check(pending > 0, "ci sono unità di rinforzo in attesa")
+	# Il segnalino Tempo raggiunge tutti gli spazi usati (max 6): entrano tutti.
+	s.time_marker = 6
+	Game._check_reinforcements()
+	_check(s.units.size() == before + pending, "tutti i rinforzi entrano in campo (+%d)" % pending)
+	_check(s.reinforcements.is_empty(), "il pool dei rinforzi si svuota")
+	# Le unità entrate sono sul bordo amico (Asse a destra / Alleati a sinistra).
+	var on_edges := true
+	for u in s.units.values():
+		if String(u.id).begins_with("R-"):
+			var edge := s.map_cols - 1 if u.faction == GER else 0
+			if u.q != edge:
+				on_edges = false
+	_check(on_edges, "i rinforzi entrano dal bordo amico")
 
 
 func _test_global_hindrance() -> void:
