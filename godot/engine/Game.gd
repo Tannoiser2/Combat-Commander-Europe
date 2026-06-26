@@ -59,7 +59,57 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 		state.turn_number,
 		Domain.FACTION_NAMES.get(state.initiative_holder, "?")
 	])
+	# Schieramento manuale: il giocatore può disporre le sue unità nella zona di
+	# setup (oppure premere «Auto» per il piazzamento intelligente automatico).
+	# Le pedine partono già piazzate dall'Auto intelligente del loader.
+	_ensure_setup_zone(state)
+	_log("Schieramento: disponi le tue unità nella zona, o premi «Auto».")
+	_change_phase(Domain.Phase.PLAYER_SETUP)
+
+
+## Garantisce che `state.setup_zone` sia popolata. Gli scenari dal loader la
+## ricevono già (zona della scheda); per lo scenario 1 (dati a mano) la deriva
+## dagli esagoni delle proprie unità più i vicini, così il giocatore ha margine.
+func _ensure_setup_zone(s: GameState) -> void:
+	if not s.setup_zone.is_empty():
+		return
+	var seen := {}
+	var zone: Array = []
+	for u in s.units_of(s.human_faction):
+		if u.is_weapon():
+			continue  # le armi seguono il portatore
+		var around: Array = [Vector2i(u.q, u.r)]
+		around.append_array(HexGrid.neighbors(u.q, u.r))
+		for hx in around:
+			if hx.x < 0 or hx.y < 0 or hx.x >= s.map_cols or hx.y >= s.map_rows:
+				continue
+			var k := "%d,%d" % [hx.x, hx.y]
+			if seen.has(k):
+				continue
+			seen[k] = true
+			zone.append(hx)
+	s.setup_zone = zone
+
+
+## «Schieramento pronto»: chiude la fase di setup e inizia il gioco vero.
+func finish_setup() -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_SETUP:
+		return
+	deselect()
+	state.setup_zone = []
+	_log("Schieramento confermato. Inizia la partita.")
 	_change_phase(Domain.Phase.PLAYER_TURN)
+
+
+## «Auto»: ripiazza le proprie unità con l'Auto intelligente (gruppi comandati
+## da leader, distanziati, in copertura e su altura). Resta in fase di setup.
+func auto_setup() -> void:
+	if state == null or state.phase != Domain.Phase.PLAYER_SETUP:
+		return
+	ScenarioLoader.auto_deploy_human(state)
+	deselect()
+	_log("Schieramento Auto intelligente applicato.")
+	emit_signal("state_changed")
 
 
 ## SSR: mette in mano le carte garantite a inizio partita (es. «G-65»). Il
@@ -628,6 +678,59 @@ func click_hex(q: int, r: int) -> void:
 		opfire_decline()
 	elif s.phase == Domain.Phase.PLAYER_TURN:
 		_cycle_select(units_here, true)
+	elif s.phase == Domain.Phase.PLAYER_SETUP:
+		_setup_click(q, r, units_here)
+
+
+## Schieramento manuale: con un'unità propria selezionata, un clic su un altro
+## esagono della zona la sposta lì (rispettando zona e impilamento ≤7 figure);
+## le armi seguono il portatore. Un clic sulla casella dell'unità selezionata
+## (o su una pedina propria senza selezione) scorre l'impilamento o deseleziona.
+func _setup_click(q: int, r: int, units_here: Array) -> void:
+	var s := state
+	var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
+	if sel != null and not (q == sel.q and r == sel.r):
+		if not _setup_in_zone(q, r):
+			_log("Fuori dalla zona di schieramento.")
+			return
+		# L'unità lascia la sua casella: conta solo le figure già presenti qui.
+		if s.soldier_icons_at(q, r) + sel.soldier_icons() > 7:
+			_log("Impilamento pieno in %s (max 7 figure)." % Domain.qr_to_label(q, r))
+			return
+		s.set_unit_pos(sel, q, r)
+		_log("%s schierata in %s." % [sel.unit_name, Domain.qr_to_label(q, r)])
+		emit_signal("state_changed")
+		return
+	_cycle_setup_select(units_here)
+
+
+## Vero se (q,r) appartiene alla zona di schieramento del giocatore.
+func _setup_in_zone(q: int, r: int) -> bool:
+	for h in state.setup_zone:
+		if h.x == q and h.y == r:
+			return true
+	return false
+
+
+## Selezione ciclica in fase di setup: scorre le pedine proprie nell'esagono
+## (escluse le armi, che seguono il portatore); dopo l'ultima, deseleziona.
+func _cycle_setup_select(units_here: Array) -> void:
+	var sel_list: Array = units_here.filter(
+		func(u: Unit) -> bool: return u.faction == state.human_faction and not u.is_weapon())
+	if sel_list.is_empty():
+		deselect()
+		return
+	var idx := -1
+	for i in sel_list.size():
+		if sel_list[i].id == state.selected_unit_id:
+			idx = i
+			break
+	if idx < 0:
+		select_unit(sel_list[0].id)
+	elif idx + 1 < sel_list.size():
+		select_unit(sel_list[idx + 1].id)
+	else:
+		deselect()
 
 
 ## Ciclo di selezione nell'impilamento: a clic ripetuti sullo stesso esagono

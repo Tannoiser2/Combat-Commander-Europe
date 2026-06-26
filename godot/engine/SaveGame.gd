@@ -85,6 +85,7 @@ static func _state_to_dict(s: GameState) -> Dictionary:
 		"max_orders": s.max_orders, "ai_max_orders": s.ai_max_orders,
 		"time_marker": s.time_marker, "sudden_death_space": s.sudden_death_space,
 		"global_hindrance": s.global_hindrance, "reinforcements": s.reinforcements,
+		"setup_zone": _hexlist_to_strs(s.setup_zone),
 		"vp_tracker": s.vp_tracker, "bonus_vp": s.bonus_vp,
 		"chit_double_exit": s.chit_double_exit, "chit_double_elim": s.chit_double_elim,
 		# Per-fazione
@@ -138,6 +139,7 @@ static func _state_from_dict(d: Dictionary) -> GameState:
 	s.global_hindrance = int(d.get("global_hindrance", 0))
 	var reinf: Variant = d.get("reinforcements", [])
 	s.reinforcements = reinf if reinf is Array else []
+	s.setup_zone = _hexlist_from_strs(d.get("setup_zone", []))
 	s.vp_tracker = int(d.get("vp_tracker", 0)); s.bonus_vp = int(d.get("bonus_vp", 0))
 	s.chit_double_exit = bool(d.get("chit_double_exit", false))
 	s.chit_double_elim = bool(d.get("chit_double_elim", false))
@@ -247,4 +249,22 @@ static func _cards_to(cards: Array) -> Array:
 	var out := []
 	for c in cards:
 		out.append(_card_to_dict(c))
+	return out
+
+
+## Lista di esagoni (Vector2i) ⇄ lista di stringhe "q,r" per il JSON.
+static func _hexlist_to_strs(hexes: Array) -> Array:
+	var out := []
+	for h in hexes:
+		out.append("%d,%d" % [h.x, h.y])
+	return out
+
+
+static func _hexlist_from_strs(raw: Variant) -> Array:
+	var out: Array = []
+	if raw is Array:
+		for s in raw:
+			var parts := String(s).split(",")
+			if parts.size() == 2:
+				out.append(Vector2i(int(parts[0]), int(parts[1])))
 	return out

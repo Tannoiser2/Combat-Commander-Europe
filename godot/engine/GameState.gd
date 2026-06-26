@@ -119,6 +119,10 @@ var global_hindrance: int = 0
 ## entrano, così nessun'altra logica li considera prematuramente.
 var reinforcements: Array = []
 
+## Esagoni della zona di schieramento del giocatore umano (per lo Schieramento
+## manuale): evidenziati sulla mappa e unici dove può collocare le sue unità.
+var setup_zone: Array = []
+
 
 # ─── Punti Vittoria ──────────────────────────────────────────────────────────
 

@@ -188,6 +188,13 @@ static func label_to_qr(lbl: String) -> Vector2i:
 	return Vector2i(q, r)
 
 
+## Inverso di label_to_qr: coordinata (q,r) → etichetta esagono (es. "C4").
+static func qr_to_label(q: int, r: int) -> String:
+	if q < 0 or r < 0:
+		return "?"
+	return "%s%d" % [char(65 + q), r + 1]
+
+
 # ─── Griglia hex flat-top, offset colonne ────────────────────────────────────
 # Colonne pari: lo spostamento verticale è 0; colonne dispari: +1 riga.
 
@@ -210,6 +217,7 @@ enum Phase {
 	AI_OPP_FIRE,      ## IA risolve fuoco di opportunità
 	AI_TURN,          ## Turno dell'IA
 	GAME_OVER,
+	PLAYER_SETUP,     ## Schieramento manuale delle proprie unità
 }
 
 const PHASE_LABELS := {
@@ -219,6 +227,7 @@ const PHASE_LABELS := {
 	Phase.AI_OPP_FIRE:     "Fuoco di Opportunità IA!",
 	Phase.AI_TURN:         "Turno IA in corso...",
 	Phase.GAME_OVER:       "PARTITA TERMINATA",
+	Phase.PLAYER_SETUP:    "Schieramento — disponi le tue unità nella zona",
 }
 
 
