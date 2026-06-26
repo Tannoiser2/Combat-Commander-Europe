@@ -110,6 +110,7 @@ func _ready() -> void:
 	_test_scenario_rules()
 	_test_setup_depth()
 	_test_setup_zones()
+	_test_smart_deploy()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -1705,6 +1706,34 @@ func _test_scenario_effects() -> void:
 		if int(c.number) == 65:
 			has65 = true
 	_check(has65, "lo scenario 3 garantisce G-65 in mano all'Asse")
+
+
+func _test_smart_deploy() -> void:
+	print("· Schieramento Auto intelligente: squadre raggruppate attorno ai leader")
+	var s := GameState.new()
+	if not ScenarioLoader.setup(s, 1):
+		_check(false, "setup scenario 1 riuscito")
+		return
+	for fac in [GER, RUS]:
+		var leaders: Array = []
+		var squads: Array = []
+		for u in s.units.values():
+			if u.faction != fac or not u.is_man():
+				continue
+			if u.is_leader() and u.command > 0:
+				leaders.append(u)
+			elif not u.is_leader():
+				squads.append(u)
+		if leaders.is_empty() or squads.is_empty():
+			continue
+		var commanded := 0
+		for sq in squads:
+			for L in leaders:
+				if HexGrid.distance(L.q, L.r, sq.q, sq.r) <= L.command:
+					commanded += 1
+					break
+		_check(float(commanded) / float(squads.size()) >= 0.6,
+			"≥60%% delle squadre è nel raggio di Comando di un leader (%d/%d)" % [commanded, squads.size()])
 
 
 func _test_setup_zones() -> void:
