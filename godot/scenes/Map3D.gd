@@ -19,7 +19,12 @@ const MODEL_HOUSES := [
 ]
 const MODEL_TREES := "res://assets/models3d/grass-trees.glb"
 const MODEL_GRASS := "res://assets/models3d/grass.glb"
+## Collezione di alberi low-poly (Low-Poly Tree Collection 01): 200 alberi
+## variati in un solo FBX, da cui si estraggono le singole mesh per il bosco.
+const MODEL_TREE_COLLECTION := "res://assets/models3d/tree_collection.fbx"
+const TREE_HEIGHT := 1.45  ## altezza desiderata di un albero, in unità mondo
 var _model_cache: Dictionary = {}  ## path → PackedScene (o null se assente)
+var _tree_pool: Array = []  ## Mesh dei singoli alberi (cache, estratte una volta)
 
 var _world := 1.0 / 59.2
 var _ox := 129.0
@@ -906,16 +911,23 @@ func _decorate(hd: GameState.HexData, q: int, r: int, top: Vector3) -> void:
 	var yaw := 60.0 * float((q * 2 + r) % 6)
 	match hd.terrain:
 		Domain.TerrainType.WOODS:
-			if not _spawn_model_fit(_model(MODEL_TREES), top, 1.55, yaw):
+			# Due alberi variati dalla collezione; ripiego procedurale se manca.
+			if _trees().is_empty():
 				_add_tree(top, _jit(q, r, 0), 1.0)
 				_add_tree(top, _jit(q, r, 1), 0.85)
 				_add_tree(top, _jit(q, r, 2), 0.7)
 				_add_bush(top, _jit(q, r, 4), 0.8)
+			else:
+				_spawn_tree(top + _jit(q, r, 0) * 0.5, TREE_HEIGHT, q * 3 + r)
+				_spawn_tree(top + _jit(q, r, 2) * 0.5, TREE_HEIGHT * 0.8, q + r * 3 + 5)
 		Domain.TerrainType.ORCHARD:
-			if not _spawn_model_fit(_model(MODEL_TREES), top, 1.2, yaw):
+			# Un albero della collezione (frutteto più rado); ripiego procedurale.
+			if _trees().is_empty():
 				_add_tree(top, _jit(q, r, 0), 0.8)
 				_add_tree(top, _jit(q, r, 3), 0.72)
 				_add_bush(top, _jit(q, r, 5), 0.7)
+			else:
+				_spawn_tree(top, TREE_HEIGHT * 0.9, q * 5 + r)
 		Domain.TerrainType.FIELD:
 			if not _spawn_model_fit(_model(MODEL_GRASS), top, 1.5, yaw):
 				_add_bush(top, _jit(q, r, 0), 0.9)
@@ -928,6 +940,58 @@ func _decorate(hd: GameState.HexData, q: int, r: int, top: Vector3) -> void:
 		Domain.TerrainType.RUBBLE:
 			_add_box(top + Vector3(0.2, 0.1, -0.1), Vector3(0.4, 0.2, 0.4), Color(0.45, 0.43, 0.40))
 			_add_box(top + Vector3(-0.25, 0.07, 0.2), Vector3(0.3, 0.14, 0.3), Color(0.5, 0.47, 0.44))
+
+
+## Pool di mesh dei singoli alberi, estratte UNA volta dalla collezione FBX.
+## Tiene gli alberi più "interi" (i più alti), scartando cespugli minuti.
+func _trees() -> Array:
+	if not _tree_pool.is_empty():
+		return _tree_pool
+	var ps := _model(MODEL_TREE_COLLECTION)
+	if ps == null:
+		return _tree_pool
+	var inst := ps.instantiate()
+	var meshes: Array = []
+	_collect_tree_meshes(inst, meshes)
+	inst.queue_free()
+	if meshes.is_empty():
+		return _tree_pool
+	meshes.sort_custom(func(a: Mesh, b: Mesh) -> bool:
+		return a.get_aabb().size.y > b.get_aabb().size.y)
+	_tree_pool = meshes.slice(0, mini(16, meshes.size()))
+	return _tree_pool
+
+
+func _collect_tree_meshes(node: Node, out: Array) -> void:
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		out.append((node as MeshInstance3D).mesh)
+	for c in node.get_children():
+		_collect_tree_meshes(c, out)
+
+
+## Posa un albero della collezione su `pos`, scalato all'altezza `target_h`.
+## `seed` sceglie la varietà e l'orientamento. False se la collezione manca.
+func _spawn_tree(pos: Vector3, target_h: float, seed: int) -> bool:
+	var pool := _trees()
+	if pool.is_empty():
+		return false
+	var mesh: Mesh = pool[seed % pool.size()]
+	var ab := mesh.get_aabb()
+	var sc := target_h / ab.size.y if ab.size.y > 0.001 else 1.0
+	var holder := Node3D.new()
+	holder.position = pos
+	holder.rotation = Vector3(0.0, deg_to_rad(60.0 * float(seed % 6)), 0.0)
+	holder.scale = Vector3(sc, sc, sc)
+	add_child(holder)
+	# Centra orizzontalmente e appoggia la base a y=0.
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.position = Vector3(
+		-(ab.position.x + ab.size.x * 0.5),
+		-ab.position.y,
+		-(ab.position.z + ab.size.z * 0.5))
+	holder.add_child(mi)
+	return true
 
 
 ## PackedScene del modello (con cache); null se il file non è importato/presente.
