@@ -119,7 +119,7 @@ static func _order_play(state: GameState, faction: int, card: Card) -> Dictionar
 		Domain.OrderType.FIRE:
 			return best_fire(state, faction)
 		Domain.OrderType.ADVANCE:
-			return AI.best_advance(state, faction)
+			return best_advance(state, faction)
 		Domain.OrderType.ARTY:
 			return AI.best_artillery(state, faction)
 		Domain.OrderType.RECOVER:
@@ -370,3 +370,60 @@ static func best_op_fire(state: GameState, mover: Unit, defender: int) -> Unit:
 			best_fp = fp
 			best = u
 	return best
+
+
+# ─── Avanzata (O16) ──────────────────────────────────────────────────────────
+
+## Deficit di mischia oltre il quale il bot NON avanza in un esagono nemico
+## (look-ahead del FlipBot): se attaccante − difensori ≤ −2, rinuncia.
+const MELEE_MAX_DEFICIT := 2
+
+
+## Avanzata del bot, fedele al FlipBot. Per ogni unità e ogni esagono adiacente:
+##  • conquista di un obiettivo libero non controllato (priorità massima);
+##  • corpo a corpo su un esagono nemico (su obiettivo prima, poi qualunque),
+##    evitato se il bot resterebbe in deficit di mischia di 2+ punti (look-ahead).
+## Restituisce { unit_id, q, r, margin, kind } o {}.
+static func best_advance(state: GameState, faction: int) -> Dictionary:
+	var best: Dictionary = {}
+	var best_rank := -1
+	var best_score := -9999
+	for u in state.units_of(faction):
+		if not Rules.can_be_ordered(u) or u.is_weapon():
+			continue
+		for nb in HexGrid.neighbors(u.q, u.r):
+			if nb.x < 0 or nb.x >= state.map_cols or nb.y < 0 or nb.y >= state.map_rows:
+				continue
+			var enemies: Array = state.men_at(nb.x, nb.y).filter(
+				func(m: Unit) -> bool: return m.faction != faction)
+			var o := state.objective_at(nb.x, nb.y)
+			var contested := o != null and o.controller != faction
+			if enemies.is_empty():
+				# Conquista di un obiettivo libero non controllato (rank massimo).
+				if contested:
+					var score := Rules.cover_at(state, nb.x, nb.y, false)
+					if _adv_better(2, score, best_rank, best_score):
+						best_rank = 2
+						best_score = score
+						best = { "unit_id": u.id, "q": nb.x, "r": nb.y, "margin": 0, "kind": "capture" }
+			else:
+				# Corpo a corpo: margine FP attaccante vs difensori (O16.4: no Comando).
+				var atk := u.effective_fp() + (1 if u.fp_boxed else 0)
+				var deff := 0
+				for d in enemies:
+					deff += d.effective_fp() + (1 if d.fp_boxed else 0)
+				var margin := atk - deff
+				if margin <= -MELEE_MAX_DEFICIT:
+					continue  # deficit di mischia di 2+: niente avanzata (look-ahead)
+				var rank := 1 if contested else 0  # mischia su obiettivo prima
+				if _adv_better(rank, margin, best_rank, best_score):
+					best_rank = rank
+					best_score = margin
+					best = { "unit_id": u.id, "q": nb.x, "r": nb.y, "margin": margin, "kind": "melee" }
+	return best
+
+
+## Un candidato avanzata è migliore se ha rango superiore, o pari rango e
+## punteggio (copertura per la conquista, margine per la mischia) maggiore.
+static func _adv_better(rank: int, score: int, best_rank: int, best_score: int) -> bool:
+	return rank > best_rank or (rank == best_rank and score > best_score)
