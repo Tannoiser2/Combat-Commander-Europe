@@ -111,6 +111,7 @@ func _ready() -> void:
 	_test_setup_depth()
 	_test_setup_zones()
 	_test_smart_deploy()
+	_test_setup_phase_routing()
 	_test_manual_setup()
 	_test_flipbot()
 	_test_flipbot_move()
@@ -2006,6 +2007,25 @@ func _test_flipbot_scenario_rules() -> void:
 	s.scenario_number = 7
 	_check(FlipBot.no_edge_objective(s, GER) and FlipBot.no_edge_objective(s, RUS),
 		"scenario 7 (No Quarter): la regola vale per entrambi i lati")
+
+
+func _test_setup_phase_routing() -> void:
+	print("· Schieramento: scenario 1 (fisso) salta il setup; con zona lo apre")
+	# Scenario 1: piazzamento storico fisso → niente fase di Schieramento,
+	# inizia direttamente il turno con le unità ai loro esagoni esatti.
+	Game.start_new_game(Domain.Faction.GERMAN, 1)
+	_check(Game.state.phase == Domain.Phase.PLAYER_TURN,
+		"scenario 1 (piazzamento fisso) inizia il turno senza fase di setup")
+	_check(Game.state.setup_zone.is_empty(), "scenario 1 non ha una zona di schieramento")
+	var g0 := Game.state.unit_by_id("ger-0")
+	_check(g0 != null and g0.q == 13 and g0.r == 4,
+		"Lt. v. Karstens al suo esagono storico (13,4)")
+	var g3 := Game.state.unit_by_id("ger-3")
+	_check(g3 != null and g3.q == 14 and g3.r == 3, "Rifle 2 al suo esagono storico (14,3)")
+	# Uno scenario con zona di schieramento (dalla scheda) apre il setup manuale.
+	Game.start_new_game(Domain.Faction.GERMAN, 2)
+	_check(Game.state.phase == Domain.Phase.PLAYER_SETUP,
+		"uno scenario con zona apre lo Schieramento manuale")
 
 
 func _test_manual_setup() -> void:

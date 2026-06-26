@@ -1,3 +1,8 @@
+[b]v0.18.1[/b]
+
+[b]Correzioni[/b]
+- Scenario 1: ripristinato il piazzamento storico esatto. Gli scenari con piazzamento fisso (curato a mano) non passano più dalla fase di Schieramento manuale — partono direttamente con le forze ai loro esagoni precisi. Lo Schieramento manuale con «Auto» resta per gli scenari che hanno una zona di schieramento dalle schede.
+
 [b]v0.18.0[/b]
 
 [b]IA — FlipBot (7/n): istruzioni per scenario[/b]
