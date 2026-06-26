@@ -1,3 +1,8 @@
+[b]v0.21.0[/b]
+
+[b]Vista 3D — soldati[/b]
+- Le pedine in 3D sono ora una figura di soldato (una per pedina), con il segnalino di gioco sopra la testa per identità e valori. L'Asse usa il modello tedesco; gli Alleati lo stesso modello con tinta verde-oliva come segnaposto (in attesa di un modello dedicato). Texture ridotte per la build web; ripiego al segnalino se il modello manca.
+
 [b]v0.20.0[/b]
 
 [b]Vista 3D — alberi[/b]
