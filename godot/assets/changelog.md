@@ -1,3 +1,8 @@
+[b]v0.20.0[/b]
+
+[b]Vista 3D — alberi[/b]
+- Nuovi alberi low-poly variati (collezione dedicata) al posto dei coni negli esagoni di bosco e frutteto: più forme, più verde, più "foresta". Restano leggeri per il web.
+
 [b]v0.19.0[/b]
 
 [b]Vista 3D — spostamento[/b]

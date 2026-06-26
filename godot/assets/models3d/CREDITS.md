@@ -10,3 +10,10 @@ di **Kenney** (account ufficiale `KenneyNL` su GitHub).
 
 File inclusi: building-small-a/b/c (edifici), grass-trees (alberi),
 grass (vegetazione bassa).
+
+## Alberi del bosco
+
+`tree_collection.fbx` + `textures/color_1024x1024.jpg`: collezione di alberi
+low-poly "Low-Poly Tree Collection 01" (fornita dall'utente). Usata per gli
+esagoni di bosco/frutteto nella vista 3D. La licenza d'uso è quella della
+collezione originale scaricata dall'utente.
