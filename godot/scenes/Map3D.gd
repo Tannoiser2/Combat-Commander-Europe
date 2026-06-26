@@ -942,8 +942,10 @@ func _decorate(hd: GameState.HexData, q: int, r: int, top: Vector3) -> void:
 			_add_box(top + Vector3(-0.25, 0.07, 0.2), Vector3(0.3, 0.14, 0.3), Color(0.5, 0.47, 0.44))
 
 
-## Pool di mesh dei singoli alberi, estratte UNA volta dalla collezione FBX.
-## Tiene gli alberi più "interi" (i più alti), scartando cespugli minuti.
+## Pool di alberi della collezione FBX, estratti UNA volta. Per ogni albero si
+## conserva la mesh E la base (rotazione/scala globale nella collezione): l'FBX è
+## Z-up e il nodo lo raddrizza, quindi senza quella base la mesh resterebbe
+## coricata. Tiene gli alberi più alti (in piedi), scartando i cespugli minuti.
 func _trees() -> Array:
 	if not _tree_pool.is_empty():
 		return _tree_pool
@@ -951,45 +953,54 @@ func _trees() -> Array:
 	if ps == null:
 		return _tree_pool
 	var inst := ps.instantiate()
-	var meshes: Array = []
-	_collect_tree_meshes(inst, meshes)
+	var entries: Array = []
+	_collect_tree_meshes(inst, Transform3D.IDENTITY, entries)
 	inst.queue_free()
-	if meshes.is_empty():
+	if entries.is_empty():
 		return _tree_pool
-	meshes.sort_custom(func(a: Mesh, b: Mesh) -> bool:
-		return a.get_aabb().size.y > b.get_aabb().size.y)
-	_tree_pool = meshes.slice(0, mini(16, meshes.size()))
+	# Ordina per altezza DA IN PIEDI (mesh orientata dalla sua base).
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return _upright_aabb(a).size.y > _upright_aabb(b).size.y)
+	_tree_pool = entries.slice(0, mini(16, entries.size()))
 	return _tree_pool
 
 
-func _collect_tree_meshes(node: Node, out: Array) -> void:
+func _collect_tree_meshes(node: Node, xform: Transform3D, out: Array) -> void:
+	var t := xform
+	if node is Node3D:
+		t = xform * (node as Node3D).transform
 	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
-		out.append((node as MeshInstance3D).mesh)
+		out.append({ "mesh": (node as MeshInstance3D).mesh, "basis": t.basis })
 	for c in node.get_children():
-		_collect_tree_meshes(c, out)
+		_collect_tree_meshes(c, t, out)
 
 
-## Posa un albero della collezione su `pos`, scalato all'altezza `target_h`.
-## `seed` sceglie la varietà e l'orientamento. False se la collezione manca.
+## AABB della mesh orientata dalla sua base (com'è in piedi nella collezione).
+func _upright_aabb(entry: Dictionary) -> AABB:
+	return Transform3D(entry["basis"], Vector3.ZERO) * (entry["mesh"] as Mesh).get_aabb()
+
+
+## Posa un albero della collezione su `pos`, IN PIEDI e scalato all'altezza
+## `target_h`. `seed` sceglie la varietà e l'orientamento. False se manca.
 func _spawn_tree(pos: Vector3, target_h: float, seed: int) -> bool:
 	var pool := _trees()
 	if pool.is_empty():
 		return false
-	var mesh: Mesh = pool[seed % pool.size()]
-	var ab := mesh.get_aabb()
+	var entry: Dictionary = pool[seed % pool.size()]
+	var ab := _upright_aabb(entry)  # ingombro da in piedi
 	var sc := target_h / ab.size.y if ab.size.y > 0.001 else 1.0
 	var holder := Node3D.new()
 	holder.position = pos
 	holder.rotation = Vector3(0.0, deg_to_rad(60.0 * float(seed % 6)), 0.0)
 	holder.scale = Vector3(sc, sc, sc)
 	add_child(holder)
-	# Centra orizzontalmente e appoggia la base a y=0.
+	# Applica la base (raddrizza l'albero), poi centra in X/Z e appoggia la base a y=0.
 	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.position = Vector3(
+	mi.mesh = entry["mesh"]
+	mi.transform = Transform3D(entry["basis"], Vector3(
 		-(ab.position.x + ab.size.x * 0.5),
 		-ab.position.y,
-		-(ab.position.z + ab.size.z * 0.5))
+		-(ab.position.z + ab.size.z * 0.5)))
 	holder.add_child(mi)
 	return true
 
