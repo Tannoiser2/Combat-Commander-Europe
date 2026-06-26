@@ -37,6 +37,34 @@ static func entry(num: int) -> Dictionary:
 	return {}
 
 
+const ZONES_PATH := "res://assets/scenarios/setup_zones.json"
+static var _zones: Dictionary = {}
+static var _zones_loaded := false
+
+
+## Zone di schieramento fedeli alle schede ({num: {first, axis:{anchors,depth},
+## allies:{...}}}), caricate una volta. Hanno priorità sul catalogo.
+static func _zones_data() -> Dictionary:
+	if not _zones_loaded:
+		_zones_loaded = true
+		var f := FileAccess.open(ZONES_PATH, FileAccess.READ)
+		if f != null:
+			var d: Variant = JSON.parse_string(f.get_as_text())
+			f.close()
+			if d is Dictionary:
+				_zones = d
+	return _zones
+
+
+## Specifica di schieramento ({anchors?, depth?}) per lo scenario e il lato.
+static func _zone_spec(num: int, side: String) -> Dictionary:
+	var z: Variant = _zones_data().get(str(num), {})
+	if not (z is Dictionary):
+		return {}
+	var s: Variant = z.get(side, {})
+	return s if s is Dictionary else {}
+
+
 ## Popola lo stato con lo scenario `num`. Restituisce true se riuscito.
 static func setup(state: GameState, num: int) -> bool:
 	var e := entry(num)
@@ -207,9 +235,12 @@ static func _interleave(items: Array) -> Array:
 	return out
 
 
-## Caselle di setup di un lato: ancore (in/adiacenti) o bordo+profondità.
+## Caselle di setup di un lato: ancore (in/adiacenti) o bordo+profondità. Le zone
+## fedeli alle schede (setup_zones.json) hanno priorità sui campi del catalogo.
 static func _setup_hexes(state: GameState, e: Dictionary, side: String) -> Array:
-	var anchors: Array = e.get("setup_%s_anchors" % side, [])
+	var num := int(e.get("numero", 0))
+	var spec := _zone_spec(num, side)
+	var anchors: Array = spec.get("anchors", e.get("setup_%s_anchors" % side, []))
 	var out: Array = []
 	var seen := {}
 	if not anchors.is_empty():
@@ -221,7 +252,7 @@ static func _setup_hexes(state: GameState, e: Dictionary, side: String) -> Array
 		return out
 	# Bordo: Axis a Est (colonne destre), Allied a Ovest (colonne sinistre).
 	# Profondità della zona di schieramento per lato (dalle schede scenario).
-	var depth := maxi(1, int(e.get("setup_%s_depth" % side, 3)))
+	var depth := maxi(1, int(spec.get("depth", e.get("setup_%s_depth" % side, 3))))
 	if side == "axis":
 		for q in range(maxi(0, state.map_cols - depth), state.map_cols):
 			for r in state.map_rows:
