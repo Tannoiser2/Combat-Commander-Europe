@@ -246,6 +246,16 @@ const DISPOSITION_LABELS := {
 	Disposition.DEFENSIVE: "Difensiva",
 }
 
+## Livello di difficoltà del bot (FlipBot). Più alto = più carte, più ordini e
+## resa più tenace per l'IA (vedi FlipBot.apply_difficulty).
+enum BotDifficulty { GREEN, LINE, VETERAN }
+
+const BOT_DIFFICULTY_LABELS := {
+	BotDifficulty.GREEN:   "Recluta",
+	BotDifficulty.LINE:    "Di linea",
+	BotDifficulty.VETERAN: "Veterano",
+}
+
 const ORDER_LABELS := {
 	OrderType.MOVE:        "Mossa",
 	OrderType.FIRE:        "Fuoco",
