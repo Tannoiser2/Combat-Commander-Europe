@@ -39,13 +39,17 @@ const CHITS := [
 ## Estrae `count` chit SENZA rimpiazzo dal sacchetto da 22 e li applica, azzerando
 ## prima i VP stampati. No-op se non ci sono obiettivi o `count` <= 0.
 ## Restituisce { "drawn": Array[String] (lettere), "lines": Array[String] }.
-static func assign(state: GameState, count: int, rng: RandomNumberGenerator) -> Dictionary:
+static func assign(state: GameState, count: int, rng: RandomNumberGenerator, exclude: Array = []) -> Dictionary:
 	var out := { "drawn": [], "lines": [] }
 	if count <= 0 or state.objectives.is_empty():
 		return out
 	for o in state.objectives:
 		o.vp = 0
-	var bag: Array = CHITS.duplicate()
+	# Alcuni scenari escludono certi gettoni Obiettivo dal sacchetto (SSR).
+	var bag: Array = []
+	for c in CHITS:
+		if not exclude.has(String(c["id"])):
+			bag.append(c)
 	var drawn: Array = []
 	var lines: Array = []
 	var n: int = mini(count, bag.size())

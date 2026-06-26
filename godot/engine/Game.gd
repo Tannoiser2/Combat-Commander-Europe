@@ -51,6 +51,8 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 	Cards.shuffle(state.german_deck)
 	Cards.shuffle(state.russian_deck)
 	Cards.deal_initial(state)
+	# SSR: carte garantite in mano a inizio partita (es. «inizia con G-65»).
+	_apply_opening_cards(state)
 
 	_log("=== SCENARIO %d: %s ===" % [state.scenario_number, state.scenario_name])
 	_log("Turno %d — iniziativa: %s" % [
@@ -58,6 +60,34 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 		Domain.FACTION_NAMES.get(state.initiative_holder, "?")
 	])
 	_change_phase(Domain.Phase.PLAYER_TURN)
+
+
+## SSR: mette in mano le carte garantite a inizio partita (es. «G-65»). Il
+## codice «X-NN» indica il mazzo/nazione (lettera) e il numero NN della carta;
+## la si pesca dal mazzo del lato e la si aggiunge alla mano (se presente).
+func _apply_opening_cards(s: GameState) -> void:
+	_give_opening(s, ScenarioEffects.opening_cards(s.scenario_number, "axis"),
+		s.german_deck, s.german_hand)
+	_give_opening(s, ScenarioEffects.opening_cards(s.scenario_number, "allies"),
+		s.russian_deck, s.russian_hand)
+
+
+func _give_opening(s: GameState, codes: Array, deck: Array, hand: Array) -> void:
+	for code in codes:
+		var parts := String(code).split("-")
+		if parts.size() < 2:
+			continue
+		var num := int(parts[parts.size() - 1])
+		var found := false
+		for i in deck.size():
+			if int(deck[i].number) == num:
+				hand.append(deck[i])
+				deck.remove_at(i)
+				found = true
+				_log("Carta iniziale garantita (%s) in mano." % code)
+				break
+		if not found:
+			_log("Carta iniziale %s non trovata nel mazzo (saltata)." % code)
 
 
 ## Assegna ogni arma a un uomo della stessa fazione (11.2): a inizio partita le
