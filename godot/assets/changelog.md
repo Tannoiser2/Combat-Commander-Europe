@@ -1,3 +1,15 @@
+[b]v0.24.0[/b]
+
+[b]Vista 3D — soldati più grandi e badge migliore[/b]
+- Le figure dei soldati sono un po' più grandi e leggibili.
+- Il badge dei valori sopra la pedina è ora più piccolo e curato: pannello con angoli stondati e un font vero (non più "a quadretti"). I valori "in box" e il Comando dei leader hanno un riquadro stondato del loro colore; il pannello diventa rosso se l'unità è rotta.
+- La pedina selezionata non si solleva più: la selezione è indicata colorando il fondo del badge (azzurro con bordo acceso). Più chiaro e meno invasivo.
+
+[b]v0.23.0[/b]
+
+[b]Vista 3D — soldati americani[/b]
+- Modelli 3D dedicati anche per gli Americani (soldati in 2 pose + ufficiale). I modelli sono ora scelti per nazionalità dell'unità (Tedeschi / Russi / Americani), non più solo per fazione: ogni nazione mostra i propri soldati, con ripiego tinto solo se un modello manca.
+
 [b]v0.22.0[/b]
 
 [b]Vista 3D — squadre, badge numerico e direzione[/b]

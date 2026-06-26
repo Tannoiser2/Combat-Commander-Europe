@@ -25,10 +25,15 @@ Sovietici:
 - `soldier_ru.glb`, `soldier_ru_a.glb`: due pose di soldato (squadre/team).
 - `officer_ru.glb`: ufficiale, usato per i leader.
 
-Modelli forniti dall'utente (generati con Meshy AI), decimati a ~5000 triangoli
-e con le texture ridotte a 512×512 (ricodificate JPEG) per la build web. Se una
-fazione non ha il modello, si ripiega su quello dell'altra con una tinta
-verde-oliva come segnaposto.
+Americani:
+- `soldier_us.glb`, `soldier_us_a.glb`: due pose di soldato (squadre/team).
+- `officer_us.glb`: ufficiale, usato per i leader.
+
+I modelli sono scelti per nazionalità dell'unità (`nation_art`: Tedeschi / Russi
+/ Americani). Modelli forniti dall'utente (generati con Meshy AI), decimati a
+~5000 triangoli e con le texture ridotte a 512×512 (ricodificate JPEG) per la
+build web. Se una nazione non ha il modello, si ripiega su quello di un'altra con
+una tinta verde-oliva come segnaposto.
 
 
 ## Alberi del bosco

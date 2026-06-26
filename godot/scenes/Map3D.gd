@@ -37,9 +37,15 @@ const MODEL_SOLDIERS_RU := [
 	"res://assets/models3d/soldier_ru_a.glb",
 ]
 const MODEL_OFFICER_RU := "res://assets/models3d/officer_ru.glb"
+const MODEL_SOLDIERS_US := [
+	"res://assets/models3d/soldier_us.glb",
+	"res://assets/models3d/soldier_us_a.glb",
+]
+const MODEL_OFFICER_US := "res://assets/models3d/officer_us.glb"
 var _model_cache: Dictionary = {}  ## path → PackedScene (o null se assente)
 var _tree_pool: Array = []  ## Mesh dei singoli alberi (cache, estratte una volta)
 var _badge_cache: Dictionary = {}  ## chiave valori → ImageTexture del badge
+var _badge_pending: Dictionary = {}  ## chiave → [Sprite3D] in attesa del render
 
 var _world := 1.0 / 59.2
 var _ox := 129.0
@@ -729,9 +735,9 @@ func _add_pieces(s: GameState) -> void:
 			var top_y := _top_y(s, u.q, u.r)
 			var ci := _hex_img(u.q, u.r)
 			var off := Vector3(0.26 * i - 0.18, 0.0, -0.26 * i + 0.18)
-			# La pedina selezionata si solleva sopra l'impilamento per essere vista.
-			var lift := 0.7 if sel else 0.0
-			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off + Vector3(0.0, lift, 0.0)
+			# La selezione si indica colorando il fondo del badge (vedi _attach_badge),
+			# non sollevando la pedina: meno invasivo e più chiaro.
+			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off
 			_last_unit_pos[u.id] = Vector2i(u.q, u.r)
 			# Figure 3D dei soldati (tante quante le "soldier icons": squadra 4,
 			# team 2, leader/arma 1) con segnalino sopra. Ripiego al segnalino
@@ -748,36 +754,28 @@ func _add_pieces(s: GameState) -> void:
 					holder.position = base
 				_pieces.append({ "id": u.id, "node": holder })
 				continue
-			# ── Ripiego: solo il badge numerico (billboard) ──
-			var final_pos := base + Vector3(0.0, 0.75, 0.0)
-			var tex := _make_badge_tex(u)
-			if tex != null:
-				var sp := Sprite3D.new()
-				sp.texture = tex
-				sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-				sp.shaded = false
-				sp.pixel_size = (0.82 if sel else 0.66) / float(tex.get_height())
-				_dynamic.add_child(sp)
-				if _pending_slide.has(u.id):
-					sp.position = _pending_slide[u.id]
-					var tw := sp.create_tween()
-					tw.set_trans(Tween.TRANS_SINE)
-					tw.tween_property(sp, "position", final_pos, 0.28)
-					_pending_slide.erase(u.id)
-				else:
-					sp.position = final_pos
-				_pieces.append({ "id": u.id, "node": sp })
+			# ── Ripiego (modello assente): cilindro colorato + badge sopra ──
+			var holder2 := Node3D.new()
+			_dynamic.add_child(holder2)
+			var pm := MeshInstance3D.new()
+			var pc := CylinderMesh.new()
+			pc.top_radius = 0.3; pc.bottom_radius = 0.3; pc.height = 0.6
+			pc.radial_segments = 16
+			pm.mesh = pc
+			pm.material_override = _mat(Color(0.66, 0.58, 0.30) \
+				if u.faction == Domain.Faction.GERMAN else Color(0.28, 0.5, 0.28))
+			pm.position = Vector3(0.0, 0.3, 0.0)
+			holder2.add_child(pm)
+			_attach_badge(holder2, u, 1.1, sel)
+			if _pending_slide.has(u.id):
+				holder2.position = _pending_slide[u.id]
+				var tw := holder2.create_tween()
+				tw.set_trans(Tween.TRANS_SINE)
+				tw.tween_property(holder2, "position", base, 0.28)
+				_pending_slide.erase(u.id)
 			else:
-				var pm := MeshInstance3D.new()
-				var pc := CylinderMesh.new()
-				pc.top_radius = 0.3; pc.bottom_radius = 0.3; pc.height = 0.6
-				pc.radial_segments = 16
-				pm.mesh = pc
-				pm.material_override = _mat(Color(0.66, 0.58, 0.30) \
-					if u.faction == Domain.Faction.GERMAN else Color(0.28, 0.5, 0.28))
-				pm.position = base + Vector3(0.0, 0.3, 0.0)
-				_dynamic.add_child(pm)
-				_pieces.append({ "id": u.id, "node": pm })
+				holder2.position = base
+			_pieces.append({ "id": u.id, "node": holder2 })
 
 
 ## Costruisce le figure 3D dei soldati per la pedina: tante quante le "soldier
@@ -791,7 +789,7 @@ func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 	var holder := Node3D.new()
 	_dynamic.add_child(holder)
 	var count := maxi(1, u.soldier_icons())   # squadra 4, team 2, leader 1, arma → 1
-	var target_h := 0.72 if sel else 0.62
+	var target_h := 0.90  # uguale per tutte: la selezione è nel fondo del badge
 	var offs := _figure_offsets(count)
 	var placed := 0
 	for fi in count:
@@ -826,27 +824,16 @@ func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 		return null
 	# Orientamento del gruppo: direzione di marcia, o fronte amico di default.
 	holder.rotation.y = _unit_yaw(u)
-	# Badge numerico sopra la formazione: striscia con i valori della pedina
-	# (PdF/Gittata/Movimento e Morale; Comando per i leader; box sui valori
-	# "in box"). Billboard: il badge non ruota col gruppo, resta verso la camera.
-	var tex := _make_badge_tex(u)
-	if tex != null:
-		var sp := Sprite3D.new()
-		sp.texture = tex
-		sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		sp.shaded = false
-		sp.pixel_size = (0.5 if sel else 0.42) / float(tex.get_height())
-		# Posizione sull'asse di rotazione del gruppo: lo yaw non la sposta; il
-		# billboard orienta comunque il badge verso la camera.
-		sp.position = Vector3(0.0, target_h + 0.42, 0.0)
-		holder.add_child(sp)
+	# Badge numerico sopra la formazione (billboard): non ruota col gruppo perché
+	# è sull'asse di rotazione e si orienta da solo verso la camera.
+	_attach_badge(holder, u, target_h + 0.5, sel)
 	return holder
 
 
 ## Posizioni locali (XZ) delle figure dentro la pedina, in formazione compatta
 ## rivolta verso il davanti locale (+Z). Fino a 4 figure (squadra).
 func _figure_offsets(count: int) -> Array:
-	const D := 0.16
+	const D := 0.20
 	match count:
 		1:
 			return [Vector3.ZERO]
@@ -860,29 +847,58 @@ func _figure_offsets(count: int) -> Array:
 				Vector3(-D, 0.0, D), Vector3(D, 0.0, D)]
 
 
-## Modello per la figura `fi` dell'unità, per fazione: l'ufficiale per i leader,
-## altrimenti pose di soldato alternate per varietà. Se la fazione non ha il
-## modello, ripiega su quello dell'altra fazione (segnalato da `foreign`, così il
-## chiamante lo tinge). Restituisce { scene, foreign }.
+## Nazionalità dell'unità ai fini del modello 3D: dalla `nation_art` (Tedeschi /
+## Russi / Americani); se assente, ripiego per fazione (Asse → Tedeschi).
+func _unit_nation(u: Unit) -> String:
+	match u.nation_art:
+		"Tedeschi", "Russi", "Americani":
+			return u.nation_art
+		_:
+			return "Tedeschi" if u.faction == Domain.Faction.GERMAN else "Russi"
+
+
+func _pool_soldiers(nation: String) -> Array:
+	match nation:
+		"Russi":
+			return MODEL_SOLDIERS_RU
+		"Americani":
+			return MODEL_SOLDIERS_US
+		_:
+			return MODEL_SOLDIERS_DE
+
+
+func _pool_officer(nation: String) -> String:
+	match nation:
+		"Russi":
+			return MODEL_OFFICER_RU
+		"Americani":
+			return MODEL_OFFICER_US
+		_:
+			return MODEL_OFFICER_DE
+
+
+## Modello per la figura `fi` dell'unità, per nazionalità: l'ufficiale per i
+## leader, altrimenti pose di soldato alternate per varietà. Se la nazione non ha
+## il modello, ripiega su quello di un'altra nazione (segnalato da `foreign`, così
+## il chiamante lo tinge come segnaposto). Restituisce { scene, foreign }.
 func _figure_model(u: Unit, fi: int) -> Dictionary:
-	var is_ru := u.faction == Domain.Faction.RUSSIAN
-	if u.is_leader():
-		var own := _model(MODEL_OFFICER_RU if is_ru else MODEL_OFFICER_DE)
-		if own != null:
-			return { "scene": own, "foreign": false }
-		var other := _model(MODEL_OFFICER_DE if is_ru else MODEL_OFFICER_RU)
-		if other != null:
-			return { "scene": other, "foreign": true }
-	var own_pool: Array = MODEL_SOLDIERS_RU if is_ru else MODEL_SOLDIERS_DE
-	var other_pool: Array = MODEL_SOLDIERS_DE if is_ru else MODEL_SOLDIERS_RU
-	for k in own_pool.size():
-		var s := _model(own_pool[(fi + k) % own_pool.size()])
-		if s != null:
-			return { "scene": s, "foreign": false }
-	for k in other_pool.size():
-		var s2 := _model(other_pool[(fi + k) % other_pool.size()])
-		if s2 != null:
-			return { "scene": s2, "foreign": true }
+	var own := _unit_nation(u)
+	var order: Array = [own]
+	for nat in ["Tedeschi", "Russi", "Americani"]:
+		if nat != own:
+			order.append(nat)
+	for idx in order.size():
+		var nation: String = order[idx]
+		var foreign := idx > 0
+		if u.is_leader():
+			var off := _model(_pool_officer(nation))
+			if off != null:
+				return { "scene": off, "foreign": foreign }
+		var pool := _pool_soldiers(nation)
+		for k in pool.size():
+			var s := _model(pool[(fi + k) % pool.size()])
+			if s != null:
+				return { "scene": s, "foreign": foreign }
 	return { "scene": null, "foreign": false }
 
 
@@ -918,84 +934,126 @@ func _tint_soldier(node: Node, tint: Color) -> void:
 
 
 # ─── Badge numerico sopra la pedina 3D ───────────────────────────────────────
-# Font a matrice 3×5 per cifre e pochi simboli: niente font/SubViewport, così il
-# badge si disegna identico in headless e nella build web.
-const _GLYPHS := {
-	"0": ["111","101","101","101","111"],
-	"1": ["010","110","010","010","111"],
-	"2": ["111","001","111","100","111"],
-	"3": ["111","001","111","001","111"],
-	"4": ["101","101","111","001","001"],
-	"5": ["111","100","111","001","111"],
-	"6": ["111","100","111","101","111"],
-	"7": ["111","001","010","010","010"],
-	"8": ["111","101","111","101","111"],
-	"9": ["111","101","111","001","111"],
-	"-": ["000","000","111","000","000"],
-	"+": ["000","010","111","010","000"],
-}
-const _GLYPH_W := 3
-const _GLYPH_H := 5
+# Il badge è una piccola UI (PanelContainer con angoli stondati + Label con font
+# vero) renderizzata in un SubViewport 2D in una texture, messa in cache per
+# insieme di valori. Il render richiede un frame, quindi si attacca in modo
+# asincrono: la figura compare subito, il badge un istante dopo. In esecuzione
+# senza GPU (test headless) la texture resta vuota: la pedina si vede comunque.
 
-
-## Badge della pedina: striscia di numeri con i valori. Uomini → PdF, Gittata,
-## Movimento e Morale (in box); leader → Comando (in box, oro), Morale, Movimento;
-## armi → PdF, Gittata. I valori "in box" (fp_boxed/range_boxed) sono riquadrati.
-## Risultato in cache per insieme di valori identico.
-func _make_badge_tex(u: Unit) -> ImageTexture:
+## Crea il segnaposto del badge (Sprite3D billboard) sopra `holder` a quota `y` e
+## ne popola la texture (dalla cache o renderizzandola in modo asincrono).
+func _attach_badge(holder: Node3D, u: Unit, y: float, sel: bool) -> void:
 	var tokens := _badge_tokens(u)
 	if tokens.is_empty():
-		return null
-	var key := _badge_key(u, tokens)
+		return
+	var sp := Sprite3D.new()
+	sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sp.shaded = false
+	sp.position = Vector3(0.0, y, 0.0)
+	sp.modulate = Color(1, 1, 1, 1)
+	holder.add_child(sp)
+	var key := _badge_key(u, tokens, sel)
 	if _badge_cache.has(key):
-		return _badge_cache[key]
+		_apply_badge(sp, _badge_cache[key])
+	else:
+		_render_badge(sp, u, tokens, key, sel)
 
-	const PS := 3        # pixel del font → blocco PS×PS
-	const GAP := PS      # spazio tra cifre
-	const TGAP := 3 * PS # spazio tra token
-	const PAD := 2 * PS  # margine interno + spazio per i box
-	var gw := _GLYPH_W * PS + GAP
-	var gh := _GLYPH_H * PS
 
-	# Larghezza totale: somma dei token + spazi.
-	var inner_w := 0
-	for ti in tokens.size():
-		inner_w += _token_w(tokens[ti]["text"], gw, GAP)
-		if ti < tokens.size() - 1:
-			inner_w += TGAP
-	var w := inner_w + 2 * PAD
-	var h := gh + 2 * PAD
+## Imposta texture e scala del badge sullo Sprite3D, in base all'altezza texture.
+func _apply_badge(sp: Sprite3D, tex: Texture2D) -> void:
+	if not is_instance_valid(sp) or tex == null:
+		return
+	sp.texture = tex
+	sp.pixel_size = 0.30 / float(maxi(1, tex.get_height()))
 
-	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	# Sfondo scuro arrotondato; rosso se l'unità è rotta, bordo tinto per fazione.
-	var bg := Color(0.45, 0.10, 0.10, 0.86) if not u.efficient \
-		else Color(0.09, 0.10, 0.12, 0.86)
-	_fill_round(img, 0, 0, w, h, bg)
-	var border := Color(0.62, 0.66, 0.55) if u.faction == Domain.Faction.GERMAN \
-		else Color(0.74, 0.58, 0.40)
-	_rect_outline(img, 0, 0, w, h, border)
 
-	var x := PAD
-	for t in tokens:
-		var col: Color = t["color"]
-		var tw := _token_w(t["text"], gw, GAP)
-		if t["box"]:
-			_rect_outline(img, x - PS + 1, PAD - PS + 1, tw + 2 * PS - 2, gh + 2 * PS - 2, col)
-		_draw_text(img, x, PAD, t["text"], PS, col)
-		x += tw + TGAP
+## Renderizza il badge in un SubViewport 2D, lo mette in cache e lo applica a tutti
+## gli sprite in attesa della stessa chiave (dedup tra pedine identiche).
+func _render_badge(sp: Sprite3D, u: Unit, tokens: Array, key: String, sel: bool) -> void:
+	if _badge_pending.has(key):
+		_badge_pending[key].append(sp)
+		return
+	_badge_pending[key] = [sp]
 
-	var tex := ImageTexture.create_from_image(img)
-	_badge_cache[key] = tex
-	return tex
+	var vp := SubViewport.new()
+	vp.transparent_bg = true
+	vp.disable_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.size = Vector2i(8, 8)
+	add_child(vp)
+	var panel := _build_badge_control(u, tokens, sel)
+	vp.add_child(panel)
+	await get_tree().process_frame
+	var ms := panel.get_combined_minimum_size()
+	vp.size = Vector2i(maxi(8, ceili(ms.x)), maxi(8, ceili(ms.y)))
+	panel.size = ms
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+
+	var tex: ImageTexture = null
+	var img := vp.get_texture().get_image()
+	if img != null and not img.is_empty():
+		tex = ImageTexture.create_from_image(img)
+		_badge_cache[key] = tex
+	vp.queue_free()
+
+	for s in _badge_pending[key]:
+		_apply_badge(s, tex)
+	_badge_pending.erase(key)
+
+
+## Costruisce la UI del badge: pannello con angoli stondati e una riga di valori;
+## i token "in box" hanno un riquadro stondato del loro colore. Il fondo indica lo
+## stato: azzurro acceso se SELEZIONATA, rosso se rotta, altrimenti scuro neutro;
+## il bordo è azzurro se selezionata, sennò tinto per fazione.
+func _build_badge_control(u: Unit, tokens: Array, sel: bool) -> Control:
+	var border := Color(0.40, 0.85, 1.0) if sel \
+		else (Color(0.66, 0.70, 0.58) if u.faction == Domain.Faction.GERMAN \
+		else Color(0.78, 0.60, 0.42))
+	var bg := Color(0.42, 0.10, 0.10, 0.92) if not u.efficient \
+		else (Color(0.10, 0.34, 0.52, 0.94) if sel else Color(0.10, 0.11, 0.13, 0.90))
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.set_corner_radius_all(10)
+	sb.set_border_width_all(3 if sel else 2)
+	sb.border_color = border
+	sb.content_margin_left = 8; sb.content_margin_right = 8
+	sb.content_margin_top = 3; sb.content_margin_bottom = 3
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", sb)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	panel.add_child(hb)
+	for tok in tokens:
+		var lbl := Label.new()
+		lbl.text = tok["text"]
+		lbl.add_theme_font_size_override("font_size", 30)
+		lbl.add_theme_color_override("font_color", tok["color"])
+		lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+		lbl.add_theme_constant_override("outline_size", 5)
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		if tok["box"]:
+			var bsb := StyleBoxFlat.new()
+			bsb.bg_color = Color(0, 0, 0, 0)
+			bsb.set_corner_radius_all(6)
+			bsb.set_border_width_all(2)
+			bsb.border_color = tok["color"]
+			bsb.content_margin_left = 5; bsb.content_margin_right = 5
+			var bp := PanelContainer.new()
+			bp.add_theme_stylebox_override("panel", bsb)
+			bp.add_child(lbl)
+			hb.add_child(bp)
+		else:
+			hb.add_child(lbl)
+	return panel
 
 
 ## Token (testo/colore/box) del badge, in ordine di lettura, secondo il tipo.
 func _badge_tokens(u: Unit) -> Array:
-	const WHITE := Color(0.95, 0.95, 0.90)
-	const GOLD := Color(1.0, 0.84, 0.30)
-	const BLUE := Color(0.60, 0.82, 1.0)
-	const YELL := Color(0.96, 0.86, 0.42)
+	const WHITE := Color(0.97, 0.97, 0.93)
+	const GOLD := Color(1.0, 0.84, 0.32)
+	const BLUE := Color(0.58, 0.82, 1.0)
+	const YELL := Color(0.98, 0.88, 0.45)
 	var out := []
 	if u.is_leader():
 		out.append({ "text": "%+d" % u.command, "color": GOLD, "box": true })   # Comando
@@ -1014,51 +1072,11 @@ func _badge_tokens(u: Unit) -> Array:
 	return out
 
 
-func _badge_key(u: Unit, tokens: Array) -> String:
+func _badge_key(u: Unit, tokens: Array, sel: bool) -> String:
 	var parts := PackedStringArray()
 	for t in tokens:
 		parts.append("%s/%s/%d" % [t["text"], t["color"].to_html(), 1 if t["box"] else 0])
-	return "%d|%d|%s" % [u.faction, 1 if u.efficient else 0, "|".join(parts)]
-
-
-func _token_w(text: String, gw: int, gap: int) -> int:
-	return maxi(0, text.length() * gw - gap)  # toglie il GAP finale
-
-
-func _draw_text(img: Image, x: int, y: int, text: String, ps: int, col: Color) -> void:
-	var cx := x
-	for ci in text.length():
-		var ch := text[ci]
-		var rows = _GLYPHS.get(ch, null)
-		if rows != null:
-			for ry in _GLYPH_H:
-				var rowstr: String = rows[ry]
-				for rx in _GLYPH_W:
-					if rowstr[rx] == "1":
-						_fill_rect(img, cx + rx * ps, y + ry * ps, ps, ps, col)
-		cx += _GLYPH_W * ps + ps
-
-
-func _fill_rect(img: Image, x: int, y: int, w: int, h: int, col: Color) -> void:
-	for yy in range(maxi(0, y), mini(img.get_height(), y + h)):
-		for xx in range(maxi(0, x), mini(img.get_width(), x + w)):
-			img.set_pixel(xx, yy, col)
-
-
-func _rect_outline(img: Image, x: int, y: int, w: int, h: int, col: Color) -> void:
-	_fill_rect(img, x, y, w, 1, col)
-	_fill_rect(img, x, y + h - 1, w, 1, col)
-	_fill_rect(img, x, y, 1, h, col)
-	_fill_rect(img, x + w - 1, y, 1, h, col)
-
-
-## Riquadro pieno con i 4 pixel d'angolo tolti (effetto "arrotondato").
-func _fill_round(img: Image, x: int, y: int, w: int, h: int, col: Color) -> void:
-	_fill_rect(img, x, y, w, h, col)
-	img.set_pixel(x, y, Color(0, 0, 0, 0))
-	img.set_pixel(x + w - 1, y, Color(0, 0, 0, 0))
-	img.set_pixel(x, y + h - 1, Color(0, 0, 0, 0))
-	img.set_pixel(x + w - 1, y + h - 1, Color(0, 0, 0, 0))
+	return "%d|%d|%d|%s" % [u.faction, 1 if u.efficient else 0, 1 if sel else 0, "|".join(parts)]
 
 
 func _counter_tex(u: Unit) -> Texture2D:
