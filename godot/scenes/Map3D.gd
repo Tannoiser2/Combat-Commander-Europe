@@ -272,22 +272,14 @@ func _refresh_dynamic(s: GameState) -> void:
 func _add_lighting() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-58.0, -35.0, 0.0)
-	sun.light_energy = 1.15
-	# Ombre proiettate: danno tridimensionalità alle figure e agli edifici.
-	sun.shadow_enabled = true
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	sun.shadow_blur = 1.5
+	sun.light_energy = 1.05
 	add_child(sun)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.55, 0.66, 0.82)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.90, 0.91, 0.96)
-	env.ambient_light_energy = 0.7
-	# Ammorbidisce i bordi e dà un po' di profondità atmosferica.
-	env.ssao_enabled = true
-	env.ssao_radius = 0.6
-	env.ssao_intensity = 1.4
+	env.ambient_light_color = Color(0.92, 0.92, 0.95)
+	env.ambient_light_energy = 0.85
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -710,155 +702,41 @@ func _add_pieces(s: GameState) -> void:
 			var sel := u.id == s.selected_unit_id
 			var top_y := _top_y(s, u.q, u.r)
 			var ci := _hex_img(u.q, u.r)
-			var off := Vector3(0.16 * i - 0.12, 0.0, -0.16 * i + 0.12)
-			# L'unità selezionata si solleva sopra l'impilamento per essere vista.
+			var off := Vector3(0.16 * i - 0.12, 0.12 * i, -0.16 * i + 0.12)
+			# La pedina selezionata si solleva sopra l'impilamento per essere vista.
 			var lift := 0.7 if sel else 0.0
 			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off + Vector3(0.0, lift, 0.0)
+			var final_pos := base + Vector3(0.0, 0.75, 0.0)
 			_last_unit_pos[u.id] = Vector2i(u.q, u.r)
-			# Figure 3D: tanti omini quante le "figure" della pedina (squadra 4,
-			# team 2, leader 1), con disco di base per fazione e bannerino valori.
-			var holder := _add_unit_figures(u, sel)
-			if _pending_slide.has(u.id):
-				holder.position = _pending_slide[u.id]
-				var tw := holder.create_tween()
-				tw.set_trans(Tween.TRANS_SINE)
-				tw.tween_property(holder, "position", base, 0.28)
-				_pending_slide.erase(u.id)
+			var tex := _counter_tex(u)
+			if tex != null:
+				var sp := Sprite3D.new()
+				sp.texture = tex
+				sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+				sp.shaded = false
+				sp.pixel_size = (1.85 if sel else 1.5) / float(tex.get_height())
+				_dynamic.add_child(sp)
+				# Se l'unità si è appena spostata, la pedina scivola da → a.
+				if _pending_slide.has(u.id):
+					sp.position = _pending_slide[u.id]
+					var tw := sp.create_tween()
+					tw.set_trans(Tween.TRANS_SINE)
+					tw.tween_property(sp, "position", final_pos, 0.28)
+					_pending_slide.erase(u.id)
+				else:
+					sp.position = final_pos
+				_pieces.append({ "id": u.id, "node": sp })
 			else:
-				holder.position = base
-			_pieces.append({ "id": u.id, "node": holder })
-
-
-# ─── Figure 3D delle unità ───────────────────────────────────────────────────
-
-const MODEL_SOLDIER := "res://assets/models3d/character.glb"
-const FIG_HEIGHT := 0.58  ## altezza desiderata di un omino, in unità mondo
-
-
-## Numero di figure (omini) da mostrare: squadra 4, team 2, leader 1, arma 1.
-func _figure_count(u: Unit) -> int:
-	match u.type:
-		Domain.UnitType.SQUAD:
-			return 4
-		Domain.UnitType.TEAM:
-			return 2
-		_:
-			return 1
-
-
-## Posizioni relative delle figure nel gruppetto (entro l'esagono).
-func _figure_offsets(n: int) -> Array:
-	match n:
-		2:
-			return [Vector3(-0.16, 0, 0.05), Vector3(0.16, 0, -0.05)]
-		4:
-			return [Vector3(-0.17, 0, -0.17), Vector3(0.17, 0, -0.15),
-				Vector3(-0.15, 0, 0.18), Vector3(0.18, 0, 0.16)]
-		_:
-			return [Vector3.ZERO]
-
-
-## Tinta per fazione (moltiplica la texture del modello): Asse feldgrau, Alleati
-## kaki; le unità rotte sono più scure.
-func _faction_tint(u: Unit) -> Color:
-	var c := Color(0.70, 0.74, 0.66) if u.faction == Domain.Faction.GERMAN \
-		else Color(0.88, 0.80, 0.55)
-	if not u.efficient:
-		c = c.darkened(0.4)
-	return c
-
-
-## Costruisce il "holder" di un'unità: le figure, il disco di base per fazione/
-## selezione e il bannerino dei valori. Restituisce il Node3D radice.
-func _add_unit_figures(u: Unit, sel: bool) -> Node3D:
-	var holder := Node3D.new()
-	_dynamic.add_child(holder)
-	# Figure (nessuna base sotto le pedine).
-	var scene := _model(MODEL_SOLDIER)
-	var n := _figure_count(u)
-	var tint := _faction_tint(u)
-	var face := PI if u.faction == Domain.Faction.RUSSIAN else 0.0
-	var offs := _figure_offsets(n)
-	for i in n:
-		var fig := _make_soldier(scene, tint)
-		fig.position = offs[i]
-		fig.rotation.y = face + 0.22 * float(i - 1)
-		holder.add_child(fig)
-	# Bannerino dei valori sopra le teste.
-	holder.add_child(_make_value_banner(u, sel))
-	return holder
-
-
-## Una figura di soldato: il modello Kenney scalato e tinto, oppure (se il
-## modello manca) un omino procedurale (corpo + testa).
-func _make_soldier(scene: PackedScene, tint: Color) -> Node3D:
-	if scene != null:
-		var fig := scene.instantiate()
-		var h := _merged_aabb(fig, Transform3D.IDENTITY).size.y
-		var sc := (FIG_HEIGHT / h) if h > 0.01 else 0.4
-		fig.scale = Vector3(sc, sc, sc)
-		_tint_meshes(fig, tint)
-		return fig
-	# Ripiego procedurale.
-	var root := Node3D.new()
-	var body := MeshInstance3D.new()
-	var cap := CapsuleMesh.new()
-	cap.radius = 0.09
-	cap.height = 0.34
-	body.mesh = cap
-	body.material_override = _mat(tint)
-	body.position = Vector3(0, 0.22, 0)
-	root.add_child(body)
-	var head := MeshInstance3D.new()
-	var sph := SphereMesh.new()
-	sph.radius = 0.075
-	sph.height = 0.15
-	head.mesh = sph
-	head.material_override = _mat(Color(0.85, 0.72, 0.6))
-	head.position = Vector3(0, 0.45, 0)
-	root.add_child(head)
-	return root
-
-
-## Applica la tinta (moltiplicativa, preservando la texture) a tutte le mesh.
-func _tint_meshes(node: Node, tint: Color) -> void:
-	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
-		var mi := node as MeshInstance3D
-		var src := mi.mesh.surface_get_material(0)
-		var m: StandardMaterial3D
-		if src is StandardMaterial3D:
-			m = (src as StandardMaterial3D).duplicate()
-		else:
-			m = StandardMaterial3D.new()
-		m.albedo_color = tint
-		mi.material_override = m
-	for c in node.get_children():
-		_tint_meshes(c, tint)
-
-
-## Bannerino billboard con i valori della pedina (sempre rivolto alla camera).
-func _make_value_banner(u: Unit, sel: bool) -> Label3D:
-	var lbl := Label3D.new()
-	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	lbl.text = _banner_text(u)
-	lbl.font_size = 56
-	lbl.pixel_size = 0.006
-	lbl.outline_size = 14
-	lbl.outline_modulate = Color(0, 0, 0, 0.92)
-	lbl.modulate = Color(0.4, 0.95, 1.0) if sel else Color(1, 1, 1)
-	lbl.position = Vector3(0, FIG_HEIGHT + 0.5, 0)
-	lbl.no_depth_test = true
-	return lbl
-
-
-## Testo del bannerino: valori essenziali per tipo (PdF/Gittata/Movimento/Morale,
-## Comando per i leader; nome esatto per le armi).
-func _banner_text(u: Unit) -> String:
-	if u.is_leader():
-		return "%s\nC%d  M%d  ★%d" % [u.unit_name, u.command, u.move, u.morale]
-	if u.is_weapon():
-		return "%s\nF%d  G%d" % [u.unit_name, u.fp, u.range]
-	return "F%d  G%d  M%d  ★%d" % [u.fp, u.range, u.move, u.morale]
+				var pm := MeshInstance3D.new()
+				var pc := CylinderMesh.new()
+				pc.top_radius = 0.3; pc.bottom_radius = 0.3; pc.height = 0.6
+				pc.radial_segments = 16
+				pm.mesh = pc
+				pm.material_override = _mat(Color(0.66, 0.58, 0.30) \
+					if u.faction == Domain.Faction.GERMAN else Color(0.28, 0.5, 0.28))
+				pm.position = base + Vector3(0.0, 0.3, 0.0)
+				_dynamic.add_child(pm)
+				_pieces.append({ "id": u.id, "node": pm })
 
 
 func _counter_tex(u: Unit) -> Texture2D:
@@ -1376,7 +1254,6 @@ func _orbit(rel: Vector2) -> void:
 ## della 2D: trascina e la mappa segue il cursore. Scala con la distanza così il
 ## pan è uniforme a ogni zoom.
 func _pan(rel: Vector2) -> void:
-	# Assi orizzontali della camera (sul piano XZ) ricavati dall'imbardata.
 	var fwd := Vector3(-sin(_cam_yaw), 0.0, -cos(_cam_yaw))  # dalla camera verso il centro
 	var right := Vector3(cos(_cam_yaw), 0.0, -sin(_cam_yaw))
 	var k := _cam_dist * 0.0016
