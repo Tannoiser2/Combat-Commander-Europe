@@ -348,3 +348,25 @@ static func _enemy_count_at(state: GameState, faction: int, q: int, r: int) -> i
 		if m.faction != faction:
 			n += 1
 	return n
+
+
+# ─── Fuoco di Opportunità (A33) ──────────────────────────────────────────────
+
+## Reazione del bot al movimento nemico, fedele al FlipBot: fra i tiratori
+## idonei contro il `mover`, sceglie quello il cui GRUPPO di fuoco ha la massima
+## FP totale e che soddisfa la FP minima (entro 5 dalla difesa del mover).
+## Restituisce il tiratore capofila, o null se nessuna reazione conviene.
+static func best_op_fire(state: GameState, mover: Unit, defender: int) -> Unit:
+	var def_static := mover.morale + Rules.cover_at(state, mover.q, mover.r, false)
+	var best: Unit = null
+	var best_fp := -1
+	for u in OpFire.eligible_shooters(state, mover, defender):
+		var hind := HexGrid.los_hindrance(u.q, u.r, mover.q, mover.r, state) \
+			+ maxi(0, state.global_hindrance)
+		var fp := _group_fp(state, Combat.fire_group(u, mover.q, mover.r, state)) - hind
+		if fp < def_static - FIRE_MIN_MARGIN:
+			continue  # Minimum Firepower: reazione troppo debole, non conviene
+		if fp > best_fp:
+			best_fp = fp
+			best = u
+	return best

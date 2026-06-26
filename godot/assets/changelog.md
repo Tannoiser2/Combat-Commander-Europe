@@ -1,3 +1,8 @@
+[b]v0.15.0[/b]
+
+[b]IA — FlipBot (4/n): Fuoco di Opportunità[/b]
+- La reazione difensiva dell'IA al tuo movimento ora attiva il gruppo di fuoco con la massima potenza totale contro l'unità in movimento (non il singolo tiratore con l'FP più alta), rispettando il requisito di FP minima: niente reazioni sprecate su tiri deboli.
+
 [b]v0.14.0[/b]
 
 [b]IA — FlipBot (3/n): Fuoco[/b]
