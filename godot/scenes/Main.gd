@@ -47,6 +47,9 @@ var _pass_cards: HBoxContainer = null
 var _pass_confirm: Button = null
 var _pass_marked: Dictionary = {}  # indice carta → true se da scartare
 
+# Schieramento manuale: barra con «Auto» e «Schieramento pronto».
+var _setup_bar: Panel = null
+
 
 func _ready() -> void:
 	# Se si arriva qui senza passare dal menù, avvia una partita predefinita.
@@ -64,6 +67,7 @@ func _ready() -> void:
 	_apply_solid_panels()
 	_build_sidebar_handle()
 	_build_pass_ui()
+	_build_setup_ui()
 	log_toggle_btn.pressed.connect(_toggle_sidebar)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	editor_btn.tooltip_text = "Apri l'editor delle mappe"
@@ -476,6 +480,62 @@ func _build_pass_ui() -> void:
 	add_child(_pass_dialog)
 
 
+## Barra dello Schieramento manuale (visibile solo in PLAYER_SETUP): pulsanti
+## «Auto» (schieramento intelligente automatico) e «Schieramento pronto»
+## (conferma e inizia la partita), con un suggerimento. Creata via codice,
+## centrata sotto la barra in alto.
+func _build_setup_ui() -> void:
+	_setup_bar = Panel.new()
+	_setup_bar.visible = false
+	_setup_bar.anchor_left = 0.5
+	_setup_bar.anchor_right = 0.5
+	_setup_bar.anchor_top = 0.0
+	_setup_bar.anchor_bottom = 0.0
+	_setup_bar.offset_left = -300
+	_setup_bar.offset_right = 300
+	_setup_bar.offset_top = 50
+	_setup_bar.offset_bottom = 96
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.12, 0.14, 0.17, 0.96)
+	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(0.35, 0.72, 1.0, 0.85)
+	_setup_bar.add_theme_stylebox_override("panel", sb)
+	var hb := HBoxContainer.new()
+	hb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hb.offset_left = 12
+	hb.offset_right = -12
+	hb.add_theme_constant_override("separation", 12)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	_setup_bar.add_child(hb)
+	var lbl := Label.new()
+	lbl.text = "Schieramento: clicca un'unità, poi l'esagono (zona azzurra) dove spostarla"
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(lbl)
+	var auto_btn := Button.new()
+	auto_btn.text = "Auto"
+	auto_btn.tooltip_text = "Schieramento automatico intelligente: gruppi comandati dai leader, distanziati, in copertura e su altura"
+	auto_btn.pressed.connect(func() -> void: Game.auto_setup())
+	hb.add_child(auto_btn)
+	var ready_btn := Button.new()
+	ready_btn.text = "Schieramento pronto"
+	ready_btn.tooltip_text = "Conferma le posizioni e inizia la partita"
+	ready_btn.pressed.connect(func() -> void: Game.finish_setup())
+	hb.add_child(ready_btn)
+	add_child(_setup_bar)
+
+
+## Mostra/nasconde la barra di schieramento e adatta la HUD: durante il setup la
+## mano (non serve) resta nascosta, così la mappa si riprende lo spazio.
+func _update_setup_bar(phase: int) -> void:
+	var on := phase == Domain.Phase.PLAYER_SETUP
+	if _setup_bar != null:
+		_setup_bar.visible = on
+	if hand_panel.visible == on:
+		hand_panel.visible = not on
+		_update_map_rect()
+
+
 func _open_pass_dialog() -> void:
 	var s := Game.state
 	if s == null or s.phase != Domain.Phase.PLAYER_TURN:
@@ -653,6 +713,7 @@ func _refresh_ui() -> void:
 	# Passare si può solo nella fase ordini (non a metà di una mossa/fuoco).
 	if _pass_btn != null:
 		_pass_btn.disabled = s.phase != Domain.Phase.PLAYER_TURN
+	_update_setup_bar(s.phase)
 	_refresh_hand()
 	_refresh_unit_info()
 
@@ -845,6 +906,7 @@ func _on_phase_changed(phase: int) -> void:
 		_pass_btn.disabled = phase != Domain.Phase.PLAYER_TURN
 	if phase != Domain.Phase.PLAYER_TURN:
 		_close_pass_dialog()
+	_update_setup_bar(phase)
 	if Game.state:
 		_refresh_unit_info()
 

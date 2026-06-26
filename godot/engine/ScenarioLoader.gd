@@ -145,6 +145,9 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 	var hexes := _setup_hexes(state, e, side)
 	if hexes.is_empty():
 		hexes.append(Vector2i(0, 0))
+	# Zona di schieramento del giocatore umano (per lo Schieramento manuale).
+	if faction == state.human_faction:
+		state.setup_zone = hexes.duplicate()
 	# Nazione reale del lato → statistiche esatte (l'arte resta stand-in).
 	var nat := UnitChart.nation_code(String(e.get("fazione_%s" % side, "")))
 	# Sottrai i rinforzi (Tabella del Tempo) dalle forze iniziali: entrano dopo.
@@ -298,6 +301,57 @@ static func _deploy_combat_groups(state: GameState, hexes: Array, squads: Array,
 			man_hexes.append(pos)
 			used[_k(pos)] = int(used.get(_k(pos), 0)) + 1
 	return man_hexes
+
+
+## Ripiazza in modo intelligente SOLO le unità del giocatore umano GIÀ esistenti
+## (pulsante «Auto» dello schieramento manuale): gruppi comandati dai leader
+## entro il loro Comando, distanziati tra loro e su esagoni con copertura/altura.
+## Le armi seguono il loro portatore (set_unit_pos). Non ricrea le pedine, non
+## tocca l'IA né le fortificazioni già piazzate sul terreno.
+static func auto_deploy_human(state: GameState) -> void:
+	var hexes: Array = state.setup_zone.duplicate()
+	if hexes.is_empty():
+		return
+	var faction := state.human_faction
+	var leaders: Array = []
+	var squads: Array = []
+	for u in state.units_of(faction):
+		if u.is_leader():
+			leaders.append(u)
+		elif u.is_man():  # squadra/team (le armi seguono il portatore)
+			squads.append(u)
+	if leaders.is_empty() and squads.is_empty():
+		return
+	var used := {}
+	var n_groups := maxi(1, leaders.size())
+	var group_sq: Array = []
+	for g in n_groups:
+		group_sq.append([])
+	for i in squads.size():
+		group_sq[i % n_groups].append(squads[i])
+	var spread := clampi(int(round(sqrt(float(hexes.size())))), 2, 5)
+	var centers := _pick_centers(state, hexes, n_groups, spread)
+	for gi in n_groups:
+		var center: Vector2i = centers[gi] if gi < centers.size() else hexes[gi % hexes.size()]
+		var cmd := 2
+		if gi < leaders.size():
+			var lu: Unit = leaders[gi]
+			state.set_unit_pos(lu, center.x, center.y)
+			cmd = maxi(1, lu.command)
+			used[_k(center)] = int(used.get(_k(center), 0)) + 1
+		var area := _area_around(state, hexes, center, cmd)
+		area.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
+		var ai := 0
+		for su in group_sq[gi]:
+			var pos: Vector2i = center
+			while ai < area.size() and int(used.get(_k(area[ai]), 0)) >= 2:
+				ai += 1
+			if ai < area.size():
+				pos = area[ai]
+				ai += 1
+			state.set_unit_pos(su, pos.x, pos.y)
+			used[_k(pos)] = int(used.get(_k(pos), 0)) + 1
 
 
 ## Piazza `fox` buche: prima sugli esagoni occupati più scoperti (per dare loro

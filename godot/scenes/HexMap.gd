@@ -235,6 +235,13 @@ func _draw() -> void:
 			draw_circle(fc, 8.0, Color(0.08, 0.08, 0.08, 0.9))
 			_draw_text(FORT_LETTERS.get(hd.fortification, "?"), fc, 11.0, col, true)
 
+	# Schieramento manuale: evidenzia la zona di setup del giocatore (dove può
+	# disporre le sue unità). Riempimento e contorno azzurri.
+	if s.phase == Domain.Phase.PLAYER_SETUP:
+		for h in s.setup_zone:
+			_draw_hex_fill(int(h.x), int(h.y), Color(0.2, 0.55, 0.95, 0.20))
+			_draw_hex_outline(int(h.x), int(h.y), Color(0.35, 0.72, 1.0, 0.75), 1.5)
+
 	# Raggio di comando del leader del gruppo di Mossa: alone arancio tenue
 	_draw_command_aura(s)
 

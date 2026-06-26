@@ -111,6 +111,7 @@ func _ready() -> void:
 	_test_setup_depth()
 	_test_setup_zones()
 	_test_smart_deploy()
+	_test_manual_setup()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -1734,6 +1735,76 @@ func _test_smart_deploy() -> void:
 					break
 		_check(float(commanded) / float(squads.size()) >= 0.6,
 			"≥60%% delle squadre è nel raggio di Comando di un leader (%d/%d)" % [commanded, squads.size()])
+
+
+func _test_manual_setup() -> void:
+	print("· Schieramento manuale: zona di setup, spostamento, «Auto» e «pronto»")
+	var s := GameState.new()
+	s.human_faction = GER
+	if not ScenarioLoader.setup(s, 2):
+		_check(false, "setup scenario 2 riuscito")
+		return
+	_check(not s.setup_zone.is_empty(), "la zona di schieramento del giocatore è popolata")
+	var zone_keys := {}
+	for h in s.setup_zone:
+		zone_keys["%d,%d" % [h.x, h.y]] = true
+	var all_in := true
+	for u in s.units_of(GER):
+		if u.is_man() and not zone_keys.has("%d,%d" % [u.q, u.r]):
+			all_in = false
+	_check(all_in, "le unità umane partono dentro la zona di schieramento")
+
+	# Game in fase di setup: sposta una squadra in un esagono libero della zona.
+	Game.state = s
+	s.phase = Domain.Phase.PLAYER_SETUP
+	var sq: Unit = null
+	for u in s.units_of(GER):
+		if u.type == Domain.UnitType.SQUAD:
+			sq = u
+			break
+	_check(sq != null, "c'è una squadra umana da schierare")
+	if sq != null:
+		var dest := Vector2i(-1, -1)
+		for h in s.setup_zone:
+			if (h.x != sq.q or h.y != sq.r) \
+					and s.soldier_icons_at(h.x, h.y) + sq.soldier_icons() <= 7:
+				dest = h
+				break
+		_check(dest.x >= 0, "esiste un esagono di destinazione nella zona")
+		if dest.x >= 0:
+			Game.select_unit(sq.id)
+			Game.click_hex(dest.x, dest.y)
+			_check(sq.q == dest.x and sq.r == dest.y,
+				"la squadra selezionata si sposta nell'esagono cliccato")
+		# Spostamento fuori zona: rifiutato (la posizione non cambia).
+		var outside := Vector2i(-1, -1)
+		for q in s.map_cols:
+			for r in s.map_rows:
+				if not zone_keys.has("%d,%d" % [q, r]):
+					outside = Vector2i(q, r)
+					break
+			if outside.x >= 0:
+				break
+		if outside.x >= 0:
+			var pq := sq.q
+			var pr := sq.r
+			Game.select_unit(sq.id)
+			Game.click_hex(outside.x, outside.y)
+			_check(sq.q == pq and sq.r == pr, "uno spostamento fuori dalla zona è rifiutato")
+
+	# «Auto»: ripiazza le unità, tutte ancora nella zona.
+	Game.auto_setup()
+	var still_in := true
+	for u in s.units_of(GER):
+		if u.is_man() and not zone_keys.has("%d,%d" % [u.q, u.r]):
+			still_in = false
+	_check(still_in, "dopo «Auto» le unità restano nella zona di schieramento")
+
+	# «Schieramento pronto»: passa al turno del giocatore e svuota la zona.
+	Game.finish_setup()
+	_check(s.phase == Domain.Phase.PLAYER_TURN,
+		"«Schieramento pronto» avvia il turno del giocatore")
+	_check(s.setup_zone.is_empty(), "la zona di setup viene svuotata all'avvio del gioco")
 
 
 func _test_setup_zones() -> void:

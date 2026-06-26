@@ -1,3 +1,9 @@
+[b]v0.11.0[/b]
+
+[b]Schieramento[/b]
+- Schieramento manuale: a inizio partita disponi tu le tue unità nella zona di setup (evidenziata in azzurro). Clicca un'unità, poi l'esagono dove spostarla; l'impilamento (max 7 figure) e i confini della zona sono rispettati. «Schieramento pronto» avvia la partita.
+- «Auto» intelligente: piazzamento automatico in gruppi comandati dai leader (entro il loro Comando), distanziati tra loro e su esagoni con copertura e altura. Le armi seguono il portatore.
+
 [b]v0.10.0[/b]
 
 [b]Interfaccia[/b]
