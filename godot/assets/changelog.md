@@ -1,7 +1,14 @@
+[b]v0.25.0[/b]
+
+[b]Vista 3D — armi e qualità delle miniature[/b]
+- Le pedine arma (mitragliatrici, mortai, cannoni) mostrano ora il loro modello 3D, scelto per nazione e tipo (MG leggera/media/pesante/.50, mortaio, cannone/obice). I tipi senza modello dedicato ripiegano sull'arma più simile della stessa nazione.
+- Migliorata la resa dei soldati: si conserva la geometria originale (niente più decimazione) così la texture non si "spezzetta" più lungo le cuciture — via le superfici mottled/strane viste prima. Texture sempre a 512 per il web.
+- Coerenza fra pose: i soldati accucciati/in fuoco non sono più alti come quelli in piedi (l'altezza si adatta all'ingombro della posa).
+
 [b]v0.24.1[/b]
 
 [b]Correzioni[/b]
-- Vista 3D: corretti i "buchi" nelle miniature dei soldati. La riduzione dei poligoni apriva delle crepe lungo le cuciture della texture; ora i vertici vengono saldati prima della decimazione, quindi le mesh restano chiuse (texture invariata).
+- Vista 3D: corretti i "buchi" nelle miniature dei soldati. La riduzione dei poligoni apriva delle crepe lungo le cuciture della texture; ora si conserva la geometria originale, quindi le mesh restano integre.
 
 [b]v0.24.0[/b]
 
