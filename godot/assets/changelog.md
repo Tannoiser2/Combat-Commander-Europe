@@ -1,3 +1,10 @@
+[b]v0.12.0[/b]
+
+[b]IA — FlipBot (1/n)[/b]
+- Adottato il motore di turno del bot "FlipBot" (di Russ Brown): l'IA gioca il Recupero per primo se ha unità rotte, poi il primo ordine giocabile da sinistra a destra della sua mano.
+- Carte "dud" (inutili) riconosciute: Confusione d'Ordini (sempre), Artiglieria Negata se il nemico non ha radio, Richiesta d'Artiglieria se l'IA non ha radio. Con la mano per lo più inutile, l'IA passa e scarta.
+- Disposizione (Offensiva/Difensiva) calcolata da VP e obiettivi controllati, ricalcolata a ogni avanzamento del Tempo (guiderà le mosse/avanzate nei prossimi aggiornamenti).
+
 [b]v0.11.0[/b]
 
 [b]Schieramento[/b]

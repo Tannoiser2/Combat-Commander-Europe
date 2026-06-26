@@ -85,7 +85,7 @@ static func _state_to_dict(s: GameState) -> Dictionary:
 		"max_orders": s.max_orders, "ai_max_orders": s.ai_max_orders,
 		"time_marker": s.time_marker, "sudden_death_space": s.sudden_death_space,
 		"global_hindrance": s.global_hindrance, "reinforcements": s.reinforcements,
-		"setup_zone": _hexlist_to_strs(s.setup_zone),
+		"setup_zone": _hexlist_to_strs(s.setup_zone), "disposition": s.disposition,
 		"vp_tracker": s.vp_tracker, "bonus_vp": s.bonus_vp,
 		"chit_double_exit": s.chit_double_exit, "chit_double_elim": s.chit_double_elim,
 		# Per-fazione
@@ -140,6 +140,7 @@ static func _state_from_dict(d: Dictionary) -> GameState:
 	var reinf: Variant = d.get("reinforcements", [])
 	s.reinforcements = reinf if reinf is Array else []
 	s.setup_zone = _hexlist_from_strs(d.get("setup_zone", []))
+	s.disposition = int(d.get("disposition", Domain.Disposition.OFFENSIVE))
 	s.vp_tracker = int(d.get("vp_tracker", 0)); s.bonus_vp = int(d.get("bonus_vp", 0))
 	s.chit_double_exit = bool(d.get("chit_double_exit", false))
 	s.chit_double_elim = bool(d.get("chit_double_elim", false))
