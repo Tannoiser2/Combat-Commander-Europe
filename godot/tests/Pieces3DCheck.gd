@@ -117,6 +117,14 @@ func _run_checks() -> void:
 		if pick2["scene"] == null or not String(pick2["scene"].resource_path).contains("officer_" + nat[1]):
 			_fail("%s: ufficiale sbagliato/mancante" % nat[0])
 
+	# Modelli delle armi: ogni nazione+classe risolve a un modello esistente
+	# (con i ripieghi). Verifica MG / mortaio / cannone per le 3 nazioni.
+	for nat in ["Tedeschi", "Russi", "Americani"]:
+		for kind in ["light_mg", "medium_mg", "heavy_mg", "fifty_mg", "mortar", "gun"]:
+			var path: String = _map._weapon_model_path(nat, kind)
+			if path == "" or not ResourceLoader.exists(path):
+				_fail("arma non risolta: %s / %s -> '%s'" % [nat, kind, path])
+
 
 func _first_of_type(s, t: int):
 	for u in s.units.values():

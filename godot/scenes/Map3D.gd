@@ -788,6 +788,11 @@ func _add_pieces(s: GameState) -> void:
 func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 	var holder := Node3D.new()
 	_dynamic.add_child(holder)
+	# Le armi mostrano il loro modello (MG, mortaio, cannone) invece dei soldati.
+	if u.is_weapon() and _spawn_weapon(holder, u):
+		holder.rotation.y = _unit_yaw(u)
+		_attach_badge(holder, u, 0.95, sel)
+		return holder
 	var count := maxi(1, u.soldier_icons())   # squadra 4, team 2, leader 1, arma → 1
 	var target_h := 0.90  # uguale per tutte: la selezione è nel fondo del badge
 	var offs := _figure_offsets(count)
@@ -802,7 +807,15 @@ func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 		if ab.size == Vector3.ZERO:
 			fig.queue_free()
 			continue
-		var sc := target_h / ab.size.y if ab.size.y > 0.001 else 1.0
+		# Coerenza fra pose: i modelli sono tutti normalizzati alla stessa altezza
+		# dal generatore, ma una posa accucciata/in fuoco (più larga/profonda che
+		# alta) deve risultare più bassa di una in piedi. Riduco l'altezza in base
+		# all'ingombro orizzontale rispetto a quello verticale.
+		var pose := 1.0
+		if ab.size.y > 0.001:
+			var horiz := maxf(ab.size.x, ab.size.z)
+			pose = clampf(1.0 - maxf(0.0, horiz / ab.size.y - 0.9) * 0.6, 0.78, 1.0)
+		var sc := (target_h * pose) / ab.size.y if ab.size.y > 0.001 else 1.0
 		var inner := Node3D.new()
 		inner.scale = Vector3(sc, sc, sc)
 		# Lieve sfasamento d'orientamento per non sembrare cloni perfetti.
@@ -900,6 +913,83 @@ func _figure_model(u: Unit, fi: int) -> Dictionary:
 			if s != null:
 				return { "scene": s, "foreign": foreign }
 	return { "scene": null, "foreign": false }
+
+
+## Posa il modello 3D dell'arma (MG/mortaio/cannone) dentro `holder`, scalato e
+## appoggiato a terra. Restituisce false se non c'è un modello adatto (→ ripiego
+## ai soldati). Le armi sono più basse dei soldati, da terra.
+func _spawn_weapon(holder: Node3D, u: Unit) -> bool:
+	var path := _weapon_model_path(_unit_nation(u), _weapon_kind(u))
+	if path == "":
+		return false
+	var scene := _model(path)
+	if scene == null:
+		return false
+	var fig := scene.instantiate()
+	var ab := _merged_aabb(fig, Transform3D.IDENTITY)
+	if ab.size == Vector3.ZERO:
+		fig.queue_free()
+		return false
+	var target := 0.62
+	var sc := target / ab.size.y if ab.size.y > 0.001 else 1.0
+	var inner := Node3D.new()
+	inner.scale = Vector3(sc, sc, sc)
+	holder.add_child(inner)
+	fig.position = Vector3(
+		-(ab.position.x + ab.size.x * 0.5),
+		-ab.position.y,
+		-(ab.position.z + ab.size.z * 0.5))
+	inner.add_child(fig)
+	return true
+
+
+## "Tipo" dell'arma ai fini del modello: mortaio / cannone (dalla classe), oppure
+## il sottotipo di mitragliatrice dal nome (.50 / pesante / media / leggera).
+func _weapon_kind(u: Unit) -> String:
+	if u.unit_class == Domain.UnitClass.MORTAR:
+		return "mortar"
+	if u.unit_class == Domain.UnitClass.AT:
+		return "gun"
+	var n := u.unit_name.to_lower()
+	if n.contains(".50") or n.contains("50cal"):
+		return "fifty_mg"
+	if n.contains("heavy"):
+		return "heavy_mg"
+	if n.contains("medium"):
+		return "medium_mg"
+	return "light_mg"
+
+
+## Percorso del modello arma per nazione+tipo, con catena di ripieghi (così i tipi
+## senza modello dedicato usano l'arma più simile della stessa nazione).
+func _weapon_model_path(nation: String, kind: String) -> String:
+	var tag := "de"
+	match nation:
+		"Russi":
+			tag = "ru"
+		"Americani":
+			tag = "us"
+	for k in _weapon_fallbacks(kind):
+		var p := "res://assets/models3d/wpn_%s_%s.glb" % [tag, k]
+		if _model(p) != null:
+			return p
+	return ""
+
+
+func _weapon_fallbacks(kind: String) -> Array:
+	match kind:
+		"mortar":
+			return ["mortar"]
+		"gun":
+			return ["gun"]
+		"fifty_mg":
+			return ["fifty_mg", "heavy_mg", "medium_mg", "light_mg"]
+		"heavy_mg":
+			return ["heavy_mg", "medium_mg", "fifty_mg", "light_mg"]
+		"medium_mg":
+			return ["medium_mg", "heavy_mg", "light_mg"]
+		_:
+			return ["light_mg", "medium_mg", "heavy_mg"]
 
 
 ## Yaw della pedina: direzione di marcia memorizzata, altrimenti fronte di fazione
