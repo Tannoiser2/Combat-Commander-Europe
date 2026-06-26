@@ -1,0 +1,54 @@
+{
+  "4": {
+    "allies": [
+      {"space": 3, "units": [{"tipo": "Sgt. White", "n": 1}, {"tipo": "Engineer", "n": 2}, {"tipo": "Flamethrower", "n": 2}]}
+    ]
+  },
+  "9": {
+    "axis": [
+      {"space": 3, "units": [{"tipo": "Weapon Team", "n": 2}, {"tipo": "Light MG", "n": 4}, {"tipo": "Cpt. Wehling", "n": 1}, {"tipo": "Sgt. Esser", "n": 1}, {"tipo": "Sgt. Biermann", "n": 1}, {"tipo": "Volksgrenadier", "n": 8}, {"tipo": "Heavy MG", "n": 1}]}
+    ],
+    "allies": [
+      {"space": 3, "units": [{"tipo": "Sgt. Smith", "n": 1}, {"tipo": "Medium MG", "n": 1}, {"tipo": "Paratroop", "n": 2}]},
+      {"space": 4, "units": [{"tipo": "Lt. Blankenship", "n": 1}, {"tipo": "Paratroop", "n": 2}]},
+      {"space": 5, "units": [{"tipo": "Lt. Thomas", "n": 1}, {"tipo": "Paratroop", "n": 2}]},
+      {"space": 6, "units": [{"tipo": "Radio 105mm", "n": 1}]}
+    ]
+  },
+  "11": {
+    "allies": [
+      {"space": 2, "units": [{"tipo": "Line", "n": 1}]},
+      {"space": 3, "units": [{"tipo": "Line", "n": 1}]},
+      {"space": 4, "units": [{"tipo": "Line", "n": 1}]},
+      {"space": 5, "units": [{"tipo": "Line", "n": 1}]}
+    ]
+  },
+  "12": {
+    "allies": [
+      {"space": 7, "units": [{"tipo": "Sgt. Alves", "n": 1}, {"tipo": "Green", "n": 8}]}
+    ]
+  },
+  "13": {
+    "allies": [
+      {"space": 1, "units": [{"tipo": "Guards", "n": 6}]}
+    ]
+  },
+  "14": {
+    "axis": [
+      {"space": 3, "units": []}
+    ],
+    "_warn": "S14: la regola dice solo 'Place the German Reinforcements into the 3 space of the Time Track'; le specifiche unita di rinforzo (lato axis/tedesco) sono designate dal marcatore 'Reinforcements 2' nell'OB della scheda e non sono enumerate nel testo, quindi units e lasciato vuoto."
+  },
+  "19": {
+    "allies": [
+      {"space": 3, "units": []}
+    ],
+    "_warn": "S19: la regola dice solo 'Place the Greek Reinforcements in the 3 space of the Time Track'; le specifiche unita di rinforzo (lato allies/greco) sono designate dal marcatore 'Reinforcements 2' nell'OB della scheda e non sono enumerate nel testo, quindi units e lasciato vuoto."
+  },
+  "24": {
+    "axis": [
+      {"space": 1, "units": []}
+    ],
+    "_warn": "S24: la regola 'ASSAULT ENGINEERS: Place the Italian Reinforcements in the 1 space of the Time Track'; le specifiche unita di rinforzo (lato axis/italiano, verosimilmente i 2 Guastatori) sono designate dal marcatore 'Reinforcements 2' nell'OB della scheda e non enumerate esplicitamente nel testo, quindi units e lasciato vuoto."
+  }
+}

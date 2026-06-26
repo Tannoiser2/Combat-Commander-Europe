@@ -131,6 +131,7 @@ static func setup(state: GameState, num: int) -> bool:
 
 	# ─── Forze ──────────────────────────────────────────────────────────────
 	state.units.clear()
+	state.reinforcements.clear()
 	_place_side(state, e, "axis", Domain.Faction.GERMAN)
 	_place_side(state, e, "allies", Domain.Faction.RUSSIAN)
 	return true
@@ -146,13 +147,15 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 		hexes.append(Vector2i(0, 0))
 	# Nazione reale del lato → statistiche esatte (l'arte resta stand-in).
 	var nat := UnitChart.nation_code(String(e.get("fazione_%s" % side, "")))
-	# Suddividi le forze per categoria (l'ordine nel catalogo non conta).
+	# Sottrai i rinforzi (Tabella del Tempo) dalle forze iniziali: entrano dopo.
+	var forces := _split_reinforcements(state, e, side, faction, nat)
+	# Suddividi le forze (rimaste sul tabellone) per categoria.
 	var squads: Array = []
 	var leaders: Array = []
 	var weapons: Array = []
 	var forts: Array = []  # tipi Domain.Fort (Trincea/Bunker/Filo/Mine/Casamatta)
 	var fox := 0
-	for f in e.get("forze_%s" % side, []):
+	for f in forces:
 		var label := String(f.get("tipo", ""))
 		var count := int(f.get("n", 1))
 		match UnitChart.category(label):
@@ -235,6 +238,38 @@ static func _interleave(items: Array) -> Array:
 		if not any:
 			break
 		k += 1
+	return out
+
+
+## Sottrae i rinforzi (Tabella del Tempo) dalle forze iniziali del lato e popola
+## `state.reinforcements`. Restituisce la lista delle forze RIMASTE sul tabellone
+## (Array di {tipo, n}). I tipi di rinforzo combaciano col catalogo, così la
+## sottrazione è esatta; quel che eccede la disponibilità viene ignorato.
+static func _split_reinforcements(state: GameState, e: Dictionary, side: String, faction: int, nat: String) -> Array:
+	var counts := {}
+	var order: Array = []
+	for f in e.get("forze_%s" % side, []):
+		var tipo := String(f.get("tipo", ""))
+		if not counts.has(tipo):
+			order.append(tipo)
+		counts[tipo] = int(counts.get(tipo, 0)) + int(f.get("n", 1))
+	var num := int(e.get("numero", 0))
+	for grp in ScenarioEffects.reinforcements(num, side):
+		var space := int(grp.get("space", 0))
+		var taken: Array = []
+		for u in grp.get("units", []):
+			var tipo := String(u.get("tipo", ""))
+			var take := mini(int(u.get("n", 1)), int(counts.get(tipo, 0)))
+			if take > 0:
+				counts[tipo] = int(counts[tipo]) - take
+				taken.append({ "tipo": tipo, "n": take, "nat": nat })
+		if not taken.is_empty():
+			state.reinforcements.append({ "space": space, "faction": faction, "forces": taken })
+	var out: Array = []
+	for tipo in order:
+		var n := int(counts.get(tipo, 0))
+		if n > 0:
+			out.append({ "tipo": tipo, "n": n })
 	return out
 
 
