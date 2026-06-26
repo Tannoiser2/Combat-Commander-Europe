@@ -272,14 +272,22 @@ func _refresh_dynamic(s: GameState) -> void:
 func _add_lighting() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-58.0, -35.0, 0.0)
-	sun.light_energy = 1.05
+	sun.light_energy = 1.15
+	# Ombre proiettate: danno tridimensionalità alle figure e agli edifici.
+	sun.shadow_enabled = true
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.shadow_blur = 1.5
 	add_child(sun)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.55, 0.66, 0.82)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.92, 0.92, 0.95)
-	env.ambient_light_energy = 0.85
+	env.ambient_light_color = Color(0.90, 0.91, 0.96)
+	env.ambient_light_energy = 0.7
+	# Ammorbidisce i bordi e dà un po' di profondità atmosferica.
+	env.ssao_enabled = true
+	env.ssao_radius = 0.6
+	env.ssao_intensity = 1.4
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -724,7 +732,7 @@ func _add_pieces(s: GameState) -> void:
 # ─── Figure 3D delle unità ───────────────────────────────────────────────────
 
 const MODEL_SOLDIER := "res://assets/models3d/character.glb"
-const FIG_HEIGHT := 0.5  ## altezza desiderata di un omino, in unità mondo
+const FIG_HEIGHT := 0.58  ## altezza desiderata di un omino, in unità mondo
 
 
 ## Numero di figure (omini) da mostrare: squadra 4, team 2, leader 1, arma 1.
@@ -765,21 +773,7 @@ func _faction_tint(u: Unit) -> Color:
 func _add_unit_figures(u: Unit, sel: bool) -> Node3D:
 	var holder := Node3D.new()
 	_dynamic.add_child(holder)
-	# Disco di base: ciano se selezionata, altrimenti colore di fazione.
-	var disc := MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.34
-	cyl.bottom_radius = 0.34
-	cyl.height = 0.03
-	cyl.radial_segments = 18
-	disc.mesh = cyl
-	var dcol := Color(0.15, 0.8, 1.0, 0.85) if sel \
-		else (Color(0.5, 0.52, 0.56, 0.55) if u.faction == Domain.Faction.GERMAN \
-		else Color(0.78, 0.66, 0.36, 0.55))
-	disc.material_override = _mat(dcol)
-	disc.position = Vector3(0, 0.02, 0)
-	holder.add_child(disc)
-	# Figure.
+	# Figure (nessuna base sotto le pedine).
 	var scene := _model(MODEL_SOLDIER)
 	var n := _figure_count(u)
 	var tint := _faction_tint(u)
