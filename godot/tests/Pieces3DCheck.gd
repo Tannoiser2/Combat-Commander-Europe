@@ -101,6 +101,26 @@ func _run_checks() -> void:
 		if not _map._unit_heading.has(squad.id):
 			_fail("yaw di marcia non memorizzato dopo lo spostamento")
 
+	# Selezione del modello per nazionalità: ogni nazione usa i propri modelli
+	# (senza tinta segnaposto). Verifica su squadre e leader sintetici.
+	for nat in [["Tedeschi", "de"], ["Russi", "ru"], ["Americani", "us"]]:
+		var sq := Unit.new("nat-sq-" + nat[0], Domain.Faction.RUSSIAN,
+			Domain.UnitType.SQUAD, 0, "Test " + nat[0])
+		sq.nation_art = nat[0]
+		var pick = _map._figure_model(sq, 0)
+		if pick["scene"] == null:
+			_fail("nessun modello soldato per %s" % nat[0])
+		elif pick["foreign"]:
+			_fail("%s usa un modello di un'altra nazione (foreign)" % nat[0])
+		elif not String(pick["scene"].resource_path).contains("soldier_" + nat[1]):
+			_fail("%s: modello soldato sbagliato (%s)" % [nat[0], pick["scene"].resource_path])
+		var ld := Unit.new("nat-ld-" + nat[0], Domain.Faction.RUSSIAN,
+			Domain.UnitType.LEADER, 0, "Off " + nat[0])
+		ld.nation_art = nat[0]
+		var pick2 = _map._figure_model(ld, 0)
+		if pick2["scene"] == null or not String(pick2["scene"].resource_path).contains("officer_" + nat[1]):
+			_fail("%s: ufficiale sbagliato/mancante" % nat[0])
+
 
 func _first_of_type(s, t: int):
 	for u in s.units.values():

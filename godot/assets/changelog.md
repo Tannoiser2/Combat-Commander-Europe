@@ -1,3 +1,8 @@
+[b]v0.23.0[/b]
+
+[b]Vista 3D — soldati americani[/b]
+- Modelli 3D dedicati anche per gli Americani (soldati in 2 pose + ufficiale). I modelli sono ora scelti per nazionalità dell'unità (Tedeschi / Russi / Americani), non più solo per fazione: ogni nazione mostra i propri soldati, con ripiego tinto solo se un modello manca.
+
 [b]v0.22.0[/b]
 
 [b]Vista 3D — squadre, badge numerico e direzione[/b]

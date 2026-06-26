@@ -37,6 +37,11 @@ const MODEL_SOLDIERS_RU := [
 	"res://assets/models3d/soldier_ru_a.glb",
 ]
 const MODEL_OFFICER_RU := "res://assets/models3d/officer_ru.glb"
+const MODEL_SOLDIERS_US := [
+	"res://assets/models3d/soldier_us.glb",
+	"res://assets/models3d/soldier_us_a.glb",
+]
+const MODEL_OFFICER_US := "res://assets/models3d/officer_us.glb"
 var _model_cache: Dictionary = {}  ## path → PackedScene (o null se assente)
 var _tree_pool: Array = []  ## Mesh dei singoli alberi (cache, estratte una volta)
 var _badge_cache: Dictionary = {}  ## chiave valori → ImageTexture del badge
@@ -860,29 +865,58 @@ func _figure_offsets(count: int) -> Array:
 				Vector3(-D, 0.0, D), Vector3(D, 0.0, D)]
 
 
-## Modello per la figura `fi` dell'unità, per fazione: l'ufficiale per i leader,
-## altrimenti pose di soldato alternate per varietà. Se la fazione non ha il
-## modello, ripiega su quello dell'altra fazione (segnalato da `foreign`, così il
-## chiamante lo tinge). Restituisce { scene, foreign }.
+## Nazionalità dell'unità ai fini del modello 3D: dalla `nation_art` (Tedeschi /
+## Russi / Americani); se assente, ripiego per fazione (Asse → Tedeschi).
+func _unit_nation(u: Unit) -> String:
+	match u.nation_art:
+		"Tedeschi", "Russi", "Americani":
+			return u.nation_art
+		_:
+			return "Tedeschi" if u.faction == Domain.Faction.GERMAN else "Russi"
+
+
+func _pool_soldiers(nation: String) -> Array:
+	match nation:
+		"Russi":
+			return MODEL_SOLDIERS_RU
+		"Americani":
+			return MODEL_SOLDIERS_US
+		_:
+			return MODEL_SOLDIERS_DE
+
+
+func _pool_officer(nation: String) -> String:
+	match nation:
+		"Russi":
+			return MODEL_OFFICER_RU
+		"Americani":
+			return MODEL_OFFICER_US
+		_:
+			return MODEL_OFFICER_DE
+
+
+## Modello per la figura `fi` dell'unità, per nazionalità: l'ufficiale per i
+## leader, altrimenti pose di soldato alternate per varietà. Se la nazione non ha
+## il modello, ripiega su quello di un'altra nazione (segnalato da `foreign`, così
+## il chiamante lo tinge come segnaposto). Restituisce { scene, foreign }.
 func _figure_model(u: Unit, fi: int) -> Dictionary:
-	var is_ru := u.faction == Domain.Faction.RUSSIAN
-	if u.is_leader():
-		var own := _model(MODEL_OFFICER_RU if is_ru else MODEL_OFFICER_DE)
-		if own != null:
-			return { "scene": own, "foreign": false }
-		var other := _model(MODEL_OFFICER_DE if is_ru else MODEL_OFFICER_RU)
-		if other != null:
-			return { "scene": other, "foreign": true }
-	var own_pool: Array = MODEL_SOLDIERS_RU if is_ru else MODEL_SOLDIERS_DE
-	var other_pool: Array = MODEL_SOLDIERS_DE if is_ru else MODEL_SOLDIERS_RU
-	for k in own_pool.size():
-		var s := _model(own_pool[(fi + k) % own_pool.size()])
-		if s != null:
-			return { "scene": s, "foreign": false }
-	for k in other_pool.size():
-		var s2 := _model(other_pool[(fi + k) % other_pool.size()])
-		if s2 != null:
-			return { "scene": s2, "foreign": true }
+	var own := _unit_nation(u)
+	var order: Array = [own]
+	for nat in ["Tedeschi", "Russi", "Americani"]:
+		if nat != own:
+			order.append(nat)
+	for idx in order.size():
+		var nation: String = order[idx]
+		var foreign := idx > 0
+		if u.is_leader():
+			var off := _model(_pool_officer(nation))
+			if off != null:
+				return { "scene": off, "foreign": foreign }
+		var pool := _pool_soldiers(nation)
+		for k in pool.size():
+			var s := _model(pool[(fi + k) % pool.size()])
+			if s != null:
+				return { "scene": s, "foreign": foreign }
 	return { "scene": null, "foreign": false }
 
 
