@@ -789,10 +789,12 @@ func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 	var holder := Node3D.new()
 	_dynamic.add_child(holder)
 	# Le armi mostrano il loro modello (MG, mortaio, cannone) invece dei soldati.
-	if u.is_weapon() and _spawn_weapon(holder, u):
-		holder.rotation.y = _unit_yaw(u)
-		_attach_badge(holder, u, 0.95, sel)
-		return holder
+	if u.is_weapon():
+		var wh := _spawn_weapon(holder, u)
+		if wh >= 0.0:
+			holder.rotation.y = _unit_yaw(u)
+			_attach_badge(holder, u, wh + 0.4, sel)
+			return holder
 	var count := maxi(1, u.soldier_icons())   # squadra 4, team 2, leader 1, arma → 1
 	var target_h := 0.90  # uguale per tutte: la selezione è nel fondo del badge
 	var offs := _figure_offsets(count)
@@ -916,22 +918,25 @@ func _figure_model(u: Unit, fi: int) -> Dictionary:
 
 
 ## Posa il modello 3D dell'arma (MG/mortaio/cannone) dentro `holder`, scalato e
-## appoggiato a terra. Restituisce false se non c'è un modello adatto (→ ripiego
-## ai soldati). Le armi sono più basse dei soldati, da terra.
-func _spawn_weapon(holder: Node3D, u: Unit) -> bool:
+## appoggiato a terra. Restituisce l'altezza scalata (per piazzare il badge),
+## oppure -1 se non c'è un modello adatto (→ ripiego ai soldati). Le armi si
+## scalano sulla DIMENSIONE MASSIMA (sono basse e larghe: scalarle sull'altezza
+## le rendeva enormi in larghezza) e restano più piccole dei soldati.
+func _spawn_weapon(holder: Node3D, u: Unit) -> float:
 	var path := _weapon_model_path(_unit_nation(u), _weapon_kind(u))
 	if path == "":
-		return false
+		return -1.0
 	var scene := _model(path)
 	if scene == null:
-		return false
+		return -1.0
 	var fig := scene.instantiate()
 	var ab := _merged_aabb(fig, Transform3D.IDENTITY)
 	if ab.size == Vector3.ZERO:
 		fig.queue_free()
-		return false
-	var target := 0.62
-	var sc := target / ab.size.y if ab.size.y > 0.001 else 1.0
+		return -1.0
+	const WEAPON_SPAN := 0.58  # ingombro massimo dell'arma (< soldato ~0.9)
+	var maxd := maxf(ab.size.x, maxf(ab.size.y, ab.size.z))
+	var sc := WEAPON_SPAN / maxd if maxd > 0.001 else 1.0
 	var inner := Node3D.new()
 	inner.scale = Vector3(sc, sc, sc)
 	holder.add_child(inner)
@@ -940,7 +945,7 @@ func _spawn_weapon(holder: Node3D, u: Unit) -> bool:
 		-ab.position.y,
 		-(ab.position.z + ab.size.z * 0.5))
 	inner.add_child(fig)
-	return true
+	return sc * ab.size.y
 
 
 ## "Tipo" dell'arma ai fini del modello: mortaio / cannone (dalla classe), oppure
