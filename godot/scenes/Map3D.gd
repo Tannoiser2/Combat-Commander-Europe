@@ -24,14 +24,19 @@ const MODEL_GRASS := "res://assets/models3d/grass.glb"
 const MODEL_TREE_COLLECTION := "res://assets/models3d/tree_collection.fbx"
 const TREE_HEIGHT := 1.45  ## altezza desiderata di un albero, in unità mondo
 ## Soldati 3D (Meshy): più figure per pedina (squadra 4, team 2, leader 1, arma 1).
-## Le squadre/team alternano due pose per varietà; i leader usano l'ufficiale. Il
-## segnalino resta sopra la testa per identità/valori. L'Asse usa i modelli com'è,
-## gli Alleati una tinta verde-oliva come segnaposto.
-const MODEL_SOLDIERS := [
+## Le squadre/team alternano due pose per varietà; i leader usano l'ufficiale.
+## Modelli dedicati per fazione (Asse tedesco, Sovietici); se quelli di una
+## fazione mancano si ripiega sull'altra con tinta verde-oliva come segnaposto.
+const MODEL_SOLDIERS_DE := [
 	"res://assets/models3d/soldier_de.glb",
 	"res://assets/models3d/soldier_de_a.glb",
 ]
-const MODEL_OFFICER := "res://assets/models3d/officer_de.glb"
+const MODEL_OFFICER_DE := "res://assets/models3d/officer_de.glb"
+const MODEL_SOLDIERS_RU := [
+	"res://assets/models3d/soldier_ru.glb",
+	"res://assets/models3d/soldier_ru_a.glb",
+]
+const MODEL_OFFICER_RU := "res://assets/models3d/officer_ru.glb"
 var _model_cache: Dictionary = {}  ## path → PackedScene (o null se assente)
 var _tree_pool: Array = []  ## Mesh dei singoli alberi (cache, estratte una volta)
 var _badge_cache: Dictionary = {}  ## chiave valori → ImageTexture del badge
@@ -790,7 +795,8 @@ func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 	var offs := _figure_offsets(count)
 	var placed := 0
 	for fi in count:
-		var scene := _figure_model(u, fi)
+		var pick := _figure_model(u, fi)
+		var scene: PackedScene = pick["scene"]
 		if scene == null:
 			continue
 		var fig := scene.instantiate()
@@ -810,8 +816,10 @@ func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 			-ab.position.y,
 			-(ab.position.z + ab.size.z * 0.5))
 		inner.add_child(fig)
-		if u.faction == Domain.Faction.RUSSIAN:
-			_tint_soldier(fig, Color(0.62, 0.72, 0.45))  # segnaposto Alleati
+		# Tinta segnaposto solo se è stato usato il modello dell'altra fazione
+		# (es. Sovietico mancante → modello tedesco verniciato di verde-oliva).
+		if pick["foreign"]:
+			_tint_soldier(fig, Color(0.62, 0.72, 0.45))
 		placed += 1
 	if placed == 0:
 		holder.queue_free()
@@ -852,19 +860,30 @@ func _figure_offsets(count: int) -> Array:
 				Vector3(-D, 0.0, D), Vector3(D, 0.0, D)]
 
 
-## Modello per la figura `fi` dell'unità: l'ufficiale per i leader, altrimenti una
-## delle pose di soldato alternate per varietà. Ripiega su una posa disponibile.
-func _figure_model(u: Unit, fi: int) -> PackedScene:
+## Modello per la figura `fi` dell'unità, per fazione: l'ufficiale per i leader,
+## altrimenti pose di soldato alternate per varietà. Se la fazione non ha il
+## modello, ripiega su quello dell'altra fazione (segnalato da `foreign`, così il
+## chiamante lo tinge). Restituisce { scene, foreign }.
+func _figure_model(u: Unit, fi: int) -> Dictionary:
+	var is_ru := u.faction == Domain.Faction.RUSSIAN
 	if u.is_leader():
-		var off := _model(MODEL_OFFICER)
-		if off != null:
-			return off
-	var n: int = MODEL_SOLDIERS.size()
-	for k in n:
-		var s := _model(MODEL_SOLDIERS[(fi + k) % n])
+		var own := _model(MODEL_OFFICER_RU if is_ru else MODEL_OFFICER_DE)
+		if own != null:
+			return { "scene": own, "foreign": false }
+		var other := _model(MODEL_OFFICER_DE if is_ru else MODEL_OFFICER_RU)
+		if other != null:
+			return { "scene": other, "foreign": true }
+	var own_pool: Array = MODEL_SOLDIERS_RU if is_ru else MODEL_SOLDIERS_DE
+	var other_pool: Array = MODEL_SOLDIERS_DE if is_ru else MODEL_SOLDIERS_RU
+	for k in own_pool.size():
+		var s := _model(own_pool[(fi + k) % own_pool.size()])
 		if s != null:
-			return s
-	return null
+			return { "scene": s, "foreign": false }
+	for k in other_pool.size():
+		var s2 := _model(other_pool[(fi + k) % other_pool.size()])
+		if s2 != null:
+			return { "scene": s2, "foreign": true }
+	return { "scene": null, "foreign": false }
 
 
 ## Yaw della pedina: direzione di marcia memorizzata, altrimenti fronte di fazione

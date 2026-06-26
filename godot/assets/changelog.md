@@ -2,6 +2,7 @@
 
 [b]Vista 3D — squadre, badge numerico e direzione[/b]
 - Ogni pedina mostra ora il giusto numero di figure: squadra 4, team 2, leader 1 (arma 1). I leader usano un modello di ufficiale dedicato; le squadre/team alternano due pose per varietà. Geometria dei modelli alleggerita (~5000 triangoli, texture 512) per la build web.
+- Modelli dedicati per fazione: soldati e ufficiali tedeschi per l'Asse, sovietici per i Russi (niente più tinta verde "segnaposto" quando il modello della fazione esiste).
 - Le figure sono orientate nella direzione di marcia: quando un'unità si muove, il gruppo ruota verso il nuovo esagono (di riposo guardano verso il fronte nemico).
 - Al posto del segnalino "fotografico" ora c'è un piccolo badge numerico sopra la pila: striscia di valori (PdF, Gittata, Movimento, Morale in box), con il valore Comando per i leader e il riquadro sui valori "in box". Si tinge di rosso se l'unità è rotta.
 
