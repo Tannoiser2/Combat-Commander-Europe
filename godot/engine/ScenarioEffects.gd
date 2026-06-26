@@ -42,3 +42,34 @@ static func opening_cards(num: int, side: String) -> Array:
 		return []
 	var c: Variant = oc.get(side, [])
 	return c if c is Array else []
+
+
+# ─── Modificatori di terreno/mappa (terrain_mods.json) ────────────────────────
+
+const TERRAIN_PATH := "res://assets/scenarios/terrain_mods.json"
+static var _terrain: Dictionary = {}
+static var _terrain_loaded := false
+
+
+static func _ensure_terrain() -> void:
+	if _terrain_loaded:
+		return
+	_terrain_loaded = true
+	var f := FileAccess.open(TERRAIN_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var d: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	if d is Dictionary:
+		_terrain = d
+
+
+static func terrain_mods(num: int) -> Dictionary:
+	_ensure_terrain()
+	var t: Variant = _terrain.get(str(num), {})
+	return t if t is Dictionary else {}
+
+
+## Ostacolo (Hindrance) aggiuntivo in OGNI esagono (nebbia, ecc.). 0 se assente.
+static func global_hindrance(num: int) -> int:
+	return int(terrain_mods(num).get("global_hindrance", 0))

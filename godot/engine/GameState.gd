@@ -108,6 +108,9 @@ var ai_max_orders: int = 2  ## Ordini giocati dall'IA nel suo turno
 
 var time_marker: int = 2
 var sudden_death_space: int = 7
+## Ostacolo (Hindrance) aggiuntivo presente in OGNI esagono per certi scenari
+## (SSR Nebbia, ecc.). Sommato all'ostacolo della LOS in ogni attacco di fuoco.
+var global_hindrance: int = 0
 
 
 # ─── Punti Vittoria ──────────────────────────────────────────────────────────

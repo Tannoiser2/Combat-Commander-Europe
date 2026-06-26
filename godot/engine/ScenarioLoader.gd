@@ -92,6 +92,8 @@ static func setup(state: GameState, num: int) -> bool:
 	state.axis_nation = String(e.get("fazione_axis", "german"))
 	state.allied_nation = String(e.get("fazione_allies", "russian"))
 	state.sudden_death_space = int(e.get("sudden_death", 7))
+	# SSR: ostacolo globale di mappa (Nebbia, ecc.).
+	state.global_hindrance = ScenarioEffects.global_hindrance(num)
 	# Casella iniziale del segnalino Tempo (6.1.1: «di solito 0»). Campo opzionale
 	# del catalogo per scenari che partono da una casella diversa (es. anno).
 	state.time_marker = int(e.get("tempo_iniziale", 0))
