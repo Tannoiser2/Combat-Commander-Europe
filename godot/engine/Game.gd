@@ -1669,28 +1669,16 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	return res.eliminated.has(mover.id) or res.broken.has(mover.id)
 
 
-## Op Fire AUTOMATICO: il difensore IA reagisce col miglior tiratore idoneo, ma
-## solo se ha una carta Fuoco e il tiro è ragionevole (come farebbe un giocatore:
-## non spreca carte su tiri velleitari).
+## Op Fire AUTOMATICO (A33): il difensore IA reagisce col tiratore il cui gruppo
+## di fuoco ha la massima FP contro il mover (FlipBot), purché abbia una carta
+## Fuoco e il tiro soddisfi la FP minima. Niente carte sprecate su tiri deboli.
 func _op_fire(mover: Unit, defender: int) -> bool:
 	if _fire_card_index(defender) < 0:
 		return false
-	var shooter := OpFire.best_shooter(state, mover, defender)
+	var shooter := FlipBot.best_op_fire(state, mover, defender)
 	if shooter == null:
 		return false
-	if not _op_fire_worthwhile(shooter, mover):
-		return false
 	return _resolve_op_fire(shooter, mover, defender)
-
-
-## Euristica dell'IA: vale la pena reagire se l'FP proiettato (con Comando, meno
-## l'ostacolo della LOS) è almeno pari alla difesa statica del mover (i dadi
-## decidono il resto). Evita di bruciare carte Fuoco su tiri deboli.
-func _op_fire_worthwhile(shooter: Unit, mover: Unit) -> bool:
-	var fp := Rules.fp_with_command(state, shooter)
-	fp -= HexGrid.los_hindrance(shooter.q, shooter.r, mover.q, mover.r, state)
-	var cover := Rules.cover_at(state, mover.q, mover.r, shooter.ordnance)
-	return fp >= mover.morale + cover
 
 
 ## Op Fire come FINESTRA DI REAZIONE (A33). Se il difensore è l'umano, apre la

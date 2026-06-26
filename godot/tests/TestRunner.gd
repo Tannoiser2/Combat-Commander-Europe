@@ -115,6 +115,7 @@ func _ready() -> void:
 	_test_flipbot()
 	_test_flipbot_move()
 	_test_flipbot_fire()
+	_test_flipbot_opfire()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -1872,6 +1873,38 @@ func _test_flipbot_fire() -> void:
 	s2.units[tough.id] = tough
 	_check(FlipBot.best_fire(s2, GER).is_empty(),
 		"FP 2 contro difesa 9: sotto il minimo → nessun fuoco")
+
+
+func _test_flipbot_opfire() -> void:
+	print("· FlipBot: Fuoco di Opportunità (gruppo a massima FP, non individuale)")
+	var s := _new_state(8, 3)
+	s.human_faction = RUS  # il bot tedesco difende; il russo (umano) muove
+	var mv := _mk("mv", RUS, SQUAD, RIFLE, 4, 0, 5, 5, 6)  # mover, morale 5
+	s.units[mv.id] = mv
+	# Tiratore solitario con FP individuale alta (gruppo = 6).
+	var solo := _mk("g1", GER, SQUAD, RIFLE, 0, 0, 6, 7, 6)
+	s.units[solo.id] = solo
+	# Tre squadre co-locate a FP individuale minore ma totale maggiore (5 + 2 = 7).
+	var a := _mk("g2", GER, SQUAD, RIFLE, 2, 0, 5, 7, 6)
+	var b := _mk("g3", GER, SQUAD, RIFLE, 2, 0, 5, 7, 6)
+	var c := _mk("g4", GER, SQUAD, RIFLE, 2, 0, 5, 7, 6)
+	s.units[a.id] = a
+	s.units[b.id] = b
+	s.units[c.id] = c
+	var sh := FlipBot.best_op_fire(s, mv, GER)
+	_check(sh != null, "il bot reagisce al movimento")
+	_check(sh != null and sh.q == 2,
+		"sceglie il gruppo a FP totale massima (7), non il tiratore solitario (6)")
+
+	# FP minima: un mover ad alto morale e un tiratore debole → niente reazione.
+	var s2 := _new_state(8, 3)
+	s2.human_faction = RUS
+	var mv2 := _mk("mv", RUS, SQUAD, RIFLE, 4, 0, 5, 10, 6)  # morale 10
+	s2.units[mv2.id] = mv2
+	var weak := _mk("g9", GER, SQUAD, RIFLE, 3, 0, 2, 7, 6)  # gruppo FP 2
+	s2.units[weak.id] = weak
+	_check(FlipBot.best_op_fire(s2, mv2, GER) == null,
+		"FP 2 contro difesa 10: sotto il minimo → nessuna reazione")
 
 
 func _test_manual_setup() -> void:
