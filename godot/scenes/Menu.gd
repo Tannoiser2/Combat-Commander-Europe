@@ -19,6 +19,7 @@ var _allies_btn: Button
 var _changelog: Panel
 var _rules_panel: Panel
 var _rules_label: RichTextLabel
+var _difficulty: int = Domain.BotDifficulty.GREEN
 
 ## Nazione (stringa catalogo) → nome mostrato.
 const NATION_LABEL := {
@@ -167,6 +168,32 @@ func _build_ui() -> void:
 			_rules_panel.visible = not _rules_panel.visible)
 	add_child(rules_btn)
 	_build_rules_panel()
+
+	# Difficoltà del bot (FlipBot): Recluta / Di linea / Veterano.
+	var diff_lbl := Label.new()
+	diff_lbl.text = "Difficoltà IA:"
+	diff_lbl.add_theme_font_size_override("font_size", 13)
+	diff_lbl.modulate = Color(0.72, 0.74, 0.78)
+	diff_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	diff_lbl.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	diff_lbl.offset_left = 372
+	diff_lbl.offset_top = -42
+	diff_lbl.offset_right = 470
+	diff_lbl.offset_bottom = -12
+	add_child(diff_lbl)
+	var diff_opt := OptionButton.new()
+	for lvl in [Domain.BotDifficulty.GREEN, Domain.BotDifficulty.LINE, Domain.BotDifficulty.VETERAN]:
+		diff_opt.add_item(String(Domain.BOT_DIFFICULTY_LABELS.get(lvl, "?")), lvl)
+	diff_opt.selected = 0
+	diff_opt.tooltip_text = "Più alto = l'IA ha più carte, più ordini e si arrende più tardi (FlipBot)"
+	diff_opt.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	diff_opt.offset_left = 474
+	diff_opt.offset_top = -44
+	diff_opt.offset_right = 604
+	diff_opt.offset_bottom = -10
+	diff_opt.item_selected.connect(func(idx: int) -> void:
+		_difficulty = diff_opt.get_item_id(idx))
+	add_child(diff_opt)
 	# Nota: l'«Editor mappe» è stato spostato nella colonna laterale in partita.
 
 
@@ -377,5 +404,5 @@ func _load_tex(path: String) -> Texture2D:
 func _start(faction: int) -> void:
 	if _selected_num <= 0:
 		return
-	Game.start_new_game(faction, _selected_num)
+	Game.start_new_game(faction, _selected_num, _difficulty)
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")

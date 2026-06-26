@@ -27,9 +27,11 @@ func _ready() -> void:
 
 
 ## Avvia una nuova partita. `scenario_num` 1..24 (default 1).
-func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: int = 1) -> void:
+func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: int = 1,
+		difficulty: int = Domain.BotDifficulty.GREEN) -> void:
 	state = GameState.new()
 	state.human_faction = human_faction
+	state.bot_difficulty = difficulty
 
 	# Lo scenario 1 ha dati di piazzamento curati a mano; gli altri usano il
 	# loader generico (catalogo + ordini di battaglia recuperati).
@@ -44,6 +46,10 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 
 	# Portage (11.2): ogni arma è affidata a un uomo co-locato della sua fazione.
 	_assign_initial_carriers(state)
+
+	# Difficoltà del bot (FlipBot): bonus a ordini/mano/resa dell'IA. Prima di
+	# distribuire le mani, così l'eventuale +carte vale già da subito.
+	FlipBot.apply_difficulty(state)
 
 	# Costruisce e mescola i mazzi reali delle due nazioni (slot Asse/Alleati).
 	state.german_deck = Cards.build_deck(state.axis_nation)

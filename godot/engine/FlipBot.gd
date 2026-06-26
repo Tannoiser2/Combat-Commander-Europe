@@ -427,3 +427,31 @@ static func best_advance(state: GameState, faction: int) -> Dictionary:
 ## punteggio (copertura per la conquista, margine per la mischia) maggiore.
 static func _adv_better(rank: int, score: int, best_rank: int, best_score: int) -> bool:
 	return rank > best_rank or (rank == best_rank and score > best_score)
+
+
+# ─── Difficoltà (Green / Line / Veteran Bot) ─────────────────────────────────
+
+## Bonus di difficoltà del FlipBot per livello: carte in mano (max 7), ordini
+## per turno, soglia di resa del bot. (Lo "scarto" del FlipBot non ha un limite
+## nel motore, quindi non si applica; i gettoni Obiettivo restano da scenario.)
+const DIFFICULTY_HAND := {
+	Domain.BotDifficulty.GREEN: 0, Domain.BotDifficulty.LINE: 1, Domain.BotDifficulty.VETERAN: 2,
+}
+const DIFFICULTY_ORDERS := {
+	Domain.BotDifficulty.GREEN: 0, Domain.BotDifficulty.LINE: 1, Domain.BotDifficulty.VETERAN: 2,
+}
+const DIFFICULTY_SURRENDER := {
+	Domain.BotDifficulty.GREEN: 0, Domain.BotDifficulty.LINE: 1, Domain.BotDifficulty.VETERAN: 2,
+}
+
+
+## Applica i bonus di difficoltà al lato controllato dall'IA (l'opposto
+## dell'umano): più ordini, più carte in mano (max 7), resa più tenace. Da
+## chiamare a inizio partita PRIMA di distribuire le mani.
+static func apply_difficulty(state: GameState) -> void:
+	var bot := _opponent(state.human_faction)
+	var diff: int = state.bot_difficulty
+	state.ai_max_orders += int(DIFFICULTY_ORDERS.get(diff, 0))
+	state.hand_size[bot] = mini(7, int(state.hand_size.get(bot, 4)) + int(DIFFICULTY_HAND.get(diff, 0)))
+	if state.surrender_threshold.has(bot):
+		state.surrender_threshold[bot] += int(DIFFICULTY_SURRENDER.get(diff, 0))

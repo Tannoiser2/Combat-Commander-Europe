@@ -105,6 +105,9 @@ var ai_max_orders: int = 2  ## Ordini giocati dall'IA nel suo turno
 ## Disposizione del bot (FlipBot): Offensiva/Difensiva. Ricalcolata a inizio
 ## turno IA e a ogni avanzamento del Tempo. Guida le mosse/avanzate del bot.
 var disposition: int = Domain.Disposition.OFFENSIVE
+## Livello di difficoltà del bot (FlipBot): più alto = più carte/ordini e resa
+## più tenace per l'IA. Applicato a inizio partita (FlipBot.apply_difficulty).
+var bot_difficulty: int = Domain.BotDifficulty.GREEN
 
 
 # ─── Traccia del tempo ────────────────────────────────────────────────────────

@@ -117,6 +117,7 @@ func _ready() -> void:
 	_test_flipbot_fire()
 	_test_flipbot_opfire()
 	_test_flipbot_advance()
+	_test_flipbot_difficulty()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -1944,6 +1945,42 @@ func _test_flipbot_advance() -> void:
 	_check(int(a3.get("q", -9)) == 2 and int(a3.get("r", -9)) == 1 \
 			and String(a3.get("kind", "")) == "melee",
 		"avanza nella mischia favorevole quando non ci sono obiettivi")
+
+
+func _test_flipbot_difficulty() -> void:
+	print("· FlipBot: livelli di difficoltà (carte, ordini, resa)")
+	# Bot = Russo (umano = Tedesco). Base: 4 ordini IA, mano 5, soglia resa 10.
+	var base := func() -> GameState:
+		var s := GameState.new()
+		s.human_faction = GER
+		s.ai_max_orders = 2
+		s.hand_size[RUS] = 5
+		s.surrender_threshold[RUS] = 10
+		return s
+	# Recluta (Green): nessun bonus.
+	var sg: GameState = base.call()
+	sg.bot_difficulty = Domain.BotDifficulty.GREEN
+	FlipBot.apply_difficulty(sg)
+	_check(sg.ai_max_orders == 2 and int(sg.hand_size[RUS]) == 5 \
+			and int(sg.surrender_threshold[RUS]) == 10, "Recluta: nessun bonus")
+	# Di linea (Line): +1 ordine, +1 carta, +1 resa.
+	var sl: GameState = base.call()
+	sl.bot_difficulty = Domain.BotDifficulty.LINE
+	FlipBot.apply_difficulty(sl)
+	_check(sl.ai_max_orders == 3 and int(sl.hand_size[RUS]) == 6 \
+			and int(sl.surrender_threshold[RUS]) == 11, "Di linea: +1 ordine/carta/resa")
+	# Veterano (Veteran): +2 ordini, +2 carte, +2 resa.
+	var sv: GameState = base.call()
+	sv.bot_difficulty = Domain.BotDifficulty.VETERAN
+	FlipBot.apply_difficulty(sv)
+	_check(sv.ai_max_orders == 4 and int(sv.hand_size[RUS]) == 7 \
+			and int(sv.surrender_threshold[RUS]) == 12, "Veterano: +2 ordine/carta/resa")
+	# Tetto della mano a 7.
+	var sc: GameState = base.call()
+	sc.hand_size[RUS] = 6
+	sc.bot_difficulty = Domain.BotDifficulty.VETERAN
+	FlipBot.apply_difficulty(sc)
+	_check(int(sc.hand_size[RUS]) == 7, "la mano del bot non supera 7 carte")
 
 
 func _test_manual_setup() -> void:

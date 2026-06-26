@@ -1,3 +1,9 @@
+[b]v0.17.0[/b]
+
+[b]IA — FlipBot (6/n): Difficoltà[/b]
+- Tre livelli di difficoltà del bot, scelti nella schermata iniziale: Recluta, Di linea, Veterano.
+- Ai livelli superiori l'IA riceve i bonus del FlipBot: più carte in mano (fino a 7), più ordini per turno e una soglia di resa più alta (resiste più a lungo).
+
 [b]v0.16.0[/b]
 
 [b]IA — FlipBot (5/n): Avanzata[/b]
