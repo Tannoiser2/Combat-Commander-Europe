@@ -65,36 +65,16 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 		state.turn_number,
 		Domain.FACTION_NAMES.get(state.initiative_holder, "?")
 	])
-	# Schieramento manuale: il giocatore può disporre le sue unità nella zona di
-	# setup (oppure premere «Auto» per il piazzamento intelligente automatico).
-	# Le pedine partono già piazzate dall'Auto intelligente del loader.
-	_ensure_setup_zone(state)
-	_log("Schieramento: disponi le tue unità nella zona, o premi «Auto».")
-	_change_phase(Domain.Phase.PLAYER_SETUP)
-
-
-## Garantisce che `state.setup_zone` sia popolata. Gli scenari dal loader la
-## ricevono già (zona della scheda); per lo scenario 1 (dati a mano) la deriva
-## dagli esagoni delle proprie unità più i vicini, così il giocatore ha margine.
-func _ensure_setup_zone(s: GameState) -> void:
-	if not s.setup_zone.is_empty():
-		return
-	var seen := {}
-	var zone: Array = []
-	for u in s.units_of(s.human_faction):
-		if u.is_weapon():
-			continue  # le armi seguono il portatore
-		var around: Array = [Vector2i(u.q, u.r)]
-		around.append_array(HexGrid.neighbors(u.q, u.r))
-		for hx in around:
-			if hx.x < 0 or hx.y < 0 or hx.x >= s.map_cols or hx.y >= s.map_rows:
-				continue
-			var k := "%d,%d" % [hx.x, hx.y]
-			if seen.has(k):
-				continue
-			seen[k] = true
-			zone.append(hx)
-	s.setup_zone = zone
+	# Schieramento manuale SOLO per gli scenari con una zona di schieramento vera
+	# (dalle schede, via il loader generico). Lo scenario 1 — e ogni scenario con
+	# piazzamento storico fisso curato a mano — NON ha una zona: parte direttamente
+	# col suo piazzamento esatto, senza fase di setup (regola "ignora il setup
+	# simultaneo" della scheda dello scenario 1).
+	if not state.setup_zone.is_empty():
+		_log("Schieramento: disponi le tue unità nella zona, o premi «Auto».")
+		_change_phase(Domain.Phase.PLAYER_SETUP)
+	else:
+		_change_phase(Domain.Phase.PLAYER_TURN)
 
 
 ## «Schieramento pronto»: chiude la fase di setup e inizia il gioco vero.
