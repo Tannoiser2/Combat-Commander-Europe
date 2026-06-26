@@ -79,19 +79,15 @@ func _run_checks() -> void:
 	if not checked_leader:
 		print("  [..] nessun leader presente in scenario 1 (ok)")
 
-	# Badge: texture valida e a striscia (più larga che alta) per squadra e leader.
+	# Badge: i token sono coerenti col tipo (la texture è renderizzata in modo
+	# asincrono via SubViewport e non è disponibile in headless; qui si verifica
+	# la logica dei valori). Lo Sprite3D del badge è già contato sopra.
 	var squad = _first_of_type(s, Domain.UnitType.SQUAD)
-	if squad != null:
-		var tex = _map._make_badge_tex(squad)
-		if tex == null:
-			_fail("badge squadra nullo")
-		elif tex.get_width() <= tex.get_height():
-			_fail("badge squadra non a striscia (%dx%d)" % [tex.get_width(), tex.get_height()])
+	if squad != null and _map._badge_tokens(squad).size() != 4:
+		_fail("badge squadra: attesi 4 valori (PdF/Gittata/Mov/Morale)")
 	var leader = _first_of_type(s, Domain.UnitType.LEADER)
-	if leader != null:
-		var tex2 = _map._make_badge_tex(leader)
-		if tex2 == null:
-			_fail("badge leader nullo (manca il valore comando)")
+	if leader != null and _map._badge_tokens(leader).is_empty():
+		_fail("badge leader: nessun valore (manca il Comando)")
 
 	# Orientamento: dopo uno spostamento, lo yaw verso il nuovo esagono è memorizzato.
 	if squad != null:
