@@ -23,6 +23,9 @@ const MODEL_GRASS := "res://assets/models3d/grass.glb"
 ## variati in un solo FBX, da cui si estraggono le singole mesh per il bosco.
 const MODEL_TREE_COLLECTION := "res://assets/models3d/tree_collection.fbx"
 const TREE_HEIGHT := 1.45  ## altezza desiderata di un albero, in unità mondo
+## Soldato 3D (Meshy): UNA figura per pedina (l'Asse col suo aspetto, gli Alleati
+## tinti come segnaposto). Il segnalino resta sopra la testa per identità/valori.
+const MODEL_SOLDIER := "res://assets/models3d/soldier_de.glb"
 var _model_cache: Dictionary = {}  ## path → PackedScene (o null se assente)
 var _tree_pool: Array = []  ## Mesh dei singoli alberi (cache, estratte una volta)
 
@@ -707,12 +710,27 @@ func _add_pieces(s: GameState) -> void:
 			var sel := u.id == s.selected_unit_id
 			var top_y := _top_y(s, u.q, u.r)
 			var ci := _hex_img(u.q, u.r)
-			var off := Vector3(0.16 * i - 0.12, 0.12 * i, -0.16 * i + 0.12)
+			var off := Vector3(0.16 * i - 0.12, 0.0, -0.16 * i + 0.12)
 			# La pedina selezionata si solleva sopra l'impilamento per essere vista.
 			var lift := 0.7 if sel else 0.0
 			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off + Vector3(0.0, lift, 0.0)
-			var final_pos := base + Vector3(0.0, 0.75, 0.0)
 			_last_unit_pos[u.id] = Vector2i(u.q, u.r)
+			# Figura 3D del soldato (con segnalino sopra). Ripiego al segnalino
+			# billboard se il modello non è disponibile.
+			var holder := _spawn_soldier(u, sel)
+			if holder != null:
+				if _pending_slide.has(u.id):
+					holder.position = _pending_slide[u.id]
+					var tw := holder.create_tween()
+					tw.set_trans(Tween.TRANS_SINE)
+					tw.tween_property(holder, "position", base, 0.28)
+					_pending_slide.erase(u.id)
+				else:
+					holder.position = base
+				_pieces.append({ "id": u.id, "node": holder })
+				continue
+			# ── Ripiego: solo il segnalino (billboard) ──
+			var final_pos := base + Vector3(0.0, 0.75, 0.0)
 			var tex := _counter_tex(u)
 			if tex != null:
 				var sp := Sprite3D.new()
@@ -721,7 +739,6 @@ func _add_pieces(s: GameState) -> void:
 				sp.shaded = false
 				sp.pixel_size = (1.85 if sel else 1.5) / float(tex.get_height())
 				_dynamic.add_child(sp)
-				# Se l'unità si è appena spostata, la pedina scivola da → a.
 				if _pending_slide.has(u.id):
 					sp.position = _pending_slide[u.id]
 					var tw := sp.create_tween()
@@ -742,6 +759,64 @@ func _add_pieces(s: GameState) -> void:
 				pm.position = base + Vector3(0.0, 0.3, 0.0)
 				_dynamic.add_child(pm)
 				_pieces.append({ "id": u.id, "node": pm })
+
+
+## Costruisce la figura 3D del soldato per la pedina, con sopra il segnalino di
+## gioco (identità/valori). L'Asse usa il modello com'è; gli Alleati una tinta
+## verde-oliva come SEGNAPOSTO (in attesa di un modello dedicato). Restituisce il
+## holder, oppure null se il modello non è disponibile (→ ripiego al segnalino).
+func _spawn_soldier(u: Unit, sel: bool) -> Node3D:
+	var scene := _model(MODEL_SOLDIER)
+	if scene == null:
+		return null
+	var holder := Node3D.new()
+	_dynamic.add_child(holder)
+	var fig := scene.instantiate()
+	var ab := _merged_aabb(fig, Transform3D.IDENTITY)
+	if ab.size == Vector3.ZERO:
+		fig.queue_free()
+		holder.queue_free()
+		return null
+	var target_h := 1.05 if sel else 0.9
+	var sc := target_h / ab.size.y if ab.size.y > 0.001 else 1.0
+	var inner := Node3D.new()
+	inner.scale = Vector3(sc, sc, sc)
+	inner.rotation.y = PI if u.faction == Domain.Faction.RUSSIAN else 0.0
+	holder.add_child(inner)
+	fig.position = Vector3(
+		-(ab.position.x + ab.size.x * 0.5),
+		-ab.position.y,
+		-(ab.position.z + ab.size.z * 0.5))
+	inner.add_child(fig)
+	if u.faction == Domain.Faction.RUSSIAN:
+		_tint_soldier(fig, Color(0.62, 0.72, 0.45))  # segnaposto Alleati
+	# Segnalino sopra la testa: conserva identità e valori della pedina.
+	var tex := _counter_tex(u)
+	if tex != null:
+		var sp := Sprite3D.new()
+		sp.texture = tex
+		sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		sp.shaded = false
+		sp.pixel_size = (1.2 if sel else 1.0) / float(tex.get_height())
+		sp.position = Vector3(0.0, target_h + 0.5, 0.0)
+		holder.add_child(sp)
+	return holder
+
+
+## Tinta (moltiplicativa, preservando la texture) su tutte le mesh della figura.
+func _tint_soldier(node: Node, tint: Color) -> void:
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		var mi := node as MeshInstance3D
+		var src := mi.mesh.surface_get_material(0)
+		var m: StandardMaterial3D
+		if src is StandardMaterial3D:
+			m = (src as StandardMaterial3D).duplicate()
+		else:
+			m = StandardMaterial3D.new()
+		m.albedo_color = tint
+		mi.material_override = m
+	for c in node.get_children():
+		_tint_soldier(c, tint)
 
 
 func _counter_tex(u: Unit) -> Texture2D:

@@ -11,6 +11,14 @@ di **Kenney** (account ufficiale `KenneyNL` su GitHub).
 File inclusi: building-small-a/b/c (edifici), grass-trees (alberi),
 grass (vegetazione bassa).
 
+## Soldato 3D
+
+`soldier_de.glb`: figura di soldato (WWII, tedesco) usata come pedina 3D
+(una per unità). Modello fornito dall'utente (generato con Meshy AI), con le
+texture ridotte a 512×512 per la build web. Gli Alleati usano lo stesso modello
+con una tinta verde-oliva come segnaposto, in attesa di un modello dedicato.
+
+
 ## Alberi del bosco
 
 `tree_collection.fbx` + `textures/color_1024x1024.jpg`: collezione di alberi
