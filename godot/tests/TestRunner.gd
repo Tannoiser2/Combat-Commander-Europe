@@ -118,6 +118,7 @@ func _ready() -> void:
 	_test_flipbot_opfire()
 	_test_flipbot_advance()
 	_test_flipbot_difficulty()
+	_test_flipbot_scenario_rules()
 	_test_scenario_effects()
 	_test_global_hindrance()
 	_test_reinforcements()
@@ -1981,6 +1982,30 @@ func _test_flipbot_difficulty() -> void:
 	sc.bot_difficulty = Domain.BotDifficulty.VETERAN
 	FlipBot.apply_difficulty(sc)
 	_check(int(sc.hand_size[RUS]) == 7, "la mano del bot non supera 7 carte")
+
+
+func _test_flipbot_scenario_rules() -> void:
+	print("· FlipBot: istruzioni per scenario (ignora bordo nemico → punta al nemico)")
+	var s := _new_state(12, 3)
+	s.human_faction = RUS  # bot = Tedesco (Asse)
+	var u := _mk("g1", GER, SQUAD, RIFLE, 1, 1, 6, 7, 6)
+	s.units[u.id] = u
+	var en := _mk("r1", RUS, SQUAD, RIFLE, 10, 1, 5, 7, 6)  # distanza 9 (>5)
+	s.units[en.id] = en
+	# Scenario normale: nessun obiettivo, nemico lontano → punta al bordo nemico (col 0).
+	s.scenario_number = 6
+	_check(FlipBot.move_destination(s, GER, u).x == 0,
+		"scenario normale: punta al bordo mappa nemico (col 0)")
+	# Scenario 13 (Ritirata, Asse): ignora il bordo, punta al nemico più vicino.
+	s.scenario_number = 13
+	_check(FlipBot.move_destination(s, GER, u) == Vector2i(10, 1),
+		"scenario 13/Asse: punta al nemico più vicino, non al bordo")
+	_check(not FlipBot.no_edge_objective(s, RUS),
+		"scenario 13: la regola vale per l'Asse, non per gli Alleati")
+	# Scenario 7: vale per entrambi i lati.
+	s.scenario_number = 7
+	_check(FlipBot.no_edge_objective(s, GER) and FlipBot.no_edge_objective(s, RUS),
+		"scenario 7 (No Quarter): la regola vale per entrambi i lati")
 
 
 func _test_manual_setup() -> void:

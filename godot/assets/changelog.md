@@ -1,3 +1,9 @@
+[b]v0.18.0[/b]
+
+[b]IA — FlipBot (7/n): istruzioni per scenario[/b]
+- Implementato il sottoinsieme automatizzabile delle regole speciali del FlipBot: negli scenari di "sortita/ritirata" (No Quarter, Breakout, Ritirata, Raid — scenari 7/8/13/20) l'IA ignora il bordo mappa nemico come obiettivo e punta invece al nemico più vicino.
+- Le altre istruzioni per scenario riguardano meccaniche non modellate nel nostro motore (marcatori Obiettivo "generici", unità nascoste, segretezza della mano) e non sono applicabili.
+
 [b]v0.17.0[/b]
 
 [b]IA — FlipBot (6/n): Difficoltà[/b]

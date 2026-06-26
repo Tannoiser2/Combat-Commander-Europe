@@ -184,8 +184,28 @@ static func move_destination(state: GameState, faction: int, u: Unit) -> Vector2
 	var d4 := _nearest_enemy_hex(state, faction, u, MOVE_RANGE)
 	if d4.x >= 0:
 		return d4
-	# 5) Bordo mappa nemico.
+	# 5) Bordo mappa nemico — oppure, per certi scenari (No Quarter / Breakout /
+	#    Ritirata), il nemico più vicino invece del bordo.
+	if no_edge_objective(state, faction):
+		var e := _nearest_enemy_hex(state, faction, u, 99999)
+		if e.x >= 0:
+			return e
 	return enemy_edge_hex(state, faction, u.q, u.r)
+
+
+## Istruzione speciale di alcuni scenari: il FlipBot ignora il "bordo mappa
+## nemico" come destinazione e punta al nemico più vicino. (Sottoinsieme
+## automatizzabile: 7 sempre; 8 se il bot è Alleato; 13 e 20 se è dell'Asse.)
+static func no_edge_objective(state: GameState, faction: int) -> bool:
+	match state.scenario_number:
+		7:
+			return true
+		8:
+			return faction == Domain.Faction.RUSSIAN
+		13, 20:
+			return faction == Domain.Faction.GERMAN
+		_:
+			return false
 
 
 ## Esagono di ritirata di un'unità rotta: verso il bordo amico, alla sua riga.
