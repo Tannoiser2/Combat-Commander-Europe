@@ -1,3 +1,28 @@
+[b]v0.10.0[/b]
+
+[b]Interfaccia[/b]
+- HUD a riquadri: i pannelli sono ora finestre opache che delimitano la mappa invece di coprirla. La mappa 2D vive nell'area libera e si riprende lo spazio quando chiudi colonna o mano.
+- Colonna laterale come "cassetto" che scorre in orizzontale con una maniglia sul bordo. Raccoglie Vista 2D/3D, LOS, Comandi, Menu, Editor mappe, scheda unita/esagono e Registro.
+- Barra in alto riorganizzata con il conteggio Ordini; tolta la scritta gialla sovrapposta alla mappa.
+- Mappa 2D: zoom con la rotella e spostamento (pan) col mouse; "0" reinquadra.
+- Schermata iniziale: mappa e Ordine di Battaglia piu grandi.
+
+[b]Vista 3D[/b]
+- Modelli 3D reali low-poly (Kenney, CC0) per case, alberi ed erba, auto-scalati negli esagoni.
+- Pendii delle elevazioni smussati (scarpate inclinate invece di gradini).
+
+[b]Regole e gioco[/b]
+- Mossa: un ordine dato a una qualunque unita comandata attiva l'intero gruppo di Comando del leader (3.3.1.2).
+- Fuoco leggibile: le unita che possono sparare hanno un anello ciano, linee verso i bersagli validi, gruppo di fuoco automatico ma modificabile; il leader dirige il gruppo dal suo esagono.
+- I badge si illuminano solo per gli ordini/azioni davvero possibili in quel momento.
+- "Passa" (O15): scegli quante carte scartare e ripescare.
+- Setup: armi sempre possedute da una squadra (niente piu armi "a terra" al via).
+
+[b]Scenari[/b]
+- Regole speciali e di setup di tutti i 24 scenari, in italiano, visibili in gioco ("Regole scenario").
+- Piazzamento per scenario: zone di schieramento fedeli alle schede, fortificazioni iniziali (trincee, filo, mine, bunker) sulla mappa.
+- Effetti automatici: gettoni Obiettivo esclusi, carte garantite in mano a inizio partita, ostacolo globale di mappa (Nebbia).
+
 [b]v0.9.0[/b]
 
 [b]Interfaccia[/b]
