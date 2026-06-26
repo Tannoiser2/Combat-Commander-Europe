@@ -18,7 +18,7 @@ Tutte le **regole speciali** dei 24 scenari sono visibili in gioco (menu «Regol
 
 **Setup/meccaniche automatizzate:**
 - ✅ Zone di schieramento (per profondità)
-- 👁️ Non automatizzato: Bocage
+- 👁️ Non automatizzato: Bocage (siepi)
 
 **Regole speciali (mostrate, 2):**
 - 👁️ OSSERVATORE AVANZATO: l'Alleato può scegliere di schierare il Tenente Blankenship dopo che l'Asse ha terminato di schierare le proprie forze, e può es
@@ -56,7 +56,7 @@ Tutte le **regole speciali** dei 24 scenari sono visibili in gioco (menu «Regol
 - ✅ Zone di schieramento (per profondità)
 - ✅ Fortificazioni iniziali: 6× Trincea
 - ✅ Gettoni Obiettivo esclusi: R, V, X
-- 👁️ Non automatizzato: Neve
+- 👁️ Non automatizzato: Neve (costo aperto)
 
 **Regole speciali (mostrate, 4):**
 - 👁️ Non aggiungete i gettoni Obiettivo R, V e X al sacchetto di pesca: non vengono usati in questo scenario.
@@ -80,7 +80,6 @@ Tutte le **regole speciali** dei 24 scenari sono visibili in gioco (menu «Regol
 - ✅ Zone di schieramento (per profondità)
 - ✅ Gettoni Obiettivo esclusi: R, W
 - ✅ Carte iniziali: allies:R-31
-- 👁️ Non automatizzato: terreno (note)
 
 **Regole speciali (mostrate, 5):**
 - 👁️ L'Alleato schiera per primo con il seguente metodo: per ciascuna unità russa determinate un esagono casuale usando il Mazzo del Fato russo; quell'unit
@@ -169,7 +168,7 @@ Tutte le **regole speciali** dei 24 scenari sono visibili in gioco (menu «Regol
 **Setup/meccaniche automatizzate:**
 - ✅ Zone di schieramento (per profondità)
 - ✅ Fortificazioni iniziali: 1× Buche
-- 👁️ Rinforzi non enumerati nel testo (dati dall'OB grafico): S14: la regola dice solo 'Place the German Reinforcements into the 3 space of the Time Track'; le specifiche unita di rinforzo (lato axis/tedesco) sono designate dal marcatore 'Reinforcements 2' nell'OB della scheda e non sono enumerate nel testo, quindi units e lasciato vuoto.
+- ✅ Rinforzi (Tabella del Tempo), spazi: 3
 
 **Regole speciali (mostrate, 4):**
 - 👁️ OSSERVATORE PER MORTAIO: qualsiasi attacco effettuato da un Mortaio tedesco può tracciare la propria LDV dal Sergente Biermann invece che dal Mortaio 
@@ -227,7 +226,7 @@ Tutte le **regole speciali** dei 24 scenari sono visibili in gioco (menu «Regol
 **Setup/meccaniche automatizzate:**
 - ✅ Zone di schieramento (per profondità)
 - ✅ Fortificazioni iniziali: 1× Bunker
-- 👁️ Rinforzi non enumerati nel testo (dati dall'OB grafico): S19: la regola dice solo 'Place the Greek Reinforcements in the 3 space of the Time Track'; le specifiche unita di rinforzo (lato allies/greco) sono designate dal marcatore 'Reinforcements 2' nell'OB della scheda e non sono enumerate nel testo, quindi units e lasciato vuoto.
+- ✅ Rinforzi (Tabella del Tempo), spazi: 3
 
 **Regole speciali (mostrate, 5):**
 - 👁️ LINEA METAXAS: dopo che tutto lo schieramento è completato ma prima che i giocatori peschino le mani iniziali, l'Alleato riceve un Complesso di Bunker
@@ -266,7 +265,6 @@ Tutte le **regole speciali** dei 24 scenari sono visibili in gioco (menu «Regol
 **Setup/meccaniche automatizzate:**
 - ✅ Zone di schieramento (per profondità)
 - ✅ Fortificazioni iniziali: 6× Trincea, 6× Filo
-- 👁️ Non automatizzato: terreno (note)
 
 **Regole speciali (mostrate, 3):**
 - 👁️ RICOGNIZIONE AEREA: l'Asse deve schierare le sue Fortificazioni prima che l'Alleato schieri le proprie forze, ma queste Fortificazioni possono essere 
@@ -291,7 +289,7 @@ Tutte le **regole speciali** dei 24 scenari sono visibili in gioco (menu «Regol
 - ✅ Fortificazioni iniziali: 6× Buche
 - ✅ Gettoni Obiettivo esclusi: R
 - ✅ Carte iniziali: axis:I-33/I-34
-- 👁️ Rinforzi non enumerati nel testo (dati dall'OB grafico): S24: la regola 'ASSAULT ENGINEERS: Place the Italian Reinforcements in the 1 space of the Time Track'; le specifiche unita di rinforzo (lato axis/italiano, verosimilmente i 2 Guastatori) sono designate dal marcatore 'Reinforcements 2' nell'OB della scheda e non enumerate esplicitamente nel testo, quindi units e lasciato vuoto.
+- ✅ Rinforzi (Tabella del Tempo), spazi: 1
 
 **Regole speciali (mostrate, 4):**
 - 👁️ Non aggiungete il gettone Obiettivo R al sacchetto di pesca.
