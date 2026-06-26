@@ -262,7 +262,10 @@ static func _split_reinforcements(state: GameState, e: Dictionary, side: String,
 			var take := mini(int(u.get("n", 1)), int(counts.get(tipo, 0)))
 			if take > 0:
 				counts[tipo] = int(counts[tipo]) - take
-				taken.append({ "tipo": tipo, "n": take, "nat": nat })
+				# Gli equipaggiamenti (Satchel Charge, ecc.) non sono pedine
+				# piazzabili: vanno comunque sottratti ma non entrano in campo.
+				if UnitChart.category(tipo) != UnitChart.Cat.SKIP:
+					taken.append({ "tipo": tipo, "n": take, "nat": nat })
 		if not taken.is_empty():
 			state.reinforcements.append({ "space": space, "faction": faction, "forces": taken })
 	var out: Array = []

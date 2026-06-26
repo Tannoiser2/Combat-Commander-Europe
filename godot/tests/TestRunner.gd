@@ -1651,6 +1651,18 @@ func _test_reinforcements() -> void:
 			if u.q != edge:
 				on_edges = false
 	_check(on_edges, "i rinforzi entrano dal bordo amico")
+	# Scenario 24: i rinforzi (ricavati dall'OB della scheda) entrano allo spazio 1.
+	Game.start_new_game(GER, 24)
+	var s2 := Game.state
+	var has_space1 := false
+	for grp in s2.reinforcements:
+		if int(grp.get("space", 0)) == 1:
+			has_space1 = true
+	_check(has_space1, "lo scenario 24 ha rinforzi allo spazio 1")
+	var before2 := s2.units.size()
+	s2.time_marker = 1
+	Game._check_reinforcements()
+	_check(s2.units.size() > before2, "i rinforzi dello scenario 24 entrano allo spazio 1")
 
 
 func _test_global_hindrance() -> void:
