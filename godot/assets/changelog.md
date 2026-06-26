@@ -1,3 +1,13 @@
+[b]v0.19.0[/b]
+
+[b]Vista 3D — pedine come figure[/b]
+- Le unità in 3D non sono più cartoncini piatti: ora sono omini low-poly — squadra 4 figure, team 2, leader 1 — colorati per fazione (feldgrau per l'Asse, kaki per gli Alleati; più scuri se rotti).
+- Sopra ogni gruppo un bannerino sempre rivolto alla camera mostra i valori della pedina (Potenza di fuoco, Gittata, Movimento, Morale; Comando per i leader; nome esatto per le armi).
+- Disco di base colorato per fazione, ciano quando l'unità è selezionata.
+
+[b]Vista 3D — spostamento[/b]
+- Ora la mappa 3D si può spostare (pan) trascinando col tasto destro (o centrale) del mouse, come la 2D. Il tasto «0» reinquadra la vista. La rotazione resta sul tasto sinistro e lo zoom sulla rotella.
+
 [b]v0.18.2[/b]
 
 [b]Correzioni[/b]
