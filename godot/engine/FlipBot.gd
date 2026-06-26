@@ -117,7 +117,7 @@ static func choose_turn_order(state: GameState, faction: int) -> Dictionary:
 static func _order_play(state: GameState, faction: int, card: Card) -> Dictionary:
 	match card.order:
 		Domain.OrderType.FIRE:
-			return AI.best_fire(state, faction)
+			return best_fire(state, faction)
 		Domain.OrderType.ADVANCE:
 			return AI.best_advance(state, faction)
 		Domain.OrderType.ARTY:
@@ -249,3 +249,102 @@ static func should_hold_objective(state: GameState, faction: int, u: Unit) -> bo
 		if m.faction == faction:
 			friends += 1
 	return friends <= 1
+
+
+# ─── Fuoco (O20) ─────────────────────────────────────────────────────────────
+
+## Margine minimo del FlipBot: la FP del gruppo deve arrivare entro 5 punti dalla
+## difesa efficace del bersaglio (morale + copertura + ostacolo), altrimenti il
+## gruppo non si attiva ("Minimum Firepower").
+const FIRE_MIN_MARGIN := 5
+
+
+## Sceglie il miglior Fuoco (O20) del bot, fedele al FlipBot:
+##  • attivazione = il gruppo (capeggiato da un'unità) con la MASSIMA FP totale
+##    che ha un bersaglio valido in gittata e linea di vista;
+##  • bersaglio = l'esagono nemico con il MORALE EFFICACE più basso (a parità,
+##    più unità nemiche).
+## Restituisce { attacker_id, q, r, score } o {} se nessun fuoco utile.
+static func best_fire(state: GameState, faction: int) -> Dictionary:
+	var best: Dictionary = {}
+	var best_fp := -1
+	var best_def := 9999
+	var best_count := -1
+	for u in state.units_of(faction):
+		if u.activated or not u.efficient or u.fp <= 0:
+			continue
+		for t in _enemy_target_hexes(state, faction, u):
+			if not Combat.can_fire(u, t.x, t.y, state):
+				continue
+			var fp := _group_fp(state, Combat.fire_group(u, t.x, t.y, state))
+			var eff_def := _target_eff_def(state, faction, u, t)
+			# Minimum Firepower: serve avvicinarsi alla difesa entro 5.
+			if fp < eff_def - FIRE_MIN_MARGIN:
+				continue
+			var count := _enemy_count_at(state, faction, t.x, t.y)
+			# Attivazione per massima FP; a parità bersaglio a difesa più bassa,
+			# poi con più nemici (il colpo più "denso").
+			if fp > best_fp \
+					or (fp == best_fp and eff_def < best_def) \
+					or (fp == best_fp and eff_def == best_def and count > best_count):
+				best_fp = fp
+				best_def = eff_def
+				best_count = count
+				best = { "attacker_id": u.id, "q": t.x, "r": t.y, "score": fp }
+	return best
+
+
+## Esagoni nemici (con almeno un uomo) entro la gittata dell'unità.
+static func _enemy_target_hexes(state: GameState, faction: int, u: Unit) -> Array:
+	var seen := {}
+	var out: Array = []
+	var rng := Rules.range_with_command(state, u)
+	for other in state.units.values():
+		if other.faction == faction or not other.is_man():
+			continue
+		var k := "%d,%d" % [other.q, other.r]
+		if seen.has(k):
+			continue
+		if HexGrid.distance(u.q, u.r, other.q, other.r) > rng:
+			continue
+		seen[k] = true
+		out.append(Vector2i(other.q, other.r))
+	return out
+
+
+## FP del gruppo di fuoco come la calcola il motore (O20.3.1.2): miglior pezzo
+## (col Comando) + 1 per ogni pezzo aggiuntivo.
+static func _group_fp(state: GameState, group: Array) -> int:
+	var fp := 0
+	for u in group:
+		fp = maxi(fp, Rules.fp_with_command(state, u))
+	if group.size() > 1:
+		fp += group.size() - 1
+	return fp
+
+
+## Difesa efficace del bersaglio: morale più basso fra i nemici nell'esagono +
+## copertura + ostacolo della LOS dal tiratore + Comando difensivo.
+static func _target_eff_def(state: GameState, faction: int, u: Unit, t: Vector2i) -> int:
+	var min_mor := 99
+	var enemy := -1
+	for m in state.men_at(t.x, t.y):
+		if m.faction == faction:
+			continue
+		enemy = m.faction
+		min_mor = mini(min_mor, m.morale)
+	if min_mor == 99:
+		return 9999
+	var cover := Rules.cover_at(state, t.x, t.y, false)
+	var hind := HexGrid.los_hindrance(u.q, u.r, t.x, t.y, state) + maxi(0, state.global_hindrance)
+	var def_cmd := Rules.command_bonus_at(state, t.x, t.y, enemy)
+	return min_mor + cover + hind + def_cmd
+
+
+## Numero di uomini nemici nell'esagono.
+static func _enemy_count_at(state: GameState, faction: int, q: int, r: int) -> int:
+	var n := 0
+	for m in state.men_at(q, r):
+		if m.faction != faction:
+			n += 1
+	return n

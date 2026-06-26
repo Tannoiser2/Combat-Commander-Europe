@@ -1,3 +1,9 @@
+[b]v0.14.0[/b]
+
+[b]IA — FlipBot (3/n): Fuoco[/b]
+- Il Fuoco dell'IA segue ora le priorità del FlipBot: attiva il gruppo con la massima potenza di fuoco totale che ha un bersaglio valido, e mira all'esagono nemico con il morale efficace più basso (morale + copertura + ostacolo + comando difensivo).
+- Requisito di FP minima: se nessun gruppo arriva entro 5 punti dalla difesa del bersaglio, l'IA non spreca il Fuoco.
+
 [b]v0.13.0[/b]
 
 [b]IA — FlipBot (2/n): Mossa[/b]
