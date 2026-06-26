@@ -54,3 +54,15 @@ jobs:
             exit 1
           fi
           grep -q "SCENE_RESULT: PASS" scene_output.txt
+
+      - name: Smoke test delle pedine 3D (figure + badge)
+        run: |
+          set -euxo pipefail
+          # Costruisce la mappa 3D e verifica numero di figure per pedina
+          # (squadra 4, team 2, leader 1, arma 1), badge numerici e yaw di marcia.
+          "$GODOT" --headless --path godot res://tests/Pieces3DCheck.tscn 2>&1 | tee pieces_output.txt
+          if grep -q "SCRIPT ERROR" pieces_output.txt; then
+            echo "::error::Errori di script nella costruzione delle pedine 3D"
+            exit 1
+          fi
+          grep -q "PIECES_RESULT: PASS" pieces_output.txt

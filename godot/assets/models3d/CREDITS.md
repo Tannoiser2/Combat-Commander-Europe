@@ -11,12 +11,24 @@ di **Kenney** (account ufficiale `KenneyNL` su GitHub).
 File inclusi: building-small-a/b/c (edifici), grass-trees (alberi),
 grass (vegetazione bassa).
 
-## Soldato 3D
+## Soldati 3D
 
-`soldier_de.glb`: figura di soldato (WWII, tedesco) usata come pedina 3D
-(una per unità). Modello fornito dall'utente (generato con Meshy AI), con le
-texture ridotte a 512×512 per la build web. Gli Alleati usano lo stesso modello
-con una tinta verde-oliva come segnaposto, in attesa di un modello dedicato.
+Figure di soldato/ufficiale (WWII) usate come pedine 3D, con modelli dedicati per
+fazione. Più figure per pedina secondo le "soldier icons": squadra 4, team 2,
+leader 1, arma 1.
+
+Asse (tedesco):
+- `soldier_de.glb`, `soldier_de_a.glb`: due pose di soldato (squadre/team).
+- `officer_de.glb`: ufficiale, usato per i leader.
+
+Sovietici:
+- `soldier_ru.glb`, `soldier_ru_a.glb`: due pose di soldato (squadre/team).
+- `officer_ru.glb`: ufficiale, usato per i leader.
+
+Modelli forniti dall'utente (generati con Meshy AI), decimati a ~5000 triangoli
+e con le texture ridotte a 512×512 (ricodificate JPEG) per la build web. Se una
+fazione non ha il modello, si ripiega su quello dell'altra con una tinta
+verde-oliva come segnaposto.
 
 
 ## Alberi del bosco

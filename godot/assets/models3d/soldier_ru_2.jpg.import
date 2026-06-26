@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://x1625v7fnpf"
-path="res://.godot/imported/soldier_de_Image_1.jpg-79589b40d8aec1838d61d2d6ad754cb4.ctex"
+uid="uid://d35ygeqd0tlvr"
+path="res://.godot/imported/soldier_ru_2.jpg-780ad9ea42f3f092398cc3a7c1cbc700.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "029e538d940a7a712e99b206d6c67627"
+"md5": "ebe896a3cb46d68c3740782926957eac"
 }
 
 [deps]
 
-source_file="res://assets/models3d/soldier_de_Image_1.jpg"
-dest_files=["res://.godot/imported/soldier_de_Image_1.jpg-79589b40d8aec1838d61d2d6ad754cb4.ctex"]
+source_file="res://assets/models3d/soldier_ru_2.jpg"
+dest_files=["res://.godot/imported/soldier_ru_2.jpg-780ad9ea42f3f092398cc3a7c1cbc700.ctex"]
 
 [params]
 

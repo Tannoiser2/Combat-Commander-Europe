@@ -23,11 +23,23 @@ const MODEL_GRASS := "res://assets/models3d/grass.glb"
 ## variati in un solo FBX, da cui si estraggono le singole mesh per il bosco.
 const MODEL_TREE_COLLECTION := "res://assets/models3d/tree_collection.fbx"
 const TREE_HEIGHT := 1.45  ## altezza desiderata di un albero, in unità mondo
-## Soldato 3D (Meshy): UNA figura per pedina (l'Asse col suo aspetto, gli Alleati
-## tinti come segnaposto). Il segnalino resta sopra la testa per identità/valori.
-const MODEL_SOLDIER := "res://assets/models3d/soldier_de.glb"
+## Soldati 3D (Meshy): più figure per pedina (squadra 4, team 2, leader 1, arma 1).
+## Le squadre/team alternano due pose per varietà; i leader usano l'ufficiale.
+## Modelli dedicati per fazione (Asse tedesco, Sovietici); se quelli di una
+## fazione mancano si ripiega sull'altra con tinta verde-oliva come segnaposto.
+const MODEL_SOLDIERS_DE := [
+	"res://assets/models3d/soldier_de.glb",
+	"res://assets/models3d/soldier_de_a.glb",
+]
+const MODEL_OFFICER_DE := "res://assets/models3d/officer_de.glb"
+const MODEL_SOLDIERS_RU := [
+	"res://assets/models3d/soldier_ru.glb",
+	"res://assets/models3d/soldier_ru_a.glb",
+]
+const MODEL_OFFICER_RU := "res://assets/models3d/officer_ru.glb"
 var _model_cache: Dictionary = {}  ## path → PackedScene (o null se assente)
 var _tree_pool: Array = []  ## Mesh dei singoli alberi (cache, estratte una volta)
+var _badge_cache: Dictionary = {}  ## chiave valori → ImageTexture del badge
 
 var _world := 1.0 / 59.2
 var _ox := 129.0
@@ -47,6 +59,7 @@ var _los_layer: Node3D    ## layer dello strumento Modalità LOS (linea + estrem
 var _los_drag: int = -1   ## estremità LOS trascinata (0=A, 1=B, -1=nessuna)
 var _last_unit_pos := {}   ## id unità → Vector2i(q,r) noto (per animare lo spostamento)
 var _pending_slide := {}   ## id unità → Vector3 posizione mondo di partenza dello slittamento
+var _unit_heading := {}    ## id unità → yaw (rad): direzione verso cui guardano le figure
 var _pieces := []          ## [{id, node}] pedine correnti (per il click preciso sulle pile)
 var _tip: PanelContainer   ## pannello informativo al passaggio del mouse
 var _tip_label: RichTextLabel
@@ -182,6 +195,11 @@ func _on_unit_moved(id: String, q: int, r: int) -> void:
 			var oci := _hex_img(old.x, old.y)
 			var oty := _top_y(Game.state, old.x, old.y)
 			_pending_slide[id] = Vector3(oci.x * _world, oty + 0.75, oci.y * _world)
+			# Direzione di marcia: le figure guarderanno verso il nuovo esagono.
+			var nci := _hex_img(q, r)
+			var dir := Vector2(nci.x - oci.x, nci.y - oci.y)
+			if dir.length() > 0.001:
+				_unit_heading[id] = atan2(dir.x, dir.y)
 
 
 ## Tiro risolto: tracciante dallo sparatore al bersaglio + lampo e impatto.
@@ -710,14 +728,15 @@ func _add_pieces(s: GameState) -> void:
 			var sel := u.id == s.selected_unit_id
 			var top_y := _top_y(s, u.q, u.r)
 			var ci := _hex_img(u.q, u.r)
-			var off := Vector3(0.16 * i - 0.12, 0.0, -0.16 * i + 0.12)
+			var off := Vector3(0.26 * i - 0.18, 0.0, -0.26 * i + 0.18)
 			# La pedina selezionata si solleva sopra l'impilamento per essere vista.
 			var lift := 0.7 if sel else 0.0
 			var base := Vector3(ci.x * _world, top_y, ci.y * _world) + off + Vector3(0.0, lift, 0.0)
 			_last_unit_pos[u.id] = Vector2i(u.q, u.r)
-			# Figura 3D del soldato (con segnalino sopra). Ripiego al segnalino
+			# Figure 3D dei soldati (tante quante le "soldier icons": squadra 4,
+			# team 2, leader/arma 1) con segnalino sopra. Ripiego al segnalino
 			# billboard se il modello non è disponibile.
-			var holder := _spawn_soldier(u, sel)
+			var holder := _spawn_unit_figures(u, sel)
 			if holder != null:
 				if _pending_slide.has(u.id):
 					holder.position = _pending_slide[u.id]
@@ -729,15 +748,15 @@ func _add_pieces(s: GameState) -> void:
 					holder.position = base
 				_pieces.append({ "id": u.id, "node": holder })
 				continue
-			# ── Ripiego: solo il segnalino (billboard) ──
+			# ── Ripiego: solo il badge numerico (billboard) ──
 			var final_pos := base + Vector3(0.0, 0.75, 0.0)
-			var tex := _counter_tex(u)
+			var tex := _make_badge_tex(u)
 			if tex != null:
 				var sp := Sprite3D.new()
 				sp.texture = tex
 				sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 				sp.shaded = false
-				sp.pixel_size = (1.85 if sel else 1.5) / float(tex.get_height())
+				sp.pixel_size = (0.82 if sel else 0.66) / float(tex.get_height())
 				_dynamic.add_child(sp)
 				if _pending_slide.has(u.id):
 					sp.position = _pending_slide[u.id]
@@ -761,46 +780,125 @@ func _add_pieces(s: GameState) -> void:
 				_pieces.append({ "id": u.id, "node": pm })
 
 
-## Costruisce la figura 3D del soldato per la pedina, con sopra il segnalino di
-## gioco (identità/valori). L'Asse usa il modello com'è; gli Alleati una tinta
-## verde-oliva come SEGNAPOSTO (in attesa di un modello dedicato). Restituisce il
+## Costruisce le figure 3D dei soldati per la pedina: tante quante le "soldier
+## icons" dell'unità (squadra 4, team 2, leader 1, arma 1), disposte in formazione
+## dentro l'esagono, con sopra il segnalino di gioco (identità/valori). L'Asse usa
+## il modello com'è; gli Alleati una tinta verde-oliva come SEGNAPOSTO (in attesa
+## di un modello dedicato). L'intero gruppo è ruotato nella direzione di marcia
+## (o verso il fronte amico se l'unità non si è ancora mossa). Restituisce il
 ## holder, oppure null se il modello non è disponibile (→ ripiego al segnalino).
-func _spawn_soldier(u: Unit, sel: bool) -> Node3D:
-	var scene := _model(MODEL_SOLDIER)
-	if scene == null:
-		return null
+func _spawn_unit_figures(u: Unit, sel: bool) -> Node3D:
 	var holder := Node3D.new()
 	_dynamic.add_child(holder)
-	var fig := scene.instantiate()
-	var ab := _merged_aabb(fig, Transform3D.IDENTITY)
-	if ab.size == Vector3.ZERO:
-		fig.queue_free()
+	var count := maxi(1, u.soldier_icons())   # squadra 4, team 2, leader 1, arma → 1
+	var target_h := 0.72 if sel else 0.62
+	var offs := _figure_offsets(count)
+	var placed := 0
+	for fi in count:
+		var pick := _figure_model(u, fi)
+		var scene: PackedScene = pick["scene"]
+		if scene == null:
+			continue
+		var fig := scene.instantiate()
+		var ab := _merged_aabb(fig, Transform3D.IDENTITY)
+		if ab.size == Vector3.ZERO:
+			fig.queue_free()
+			continue
+		var sc := target_h / ab.size.y if ab.size.y > 0.001 else 1.0
+		var inner := Node3D.new()
+		inner.scale = Vector3(sc, sc, sc)
+		# Lieve sfasamento d'orientamento per non sembrare cloni perfetti.
+		inner.rotation.y = _fig_jitter(u.id, fi)
+		inner.position = offs[fi]
+		holder.add_child(inner)
+		fig.position = Vector3(
+			-(ab.position.x + ab.size.x * 0.5),
+			-ab.position.y,
+			-(ab.position.z + ab.size.z * 0.5))
+		inner.add_child(fig)
+		# Tinta segnaposto solo se è stato usato il modello dell'altra fazione
+		# (es. Sovietico mancante → modello tedesco verniciato di verde-oliva).
+		if pick["foreign"]:
+			_tint_soldier(fig, Color(0.62, 0.72, 0.45))
+		placed += 1
+	if placed == 0:
 		holder.queue_free()
 		return null
-	var target_h := 1.05 if sel else 0.9
-	var sc := target_h / ab.size.y if ab.size.y > 0.001 else 1.0
-	var inner := Node3D.new()
-	inner.scale = Vector3(sc, sc, sc)
-	inner.rotation.y = PI if u.faction == Domain.Faction.RUSSIAN else 0.0
-	holder.add_child(inner)
-	fig.position = Vector3(
-		-(ab.position.x + ab.size.x * 0.5),
-		-ab.position.y,
-		-(ab.position.z + ab.size.z * 0.5))
-	inner.add_child(fig)
-	if u.faction == Domain.Faction.RUSSIAN:
-		_tint_soldier(fig, Color(0.62, 0.72, 0.45))  # segnaposto Alleati
-	# Segnalino sopra la testa: conserva identità e valori della pedina.
-	var tex := _counter_tex(u)
+	# Orientamento del gruppo: direzione di marcia, o fronte amico di default.
+	holder.rotation.y = _unit_yaw(u)
+	# Badge numerico sopra la formazione: striscia con i valori della pedina
+	# (PdF/Gittata/Movimento e Morale; Comando per i leader; box sui valori
+	# "in box"). Billboard: il badge non ruota col gruppo, resta verso la camera.
+	var tex := _make_badge_tex(u)
 	if tex != null:
 		var sp := Sprite3D.new()
 		sp.texture = tex
 		sp.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		sp.shaded = false
-		sp.pixel_size = (1.2 if sel else 1.0) / float(tex.get_height())
-		sp.position = Vector3(0.0, target_h + 0.5, 0.0)
+		sp.pixel_size = (0.5 if sel else 0.42) / float(tex.get_height())
+		# Posizione sull'asse di rotazione del gruppo: lo yaw non la sposta; il
+		# billboard orienta comunque il badge verso la camera.
+		sp.position = Vector3(0.0, target_h + 0.42, 0.0)
 		holder.add_child(sp)
 	return holder
+
+
+## Posizioni locali (XZ) delle figure dentro la pedina, in formazione compatta
+## rivolta verso il davanti locale (+Z). Fino a 4 figure (squadra).
+func _figure_offsets(count: int) -> Array:
+	const D := 0.16
+	match count:
+		1:
+			return [Vector3.ZERO]
+		2:
+			return [Vector3(-D, 0.0, 0.0), Vector3(D, 0.0, 0.0)]
+		3:
+			return [Vector3(-D, 0.0, -D * 0.6), Vector3(D, 0.0, -D * 0.6),
+				Vector3(0.0, 0.0, D * 0.9)]
+		_:
+			return [Vector3(-D, 0.0, -D), Vector3(D, 0.0, -D),
+				Vector3(-D, 0.0, D), Vector3(D, 0.0, D)]
+
+
+## Modello per la figura `fi` dell'unità, per fazione: l'ufficiale per i leader,
+## altrimenti pose di soldato alternate per varietà. Se la fazione non ha il
+## modello, ripiega su quello dell'altra fazione (segnalato da `foreign`, così il
+## chiamante lo tinge). Restituisce { scene, foreign }.
+func _figure_model(u: Unit, fi: int) -> Dictionary:
+	var is_ru := u.faction == Domain.Faction.RUSSIAN
+	if u.is_leader():
+		var own := _model(MODEL_OFFICER_RU if is_ru else MODEL_OFFICER_DE)
+		if own != null:
+			return { "scene": own, "foreign": false }
+		var other := _model(MODEL_OFFICER_DE if is_ru else MODEL_OFFICER_RU)
+		if other != null:
+			return { "scene": other, "foreign": true }
+	var own_pool: Array = MODEL_SOLDIERS_RU if is_ru else MODEL_SOLDIERS_DE
+	var other_pool: Array = MODEL_SOLDIERS_DE if is_ru else MODEL_SOLDIERS_RU
+	for k in own_pool.size():
+		var s := _model(own_pool[(fi + k) % own_pool.size()])
+		if s != null:
+			return { "scene": s, "foreign": false }
+	for k in other_pool.size():
+		var s2 := _model(other_pool[(fi + k) % other_pool.size()])
+		if s2 != null:
+			return { "scene": s2, "foreign": true }
+	return { "scene": null, "foreign": false }
+
+
+## Yaw della pedina: direzione di marcia memorizzata, altrimenti fronte di fazione
+## (Asse a 0, Alleati a 180°) come orientamento di riposo.
+func _unit_yaw(u: Unit) -> float:
+	if _unit_heading.has(u.id):
+		return _unit_heading[u.id]
+	return PI if u.faction == Domain.Faction.RUSSIAN else 0.0
+
+
+## Piccola variazione deterministica dell'orientamento di una figura (±~12°),
+## così le 4 figure di una squadra non sembrano copie identiche.
+func _fig_jitter(id: String, fi: int) -> float:
+	var a := float(hash(id) % 97) + float(fi * 31)
+	return sin(a) * 0.22
 
 
 ## Tinta (moltiplicativa, preservando la texture) su tutte le mesh della figura.
@@ -817,6 +915,150 @@ func _tint_soldier(node: Node, tint: Color) -> void:
 		mi.material_override = m
 	for c in node.get_children():
 		_tint_soldier(c, tint)
+
+
+# ─── Badge numerico sopra la pedina 3D ───────────────────────────────────────
+# Font a matrice 3×5 per cifre e pochi simboli: niente font/SubViewport, così il
+# badge si disegna identico in headless e nella build web.
+const _GLYPHS := {
+	"0": ["111","101","101","101","111"],
+	"1": ["010","110","010","010","111"],
+	"2": ["111","001","111","100","111"],
+	"3": ["111","001","111","001","111"],
+	"4": ["101","101","111","001","001"],
+	"5": ["111","100","111","001","111"],
+	"6": ["111","100","111","101","111"],
+	"7": ["111","001","010","010","010"],
+	"8": ["111","101","111","101","111"],
+	"9": ["111","101","111","001","111"],
+	"-": ["000","000","111","000","000"],
+	"+": ["000","010","111","010","000"],
+}
+const _GLYPH_W := 3
+const _GLYPH_H := 5
+
+
+## Badge della pedina: striscia di numeri con i valori. Uomini → PdF, Gittata,
+## Movimento e Morale (in box); leader → Comando (in box, oro), Morale, Movimento;
+## armi → PdF, Gittata. I valori "in box" (fp_boxed/range_boxed) sono riquadrati.
+## Risultato in cache per insieme di valori identico.
+func _make_badge_tex(u: Unit) -> ImageTexture:
+	var tokens := _badge_tokens(u)
+	if tokens.is_empty():
+		return null
+	var key := _badge_key(u, tokens)
+	if _badge_cache.has(key):
+		return _badge_cache[key]
+
+	const PS := 3        # pixel del font → blocco PS×PS
+	const GAP := PS      # spazio tra cifre
+	const TGAP := 3 * PS # spazio tra token
+	const PAD := 2 * PS  # margine interno + spazio per i box
+	var gw := _GLYPH_W * PS + GAP
+	var gh := _GLYPH_H * PS
+
+	# Larghezza totale: somma dei token + spazi.
+	var inner_w := 0
+	for ti in tokens.size():
+		inner_w += _token_w(tokens[ti]["text"], gw, GAP)
+		if ti < tokens.size() - 1:
+			inner_w += TGAP
+	var w := inner_w + 2 * PAD
+	var h := gh + 2 * PAD
+
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	# Sfondo scuro arrotondato; rosso se l'unità è rotta, bordo tinto per fazione.
+	var bg := Color(0.45, 0.10, 0.10, 0.86) if not u.efficient \
+		else Color(0.09, 0.10, 0.12, 0.86)
+	_fill_round(img, 0, 0, w, h, bg)
+	var border := Color(0.62, 0.66, 0.55) if u.faction == Domain.Faction.GERMAN \
+		else Color(0.74, 0.58, 0.40)
+	_rect_outline(img, 0, 0, w, h, border)
+
+	var x := PAD
+	for t in tokens:
+		var col: Color = t["color"]
+		var tw := _token_w(t["text"], gw, GAP)
+		if t["box"]:
+			_rect_outline(img, x - PS + 1, PAD - PS + 1, tw + 2 * PS - 2, gh + 2 * PS - 2, col)
+		_draw_text(img, x, PAD, t["text"], PS, col)
+		x += tw + TGAP
+
+	var tex := ImageTexture.create_from_image(img)
+	_badge_cache[key] = tex
+	return tex
+
+
+## Token (testo/colore/box) del badge, in ordine di lettura, secondo il tipo.
+func _badge_tokens(u: Unit) -> Array:
+	const WHITE := Color(0.95, 0.95, 0.90)
+	const GOLD := Color(1.0, 0.84, 0.30)
+	const BLUE := Color(0.60, 0.82, 1.0)
+	const YELL := Color(0.96, 0.86, 0.42)
+	var out := []
+	if u.is_leader():
+		out.append({ "text": "%+d" % u.command, "color": GOLD, "box": true })   # Comando
+		out.append({ "text": str(u.morale), "color": BLUE, "box": true })       # Morale
+		out.append({ "text": str(u.move), "color": YELL, "box": false })        # Movimento
+	elif u.is_weapon():
+		out.append({ "text": str(u.fp), "color": WHITE, "box": u.fp_boxed })
+		out.append({ "text": str(u.range), "color": WHITE, "box": u.range_boxed })
+		if u.move_penalty > 0:
+			out.append({ "text": "-%d" % u.move_penalty, "color": YELL, "box": false })
+	else:  # squadra / team
+		out.append({ "text": str(u.fp), "color": WHITE, "box": u.fp_boxed })
+		out.append({ "text": str(u.range), "color": WHITE, "box": u.range_boxed })
+		out.append({ "text": str(u.move), "color": YELL, "box": false })
+		out.append({ "text": str(u.morale), "color": BLUE, "box": true })
+	return out
+
+
+func _badge_key(u: Unit, tokens: Array) -> String:
+	var parts := PackedStringArray()
+	for t in tokens:
+		parts.append("%s/%s/%d" % [t["text"], t["color"].to_html(), 1 if t["box"] else 0])
+	return "%d|%d|%s" % [u.faction, 1 if u.efficient else 0, "|".join(parts)]
+
+
+func _token_w(text: String, gw: int, gap: int) -> int:
+	return maxi(0, text.length() * gw - gap)  # toglie il GAP finale
+
+
+func _draw_text(img: Image, x: int, y: int, text: String, ps: int, col: Color) -> void:
+	var cx := x
+	for ci in text.length():
+		var ch := text[ci]
+		var rows = _GLYPHS.get(ch, null)
+		if rows != null:
+			for ry in _GLYPH_H:
+				var rowstr: String = rows[ry]
+				for rx in _GLYPH_W:
+					if rowstr[rx] == "1":
+						_fill_rect(img, cx + rx * ps, y + ry * ps, ps, ps, col)
+		cx += _GLYPH_W * ps + ps
+
+
+func _fill_rect(img: Image, x: int, y: int, w: int, h: int, col: Color) -> void:
+	for yy in range(maxi(0, y), mini(img.get_height(), y + h)):
+		for xx in range(maxi(0, x), mini(img.get_width(), x + w)):
+			img.set_pixel(xx, yy, col)
+
+
+func _rect_outline(img: Image, x: int, y: int, w: int, h: int, col: Color) -> void:
+	_fill_rect(img, x, y, w, 1, col)
+	_fill_rect(img, x, y + h - 1, w, 1, col)
+	_fill_rect(img, x, y, 1, h, col)
+	_fill_rect(img, x + w - 1, y, 1, h, col)
+
+
+## Riquadro pieno con i 4 pixel d'angolo tolti (effetto "arrotondato").
+func _fill_round(img: Image, x: int, y: int, w: int, h: int, col: Color) -> void:
+	_fill_rect(img, x, y, w, h, col)
+	img.set_pixel(x, y, Color(0, 0, 0, 0))
+	img.set_pixel(x + w - 1, y, Color(0, 0, 0, 0))
+	img.set_pixel(x, y + h - 1, Color(0, 0, 0, 0))
+	img.set_pixel(x + w - 1, y + h - 1, Color(0, 0, 0, 0))
 
 
 func _counter_tex(u: Unit) -> Texture2D:
