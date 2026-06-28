@@ -1329,6 +1329,7 @@ func _test_assault_fire() -> void:
 	s.phase = Domain.Phase.PLAYER_MOVING
 	s.current_order = Domain.OrderType.MOVE
 	var atk := _mk("g", GER, SQUAD, RIFLE, 2, 2, 12, 7, 6)
+	atk.fp_boxed = true  # A26: il Fuoco d'Assalto richiede una FP «in scatola»
 	s.units[atk.id] = atk
 	s.selected_unit_id = atk.id
 	var d := _mk("r", RUS, SQUAD, RIFLE, 2, 4, 5, -50)  # in gittata/LOS, difesa sempre persa

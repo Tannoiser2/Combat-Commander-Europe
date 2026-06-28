@@ -17,15 +17,20 @@ func _ready() -> void:
 	var fac = s.human_faction
 
 	# 1) Ogni azione autonoma in whitelist ha un handler reale (Actions.play non
-	#    cade nel ramo "non ancora simulata"). BOMBE A MANO è gestita in Game.
+	#    cade nel ramo "non ancora simulata").
 	for name in Game.AUTONOMOUS_ACTIONS:
-		if name == "BOMBE A MANO":
-			continue
 		var c = Card.new()
 		c.action_name = name
 		var lines: Array = Actions.play(s, c, fac)
 		if "non ancora simulata" in "\n".join(lines):
 			_fail("azione in whitelist senza handler reale: %s" % name)
+
+	# 1b) BOMBE A MANO (A34) è ora un modificatore di fuoco (+2 a un esagono
+	#     adiacente), non più un'azione autonoma.
+	if not Game.FIRE_MOD_NAMES.has("BOMBE A MANO"):
+		_fail("BOMBE A MANO dovrebbe essere un modificatore di fuoco")
+	if Game.AUTONOMOUS_ACTIONS.has("BOMBE A MANO"):
+		_fail("BOMBE A MANO non deve più essere un'azione autonoma")
 
 	# 2) Le azioni oggi senza effetto NON devono essere accendibili (badge spento).
 	for name in ["IMBOSCATA", "BUONA MIRA", "ORDINI CONTRADDITTORI", "DEMOLIZIONI",
