@@ -1,3 +1,9 @@
+[b]v0.27.0[/b]
+
+[b]Interfaccia — selezione e gruppo di comando[/b]
+- Selezionando un leader (prima di dare un ordine) si illuminano ora tutte le unità che potrebbe attivare nel turno, cioè il suo gruppo di comando (uomini idonei entro il raggio di Comando). Vale sia nella vista 2D sia nella 3D.
+- Resta valido il flusso "prima la carta, poi le unità": giochi l'ordine e poi scegli sulla mappa l'unità/gruppo a cui applicarlo.
+
 [b]v0.26.0[/b]
 
 [b]Vista 3D[/b]

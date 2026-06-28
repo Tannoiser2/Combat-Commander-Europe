@@ -476,6 +476,14 @@ func _add_highlights(s: GameState) -> void:
 		var gv := s.unit_by_id(gid)
 		if gv != null:
 			_hex_disc(gv.q, gv.r, s, Color(1.0, 0.55, 0.0, 0.35))
+	# Anteprima del gruppo di comando (selezione di un leader prima dell'ordine).
+	if s.ordered_group.is_empty():
+		for pid in s.command_preview_ids:
+			if pid == s.selected_unit_id:
+				continue
+			var pv := s.unit_by_id(pid)
+			if pv != null:
+				_hex_disc(pv.q, pv.r, s, Color(1.0, 0.55, 0.0, 0.35))
 	# Assemblaggio del gruppo di fuoco: pezzi inclusi (arancio) / esclusi (grigio).
 	if s.fire_target_q >= 0:
 		for eid in s.fire_eligible_ids:
