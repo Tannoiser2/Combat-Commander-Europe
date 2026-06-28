@@ -1,3 +1,8 @@
+[b]v0.32.0[/b]
+
+[b]Azioni — tempistica reattiva (2/n): Mimetizzazione, reazione umana[/b]
+- Quando l'IA ti spara a un'unità in copertura e hai la carta Mimetizzazione, si apre ora una finestra di reazione: clicca l'unità (evidenziata in ciano) per mimetizzarti, oppure premi SPAZIO / clicca altrove per rinunciare. Vale in 2D e 3D. Così la Mimetizzazione si gioca nel momento giusto (al tiro di Difesa), come da regola — oltre al gioco "in anticipo" che resta disponibile.
+
 [b]v0.31.0[/b]
 
 [b]Azioni — tempistica reattiva (1/n): Mimetizzazione dell'IA[/b]

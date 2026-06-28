@@ -325,6 +325,11 @@ func _draw() -> void:
 			var sv := s.unit_by_id(sid)
 			if sv:
 				_draw_hex_outline(sv.q, sv.r, COL_GROUP, 3.0)
+		# Finestra di Mimetizzazione: unità su cui puoi giocare la carta (ciano).
+		for cid in s.conceal_offer_ids:
+			var cv := s.unit_by_id(cid)
+			if cv:
+				_draw_hex_outline(cv.q, cv.r, COL_FIRE_READY, 3.0)
 
 	# Esagono selezionato
 	if s.selected_unit_id != "":

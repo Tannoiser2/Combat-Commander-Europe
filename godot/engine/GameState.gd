@@ -224,6 +224,12 @@ var last_impact_hexes: Array = []
 var opfire_mover_id: String = ""
 var opfire_shooter_ids: Array[String] = []
 
+# ─── Finestra di reazione: Mimetizzazione (A29) del difensore umano ───────────
+# Quando l'IA spara a un esagono con un'unità umana in copertura e il giocatore
+# ha una carta Mimetizzazione, si apre una finestra: `conceal_offer_ids` = unità
+# umane su cui giocare la Mimetizzazione (o declinare). Vuoto = nessuna offerta.
+var conceal_offer_ids: Array[String] = []
+
 
 # ─── Log ─────────────────────────────────────────────────────────────────────
 

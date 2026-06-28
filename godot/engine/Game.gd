@@ -661,6 +661,16 @@ func click_hex(q: int, r: int) -> void:
 		else:
 			_cycle_select(units_here, false)
 	elif s.phase == Domain.Phase.REACTION_WINDOW:
+		# Finestra di Mimetizzazione (difensore umano): clicca l'unità o rinuncia.
+		if not s.conceal_offer_ids.is_empty():
+			for cid in s.conceal_offer_ids:
+				var cv := s.unit_by_id(cid)
+				if cv != null and cv.q == q and cv.r == r:
+					conceal_accept(cid)
+					return
+			conceal_decline()
+			return
+		# Finestra di Fuoco di Opportunità: clicca un tiratore o rinuncia.
 		for sid in s.opfire_shooter_ids:
 			var sv := s.unit_by_id(sid)
 			if sv != null and sv.q == q and sv.r == r:
@@ -1585,6 +1595,77 @@ func _maybe_react_concealment(tq: int, tr: int) -> void:
 	_log("%s reagisce con Mimetizzazione (A29)." % Domain.FACTION_NAMES.get(fac, "IA"))
 
 
+## Reazione di Mimetizzazione (A29) del DIFENSORE UMANO: quando l'IA spara a un
+## esagono con un'unità umana in copertura e il giocatore ha la carta, apre una
+## finestra e attende che clicchi l'unità (o rinunci). Coroutine: il chiamante
+## deve usare `await`. Senza condizioni valide ritorna subito senza aprire nulla.
+func _reactive_concealment_human(tq: int, tr: int) -> void:
+	if state == null:
+		return
+	var defenders := state.men_at(tq, tr)
+	if defenders.is_empty() or defenders[0].faction != state.human_faction:
+		return
+	if Rules.cover_at(state, tq, tr, false) <= 0:
+		return
+	if _human_concealment_index() < 0:
+		return
+	var eligible: Array[String] = []
+	for d in defenders:
+		if d.is_man() and d.efficient and not d.concealed:
+			eligible.append(d.id)
+	if eligible.is_empty():
+		return
+
+	state.conceal_offer_ids = eligible
+	_conceal_choice = ""
+	var prev_phase := state.phase
+	_change_phase(Domain.Phase.REACTION_WINDOW)
+	emit_signal("conceal_offered", tq, tr)
+	emit_signal("state_changed")
+	await _conceal_decided
+
+	state.conceal_offer_ids = []
+	if _conceal_choice != "":
+		var who := state.unit_by_id(_conceal_choice)
+		var ci := _human_concealment_index()
+		if who != null and ci >= 0:
+			who.concealed = true
+			_discard_for(state.human_faction, ci)
+			_log("Mimetizzazione (A29): %s si mimetizza." % who.unit_name)
+	else:
+		_log("Mimetizzazione: rinunci.")
+	if state.phase != Domain.Phase.GAME_OVER:
+		_change_phase(prev_phase)
+	emit_signal("state_changed")
+
+
+## Indice della prima carta Mimetizzazione nella mano dell'umano (−1 se assente).
+func _human_concealment_index() -> int:
+	var hand := state.hand_of(state.human_faction)
+	for i in hand.size():
+		if hand[i].action_name == "MIMETIZZAZIONE":
+			return i
+	return -1
+
+
+## Il giocatore sceglie l'unità da mimetizzare (dalla finestra di reazione).
+func conceal_accept(unit_id: String) -> void:
+	if state == null or state.phase != Domain.Phase.REACTION_WINDOW:
+		return
+	if not state.conceal_offer_ids.has(unit_id):
+		return
+	_conceal_choice = unit_id
+	emit_signal("_conceal_decided")
+
+
+## Il giocatore rinuncia alla Mimetizzazione.
+func conceal_decline() -> void:
+	if state == null or state.phase != Domain.Phase.REACTION_WINDOW:
+		return
+	_conceal_choice = ""
+	emit_signal("_conceal_decided")
+
+
 ## «Passa» (O15): invece di dare un ordine il giocatore può passare. Scarta le
 ## carte scelte (per indice nella propria mano), ne ripesca altrettante e cede il
 ## turno all'avversario. Passando senza scartare nulla si conserva la mano.
@@ -1677,6 +1758,10 @@ signal opfire_offered(mover_id: String)  ## Finestra di reazione aperta per l'um
 signal _opfire_decided()                 ## Interno: il giocatore ha scelto
 
 var _opfire_choice: String = ""          ## Tiratore scelto ("" = non sparare)
+
+signal conceal_offered(tq: int, tr: int)  ## Finestra di Mimetizzazione per l'umano
+signal _conceal_decided()                 ## Interno: il giocatore ha scelto
+var _conceal_choice: String = ""          ## Unità da mimetizzare ("" = rinuncia)
 
 
 ## Indice in mano di una carta con ordine FUOCO (da giocare come Azione di Op
@@ -1956,6 +2041,7 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 						weapon_ids.append(g.id)
 				var ffate := _draw_fate(faction)
 				var dfate := _draw_fate(_opponent(faction))
+				await _reactive_concealment_human(fq, fr)  # il difensore umano può mimetizzarsi
 				var fres := Combat.resolve_fire(atk, fq, fr, state, _dice_of(ffate), _dice_of(dfate))
 				_log("IA — " + fres.log_line)
 				for fid in fres.eliminated:
