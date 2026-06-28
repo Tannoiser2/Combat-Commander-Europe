@@ -1,3 +1,8 @@
+[b]v0.25.1[/b]
+
+[b]Correzioni[/b]
+- Vista 3D: le armi erano enormi (venivano scalate sull'altezza, ma sono basse e larghe). Ora si scalano sull'ingombro massimo e restano più piccole dei soldati.
+
 [b]v0.25.0[/b]
 
 [b]Vista 3D — armi e qualità delle miniature[/b]
