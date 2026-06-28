@@ -291,6 +291,17 @@ func _command_group_ids(u: Unit) -> Array[String]:
 	return ids
 
 
+## Evidenzia tutte le unità del giocatore che possono ricevere un ordine adesso
+## (uomini idonei, non già attivati): dopo aver giocato Mossa/Avanzata mostra a
+## colpo d'occhio chi si può cliccare (flusso carta-first).
+func _compute_orderable_preview() -> void:
+	var ids: Array[String] = []
+	for v in state.units_of(state.human_faction):
+		if v.is_man() and Rules.can_be_ordered(v):
+			ids.append(v.id)
+	state.command_preview_ids = ids
+
+
 ## Evidenzia gli esagoni raggiungibili dal mover coi suoi PM rimasti nel gruppo.
 func _highlight_reachable(u: Unit) -> void:
 	state.highlighted_hexes.clear()
@@ -423,20 +434,21 @@ func play_card(hand_index: int) -> void:
 			state.assault_fired = false  # Fuoco d'Assalto disponibile una volta per ordine
 			state.selected_card_index = hand_index
 			state.highlighted_hexes.clear()
-			state.command_preview_ids.clear()  # ora comanda l'ordine (ordered_group)
+			state.command_preview_ids.clear()
+			state.ordered_group.clear()   # nuovo ordine: niente gruppo residuo
+			state.group_mp.clear()
 			# Col Fuoco: evidenzia subito le unità che possono sparare (≥1 bersaglio).
 			if card.order == Domain.OrderType.FIRE:
 				_compute_fire_ready()
 			_change_phase(Domain.Phase.PLAYER_MOVING)
-			# Se un'unità idonea è già selezionata la si mantiene, evidenziando subito
-			# i bersagli (flusso naturale: unità → carta → bersaglio). Altrimenti si
-			# attende che il giocatore clicchi un'unità sulla mappa.
-			var pre := state.unit_by_id(state.selected_unit_id)
-			if pre != null and pre.faction == state.human_faction and not pre.activated:
-				select_unit(pre.id)
-			else:
-				state.selected_unit_id = ""
-				emit_signal("state_changed")
+			# Carta-first "puro": dopo aver giocato l'ordine si sceglie SEMPRE l'unità
+			# (o il gruppo) sulla mappa; non si eredita una selezione fatta prima della
+			# carta. Per Mossa/Avanzata si evidenziano le unità ordinabili (chi puoi
+			# cliccare); per il Fuoco lo fa già fire_ready.
+			state.selected_unit_id = ""
+			if card.order == Domain.OrderType.MOVE or card.order == Domain.OrderType.ADVANCE:
+				_compute_orderable_preview()
+			emit_signal("state_changed")
 		Domain.OrderType.RECOVER:
 			_execute_recover(hand_index)
 		Domain.OrderType.ROUT:

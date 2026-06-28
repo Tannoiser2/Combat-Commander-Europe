@@ -1,3 +1,8 @@
+[b]v0.28.0[/b]
+
+[b]Interfaccia — flusso "prima la carta"[/b]
+- Ora si dà sempre prima l'ordine (la carta) e poi si scelgono le unità sulla mappa: la selezione fatta prima della carta non viene più "ereditata" dall'ordine. Giocando Mossa o Avanzata si illuminano le unità ordinabili (chi puoi cliccare); col Fuoco resta l'anello su chi può sparare.
+
 [b]v0.27.0[/b]
 
 [b]Interfaccia — selezione e gruppo di comando[/b]

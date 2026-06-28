@@ -55,9 +55,14 @@ func _ready() -> void:
 			move_idx = i
 			break
 	if move_idx >= 0:
+		# Avevo selezionato il leader prima della carta: col flusso carta-first
+		# "puro" quella selezione NON va ereditata dall'ordine.
 		Game.play_card(move_idx)
-		if not s.command_preview_ids.is_empty():
-			_fail("l'anteprima non si è azzerata dopo aver giocato un ordine")
+		if s.selected_unit_id != "":
+			_fail("carta-first: l'unità pre-selezionata non va ereditata dall'ordine")
+		# Per la Mossa si evidenziano le unità ordinabili (chi si può cliccare).
+		if s.command_preview_ids.is_empty():
+			_fail("dopo la Mossa mancano le unità ordinabili evidenziate")
 
 	print("SELECTION_RESULT: ", "PASS" if _ok else "FAIL")
 	get_tree().quit(0 if _ok else 1)
