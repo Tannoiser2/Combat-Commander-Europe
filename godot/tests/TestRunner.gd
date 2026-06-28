@@ -82,6 +82,7 @@ func _ready() -> void:
 	_test_melee_fortification_tie()
 	_test_objective_chits()
 	_test_assault_fire()
+	_test_ai_concealment()
 	_test_exit_vp()
 	_test_spray_fire()
 	_test_fortifications()
@@ -1319,6 +1320,50 @@ func _test_objective_chits() -> void:
 	var before := s5.bonus_vp
 	s5.eliminate_unit(victim.id)
 	_check(s5.bonus_vp - before == 4, "Chit X: una squadra eliminata vale 4 VP (2×2) invece di 2")
+
+
+func _test_ai_concealment() -> void:
+	print("· Mimetizzazione (A29): l'IA difensore reagisce all'istante del tiro")
+	# IA in copertura + carta Mimetizzazione → reagisce mimetizzandosi.
+	var s := _new_state(6, 6)
+	s.human_faction = GER
+	s.hex_at(2, 2).terrain = Domain.TerrainType.WOODS
+	var d := _mk("rus", RUS, SQUAD, RIFLE, 2, 2, 4, 7, 4)
+	s.units[d.id] = d
+	var camo := Card.new(); camo.action_name = "MIMETIZZAZIONE"
+	s.russian_hand.append(camo)
+	s.russian_deck.append(Card.new()); s.russian_deck.append(Card.new())  # ripescaggio
+	Game.state = s
+	Game._maybe_react_concealment(2, 2)
+	_check(d.concealed, "Mimetizzazione: l'IA mimetizza l'unità sotto tiro")
+	var still := false
+	for c in s.russian_hand:
+		if c.action_name == "MIMETIZZAZIONE":
+			still = true
+	_check(not still, "Mimetizzazione: la carta è stata giocata (scartata)")
+
+	# Senza copertura non si reagisce (non si spreca la carta).
+	var s2 := _new_state(6, 6)
+	s2.human_faction = GER
+	var d2 := _mk("rus2", RUS, SQUAD, RIFLE, 1, 1, 4, 7, 4)
+	s2.units[d2.id] = d2
+	var camo2 := Card.new(); camo2.action_name = "MIMETIZZAZIONE"
+	s2.russian_hand.append(camo2)
+	Game.state = s2
+	Game._maybe_react_concealment(1, 1)
+	_check(not d2.concealed, "Mimetizzazione: niente reazione senza copertura")
+
+	# Il difensore umano non reagisce in automatico (la gioca in anticipo).
+	var s3 := _new_state(6, 6)
+	s3.human_faction = GER
+	s3.hex_at(3, 3).terrain = Domain.TerrainType.WOODS
+	var h := _mk("ger", GER, SQUAD, RIFLE, 3, 3, 4, 7, 4)
+	s3.units[h.id] = h
+	var camo3 := Card.new(); camo3.action_name = "MIMETIZZAZIONE"
+	s3.german_hand.append(camo3)
+	Game.state = s3
+	Game._maybe_react_concealment(3, 3)
+	_check(not h.concealed, "Mimetizzazione: l'umano non reagisce in automatico")
 
 
 func _test_assault_fire() -> void:

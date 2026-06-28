@@ -1,3 +1,8 @@
+[b]v0.31.0[/b]
+
+[b]Azioni — tempistica reattiva (1/n): Mimetizzazione dell'IA[/b]
+- L'IA ora usa la Mimetizzazione (A29) come reazione, nell'istante in cui una sua unità in copertura viene presa di mira: se ha la carta in mano si mimetizza e la Copertura riduce una volta l'attacco subìto. Prima l'IA non la giocava mai. (Lato umano resta per ora il gioco "in anticipo" nel proprio turno; la finestra di reazione umana arriverà in una prossima fase.)
+
 [b]v0.30.0[/b]
 
 [b]Azioni — conformità degli effetti[/b]
