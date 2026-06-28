@@ -84,6 +84,7 @@ func _ready() -> void:
 	_test_assault_fire()
 	_test_ai_concealment()
 	_test_human_concealment_reaction()
+	_test_ai_ambush()
 	_test_exit_vp()
 	_test_spray_fire()
 	_test_fortifications()
@@ -1402,6 +1403,40 @@ func _test_human_concealment_reaction() -> void:
 	Game.conceal_decline()
 	_check(not d2.concealed, "Mimetizzazione umana: rinuncia → niente")
 	_check(s2.conceal_offer_ids.is_empty(), "Mimetizzazione umana: rinuncia chiude la finestra")
+
+
+func _test_ai_ambush() -> void:
+	print("· Imboscata (A25): l'IA rompe l'attaccante più debole in Mischia")
+	var s := _new_state(6, 6)
+	s.human_faction = GER
+	var a1 := _mk("g_strong", GER, SQUAD, RIFLE, 2, 2, 8, 7, 4)
+	var a2 := _mk("g_weak", GER, SQUAD, RIFLE, 2, 2, 3, 7, 4)
+	s.units[a1.id] = a1; s.units[a2.id] = a2
+	var d := _mk("r_def", RUS, SQUAD, RIFLE, 2, 2, 5, 7, 4)
+	s.units[d.id] = d
+	var amb := Card.new(); amb.action_name = "IMBOSCATA"
+	s.russian_hand.append(amb)
+	s.russian_deck.append(Card.new()); s.russian_deck.append(Card.new())
+	Game.state = s
+	Game._resolve_melee_ambushes([a1, a2], [d])
+	_check(not a2.efficient, "Imboscata: l'attaccante più debole è rotto")
+	_check(a1.efficient, "Imboscata: l'attaccante più forte resta intatto")
+	var still := false
+	for c in s.russian_hand:
+		if c.action_name == "IMBOSCATA":
+			still = true
+	_check(not still, "Imboscata: la carta dell'IA è stata giocata")
+
+	# Senza carta non succede nulla.
+	var s2 := _new_state(6, 6)
+	s2.human_faction = GER
+	var b1 := _mk("g2", GER, SQUAD, RIFLE, 3, 3, 4, 7, 4)
+	s2.units[b1.id] = b1
+	var dd := _mk("r2", RUS, SQUAD, RIFLE, 3, 3, 5, 7, 4)
+	s2.units[dd.id] = dd
+	Game.state = s2
+	Game._resolve_melee_ambushes([b1], [dd])
+	_check(b1.efficient, "Imboscata: senza carta nessuna rottura")
 
 
 func _test_assault_fire() -> void:

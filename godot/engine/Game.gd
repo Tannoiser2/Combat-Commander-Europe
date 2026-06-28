@@ -1456,6 +1456,7 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 		var def_faction: int = defenders[0].faction
 		var af := _draw_fate(u.faction)
 		var df := _draw_fate(def_faction)
+		_resolve_melee_ambushes(attackers, defenders)  # A25: Imboscata prima dei dadi
 		var mr := Rules.resolve_melee(
 			state, attackers, defenders, _dice_of(af), _dice_of(df))
 		_log(mr.log_line)
@@ -1664,6 +1665,43 @@ func conceal_decline() -> void:
 		return
 	_conceal_choice = ""
 	emit_signal("_conceal_decided")
+
+
+## Imboscata (A25) in Mischia: prima del tiro, l'IA può giocarla per ROMPERE
+## un'unità avversaria partecipante (così ne dimezza la PdF prima del calcolo).
+## Ordine A25: prima il difensore (inattivo), poi l'attaccante (attivo). Per ora
+## solo l'IA gioca l'Imboscata; il lato umano è una slice successiva.
+func _resolve_melee_ambushes(attackers: Array, defenders: Array) -> void:
+	if attackers.is_empty() or defenders.is_empty():
+		return
+	_ai_ambush(defenders[0].faction, defenders, attackers)  # difensore IA rompe un attaccante
+	_ai_ambush(attackers[0].faction, attackers, defenders)  # attaccante IA rompe un difensore
+
+
+## L'IA `faction` (se partecipa con `own`) gioca un'Imboscata, se ha la carta,
+## rompendo l'unità avversaria più DEBOLE ancora intatta tra `opp` (è ciò che il
+## difensore razionale sceglierebbe: rompere la propria più debole).
+func _ai_ambush(faction: int, own: Array, opp: Array) -> void:
+	if faction == state.human_faction or own.is_empty():
+		return  # l'Imboscata umana è una slice successiva
+	var hand := state.hand_of(faction)
+	var ci := -1
+	for i in hand.size():
+		if hand[i].action_name == "IMBOSCATA":
+			ci = i
+			break
+	if ci < 0:
+		return
+	var victim: Unit = null
+	for o in opp:
+		if o.efficient and (victim == null or o.effective_fp() < victim.effective_fp()):
+			victim = o
+	if victim == null:
+		return  # nessun bersaglio intatto: non sprecare la carta
+	victim.break_unit()
+	_discard_for(faction, ci)
+	_log("%s gioca Imboscata (A25): %s è rotta." % [
+		Domain.FACTION_NAMES.get(faction, "IA"), victim.unit_name])
 
 
 ## «Passa» (O15): invece di dare un ordine il giocatore può passare. Scarta le
@@ -2104,6 +2142,7 @@ func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
 		func(m: Unit) -> bool: return m.faction == faction)
 	var af := _draw_fate(faction)
 	var df := _draw_fate(def_faction)
+	_resolve_melee_ambushes(attackers, defenders)  # A25: Imboscata prima dei dadi
 	var mr := Rules.resolve_melee(
 		state, attackers, defenders, _dice_of(af), _dice_of(df))
 	_log("IA — " + mr.log_line)

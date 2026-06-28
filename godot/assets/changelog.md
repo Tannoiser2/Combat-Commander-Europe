@@ -1,3 +1,8 @@
+[b]v0.33.0[/b]
+
+[b]Azioni — tempistica reattiva (3/n): Imboscata dell'IA[/b]
+- L'IA ora gioca l'Imboscata (A25) in Mischia, prima dei dadi: se è coinvolta in un corpo a corpo e ha la carta, rompe l'unità avversaria partecipante più debole (riducendone la potenza prima del calcolo), come prevede la regola. Prima non la usava mai. (L'Imboscata giocata dal giocatore umano arriverà in una prossima fase.)
+
 [b]v0.32.0[/b]
 
 [b]Azioni — tempistica reattiva (2/n): Mimetizzazione, reazione umana[/b]
