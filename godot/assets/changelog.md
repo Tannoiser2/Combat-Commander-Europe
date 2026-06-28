@@ -1,3 +1,9 @@
+[b]v0.29.0[/b]
+
+[b]Azioni — correzioni e chiarezza[/b]
+- I badge Azione si accendono ora solo quando l'azione ha davvero un effetto: le azioni non ancora simulate (Imboscata, Buona Mira, Ordini Contraddittori, Demolizioni, Unità Nascosta, Lotta Senza Quartiere) restano spente invece di sembrare giocabili e poi scartarsi senza fare nulla.
+- Corretta la «Sventagliata di Fuoco»: per un errore di nome non partiva mai; ora aggiunge davvero il secondo esagono bersaglio durante un Fuoco.
+
 [b]v0.28.0[/b]
 
 [b]Interfaccia — flusso "prima la carta"[/b]
