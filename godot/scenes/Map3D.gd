@@ -934,7 +934,7 @@ func _spawn_weapon(holder: Node3D, u: Unit) -> float:
 	if ab.size == Vector3.ZERO:
 		fig.queue_free()
 		return -1.0
-	const WEAPON_SPAN := 0.58  # ingombro massimo dell'arma (< soldato ~0.9)
+	const WEAPON_SPAN := 0.46  # ingombro massimo dell'arma (ben < soldato ~0.9)
 	var maxd := maxf(ab.size.x, maxf(ab.size.y, ab.size.z))
 	var sc := WEAPON_SPAN / maxd if maxd > 0.001 else 1.0
 	var inner := Node3D.new()
@@ -1337,39 +1337,12 @@ func _mat(col: Color) -> StandardMaterial3D:
 
 # ─── Volumi 3D: alberi, edifici, macerie ──────────────────────────────────────
 
-func _decorate(hd: GameState.HexData, q: int, r: int, top: Vector3) -> void:
-	var yaw := 60.0 * float((q * 2 + r) % 6)
-	match hd.terrain:
-		Domain.TerrainType.WOODS:
-			# Due alberi variati dalla collezione; ripiego procedurale se manca.
-			if _trees().is_empty():
-				_add_tree(top, _jit(q, r, 0), 1.0)
-				_add_tree(top, _jit(q, r, 1), 0.85)
-				_add_tree(top, _jit(q, r, 2), 0.7)
-				_add_bush(top, _jit(q, r, 4), 0.8)
-			else:
-				_spawn_tree(top + _jit(q, r, 0) * 0.5, TREE_HEIGHT, q * 3 + r)
-				_spawn_tree(top + _jit(q, r, 2) * 0.5, TREE_HEIGHT * 0.8, q + r * 3 + 5)
-		Domain.TerrainType.ORCHARD:
-			# Un albero della collezione (frutteto più rado); ripiego procedurale.
-			if _trees().is_empty():
-				_add_tree(top, _jit(q, r, 0), 0.8)
-				_add_tree(top, _jit(q, r, 3), 0.72)
-				_add_bush(top, _jit(q, r, 5), 0.7)
-			else:
-				_spawn_tree(top, TREE_HEIGHT * 0.9, q * 5 + r)
-		Domain.TerrainType.FIELD:
-			if not _spawn_model_fit(_model(MODEL_GRASS), top, 1.5, yaw):
-				_add_bush(top, _jit(q, r, 0), 0.9)
-				_add_bush(top, _jit(q, r, 2), 0.75)
-				_add_bush(top, _jit(q, r, 4), 0.8)
-		Domain.TerrainType.BUILDING:
-			var house: PackedScene = _model(MODEL_HOUSES[(q * 3 + r) % MODEL_HOUSES.size()])
-			if not _spawn_model_fit(house, top, 1.35, 90.0 * float((q + r) % 4)):
-				_add_building(top, q, r)
-		Domain.TerrainType.RUBBLE:
-			_add_box(top + Vector3(0.2, 0.1, -0.1), Vector3(0.4, 0.2, 0.4), Color(0.45, 0.43, 0.40))
-			_add_box(top + Vector3(-0.25, 0.07, 0.2), Vector3(0.3, 0.14, 0.3), Color(0.5, 0.47, 0.44))
+## Decorazioni 3D del terreno (alberi, edifici, macerie) DISATTIVATE su richiesta:
+## i vecchi modelli non piacevano e ne arriveranno di nuovi. Per ora gli esagoni
+## restano "puliti" — il tipo di terreno resta leggibile dalla skin del tabellone.
+## (Le funzioni di supporto sotto sono inutilizzate, in attesa dei nuovi asset.)
+func _decorate(_hd: GameState.HexData, _q: int, _r: int, _top: Vector3) -> void:
+	return
 
 
 ## Pool di alberi della collezione FBX, estratti UNA volta. Per ogni albero si

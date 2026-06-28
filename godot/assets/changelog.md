@@ -1,3 +1,9 @@
+[b]v0.26.0[/b]
+
+[b]Vista 3D[/b]
+- Rimosse le decorazioni 3D del terreno (edifici, alberi, vegetazione): non convincevano e ne arriveranno di nuove. Per ora gli esagoni sono "puliti" e il terreno resta leggibile dalla skin del tabellone.
+- Armi ancora un po' più piccole rispetto ai soldati.
+
 [b]v0.25.1[/b]
 
 [b]Correzioni[/b]
