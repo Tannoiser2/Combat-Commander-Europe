@@ -857,6 +857,7 @@ func assault_fire(hand_index: int) -> void:
 	var atk_fate := _draw_fate(state.human_faction)
 	var def_fate := _draw_fate(_ai_faction())
 	var atk_dice := _dice_of(atk_fate)
+	_maybe_react_concealment(target.x, target.y)
 	var result := Combat.resolve_fire(
 		u, target.x, target.y, state, atk_dice, _dice_of(def_fate), group, 0)
 	_log("Fuoco d'Assalto — " + result.log_line)
@@ -984,6 +985,7 @@ func confirm_fire() -> void:
 		var sp := _spray_target()
 		spray_q = sp.x
 		spray_r = sp.y
+	_maybe_react_concealment(tq, tr)
 	var result := Combat.resolve_fire(
 		u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus, spray_q, spray_r)
 	_log(result.log_line)
@@ -1546,6 +1548,43 @@ func _discard_for(faction: int, hand_index: int) -> void:
 		Cards.draw(deck, discard, hand)
 
 
+## Reazione di Mimetizzazione (A29) del DIFENSORE all'istante del tiro di Difesa.
+## Per ora SOLO per l'IA: l'umano la gioca in anticipo nel proprio turno (la
+## finestra di reazione lato umano è una slice successiva). Se l'IA che difende
+## l'esagono bersaglio ha una carta Mimetizzazione e un'unità idonea in copertura,
+## la gioca: scarta la carta e mimetizza l'unità, così la Copertura riduce una
+## volta l'attacco subìto (consumata in Combat).
+func _maybe_react_concealment(tq: int, tr: int) -> void:
+	if state == null:
+		return
+	var defenders := state.men_at(tq, tr)
+	if defenders.is_empty():
+		return
+	var fac: int = defenders[0].faction
+	if fac == state.human_faction:
+		return  # l'umano la gioca in anticipo (per ora)
+	if Rules.cover_at(state, tq, tr, false) <= 0:
+		return  # senza copertura non darebbe alcun effetto: non sprecare la carta
+	var hand := state.hand_of(fac)
+	var ci := -1
+	for i in hand.size():
+		if hand[i].action_name == "MIMETIZZAZIONE":
+			ci = i
+			break
+	if ci < 0:
+		return
+	var who: Unit = null
+	for d in defenders:
+		if d.is_man() and d.efficient and not d.concealed:
+			who = d
+			break
+	if who == null:
+		return
+	who.concealed = true
+	_discard_for(fac, ci)
+	_log("%s reagisce con Mimetizzazione (A29)." % Domain.FACTION_NAMES.get(fac, "IA"))
+
+
 ## «Passa» (O15): invece di dare un ordine il giocatore può passare. Scarta le
 ## carte scelte (per indice nella propria mano), ne ripesca altrettante e cede il
 ## turno all'avversario. Passando senza scartare nulla si conserva la mano.
@@ -1668,6 +1707,7 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	_discard_for(defender, fci)          # A24.1: la carta Fuoco giocata come Azione
 	var atk_fate := _draw_fate(defender)
 	var def_fate := _draw_fate(mover.faction)
+	_maybe_react_concealment(mover.q, mover.r)  # il mover (se IA) può mimetizzarsi
 	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
 	_log("Opportunità — " + res.log_line)
 	for id in res.eliminated:
