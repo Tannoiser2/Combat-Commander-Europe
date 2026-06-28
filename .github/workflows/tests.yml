@@ -78,3 +78,15 @@ jobs:
             exit 1
           fi
           grep -q "SELECTION_RESULT: PASS" selection_output.txt
+
+      - name: Smoke test delle Azioni (whitelist + instradamento)
+        run: |
+          set -euxo pipefail
+          # Le azioni accendibili hanno un handler reale; le no-op sono escluse;
+          # la Sventagliata è instradata allo spray.
+          "$GODOT" --headless --path godot res://tests/ActionsCheck.tscn 2>&1 | tee actions_output.txt
+          if grep -q "SCRIPT ERROR" actions_output.txt; then
+            echo "::error::Errori di script nel test delle Azioni"
+            exit 1
+          fi
+          grep -q "ACTIONS_RESULT: PASS" actions_output.txt

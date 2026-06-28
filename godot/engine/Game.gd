@@ -1041,6 +1041,16 @@ func confirm_fire() -> void:
 ## l'assemblaggio (ognuna +2 FP, con prerequisiti propri).
 const FIRE_MOD_NAMES := ["FUOCO MIRATO", "FUOCO SOSTENUTO", "FUOCO INCROCIATO"]
 
+## Azioni "autonome" effettivamente implementate (hanno un effetto reale quando
+## giocate nella fase ordini). Serve a NON accendere i badge delle azioni che oggi
+## non fanno nulla (verrebbero solo scartate). I modificatori di fuoco, la
+## Sventagliata e il Fuoco d'Assalto restano "di contesto" (vedi _action_playable).
+const AUTONOMOUS_ACTIONS := [
+	"MIMETIZZAZIONE", "TRINCERARSI", "FERITE LEGGERE", "GRANATE FUMOGENE",
+	"BOMBE A MANO",
+	"TRINCERAMENTI NASCOSTI", "MINE NASCOSTE", "CASAMATTA NASCOSTA", "FILO SPINATO NASCOSTO",
+]
+
 
 ## Pezzi attualmente nel gruppo di fuoco (oggetti Unit).
 func _current_fire_group() -> Array:
@@ -1083,7 +1093,7 @@ func apply_fire_modifier(hand_index: int) -> void:
 		return
 	var card: Card = hand[hand_index]
 	var nm := card.action_name
-	if nm == "SVENTAGLIATA":  # Spray Fire (A40): aggiunge un secondo esagono bersaglio
+	if nm.begins_with("SVENTAGLIATA"):  # Spray Fire (A40): 2° esagono bersaglio
 		_apply_spray(card)
 		return
 	if not FIRE_MOD_NAMES.has(nm):

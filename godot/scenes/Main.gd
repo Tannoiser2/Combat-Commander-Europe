@@ -259,22 +259,16 @@ func _make_badge(path: String, fallback_text: String, lit: bool, width: float) -
 	return tb
 
 
-## Azioni "di contesto": hanno effetto solo durante un Fuoco (modificatori,
-## Sventagliata) o una Mossa (Fuoco d'Assalto), non nella fase ordini.
-func _is_context_action(name: String) -> bool:
-	return name in Game.FIRE_MOD_NAMES \
-		or name.begins_with("SVENTAGLIATA") \
-		or name == "FUOCO D'ASSALTO"
-
-
-## La metà AZIONE è giocabile ora? Nella fase ordini le azioni autonome sì, ma
-## quelle di contesto (modificatori di fuoco, Fuoco d'Assalto, Sventagliata) si
-## accendono solo nel loro contesto: durante un Fuoco col bersaglio scelto i
+## La metà AZIONE è giocabile ora? Nella fase ordini si accendono SOLO le azioni
+## autonome davvero implementate (Game.AUTONOMOUS_ACTIONS): le altre oggi si
+## limiterebbero a scartare la carta, quindi restano spente per non ingannare.
+## Le azioni "di contesto" (modificatori di fuoco e Sventagliata, Fuoco d'Assalto)
+## si accendono solo nel loro contesto: durante un Fuoco col bersaglio scelto i
 ## modificatori/Sventagliata, durante una Mossa il Fuoco d'Assalto.
 func _action_playable(card: Card, s: GameState) -> bool:
 	var name := card.action_name
 	if s.phase == Domain.Phase.PLAYER_TURN:
-		return not _is_context_action(name)
+		return name in Game.AUTONOMOUS_ACTIONS
 	if s.phase == Domain.Phase.PLAYER_MOVING:
 		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
 			return name in Game.FIRE_MOD_NAMES or name.begins_with("SVENTAGLIATA")
