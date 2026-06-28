@@ -269,6 +269,16 @@ func _draw() -> void:
 		if gv:
 			_draw_hex_outline(gv.q, gv.r, COL_GROUP, 3.0)
 
+	# Anteprima del gruppo di comando: selezionando un leader PRIMA dell'ordine,
+	# si evidenziano le unità che potrebbe attivare nel turno.
+	if s.ordered_group.is_empty():
+		for pid in s.command_preview_ids:
+			if pid == s.selected_unit_id:
+				continue
+			var pv := s.unit_by_id(pid)
+			if pv:
+				_draw_hex_outline(pv.q, pv.r, COL_GROUP, 3.0)
+
 	# Assemblaggio gruppo di fuoco: bersaglio + pezzi inclusi/esclusi
 	if s.fire_target_q >= 0:
 		_draw_hex_fill(s.fire_target_q, s.fire_target_r, COL_FIRE_TARGET)

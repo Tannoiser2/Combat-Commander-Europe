@@ -66,3 +66,15 @@ jobs:
             exit 1
           fi
           grep -q "PIECES_RESULT: PASS" pieces_output.txt
+
+      - name: Smoke test della selezione (anteprima gruppo di comando)
+        run: |
+          set -euxo pipefail
+          # Selezionando un leader si popola l'anteprima del gruppo di comando;
+          # giocando un ordine l'anteprima si azzera.
+          "$GODOT" --headless --path godot res://tests/SelectionCheck.tscn 2>&1 | tee selection_output.txt
+          if grep -q "SCRIPT ERROR" selection_output.txt; then
+            echo "::error::Errori di script nel test di selezione"
+            exit 1
+          fi
+          grep -q "SELECTION_RESULT: PASS" selection_output.txt

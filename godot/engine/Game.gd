@@ -213,6 +213,7 @@ func select_unit(unit_id: String) -> void:
 	if u == null:
 		state.selected_unit_id = ""
 		state.highlighted_hexes.clear()
+		state.command_preview_ids.clear()
 		emit_signal("state_changed")
 		return
 
@@ -229,6 +230,7 @@ func select_unit(unit_id: String) -> void:
 			return
 		state.selected_unit_id = unit_id
 		state.moving_unit_id = unit_id
+		state.command_preview_ids.clear()   # durante l'ordine vale ordered_group
 		_highlight_reachable(u)
 		emit_signal("state_changed")
 		return
@@ -236,6 +238,13 @@ func select_unit(unit_id: String) -> void:
 	# ─── Altri ordini ────────────────────────────────────────────────────────
 	state.selected_unit_id = unit_id
 	state.highlighted_hexes.clear()
+	# Anteprima del gruppo di comando: selezionando un leader (o un'unità comandata)
+	# fuori da un ordine, si illuminano le unità che potrebbe attivare nel turno.
+	state.command_preview_ids.clear()
+	if state.phase == Domain.Phase.PLAYER_TURN:
+		var grp := _command_group_ids(u)
+		if grp.size() > 1:
+			state.command_preview_ids = grp
 	if state.phase == Domain.Phase.PLAYER_MOVING:
 		match state.current_order:
 			Domain.OrderType.FIRE:
@@ -257,6 +266,19 @@ func _form_move_group(u: Unit) -> void:
 	state.ordered_group.clear()
 	state.group_mp.clear()
 	state.move_committed = false
+	var ids := _command_group_ids(u)
+	for id in ids:
+		state.ordered_group.append(id)
+		state.group_mp[id] = Rules.move_allowance(state, state.unit_by_id(id))
+	var leader := Rules.commanding_leader(state, u, true)
+	if ids.size() > 1 and leader != null:
+		_log("Comando: %s attiva %d unità entro raggio %d." % [leader.unit_name, ids.size(), leader.command])
+
+
+## Id delle unità che un ordine dato "tramite" `u` attiverebbe: il leader che la
+## comanda e tutte le unità idonee (uomini efficienti e muovibili, non già
+## attivate) entro il suo raggio di Comando; l'unità stessa è sempre inclusa.
+func _command_group_ids(u: Unit) -> Array[String]:
 	var ids: Array[String] = []
 	var leader := Rules.commanding_leader(state, u, true)
 	if leader != null:
@@ -264,14 +286,9 @@ func _form_move_group(u: Unit) -> void:
 			if v.is_man() and v.move > 0 and Rules.can_be_ordered(v) \
 					and HexGrid.distance(leader.q, leader.r, v.q, v.r) <= leader.command:
 				ids.append(v.id)
-	# L'unità cliccata fa sempre parte del gruppo (anche se non c'è leader).
 	if not ids.has(u.id):
 		ids.append(u.id)
-	for id in ids:
-		state.ordered_group.append(id)
-		state.group_mp[id] = Rules.move_allowance(state, state.unit_by_id(id))
-	if ids.size() > 1 and leader != null:
-		_log("Comando: %s attiva %d unità entro raggio %d." % [leader.unit_name, ids.size(), leader.command])
+	return ids
 
 
 ## Evidenzia gli esagoni raggiungibili dal mover coi suoi PM rimasti nel gruppo.
@@ -406,6 +423,7 @@ func play_card(hand_index: int) -> void:
 			state.assault_fired = false  # Fuoco d'Assalto disponibile una volta per ordine
 			state.selected_card_index = hand_index
 			state.highlighted_hexes.clear()
+			state.command_preview_ids.clear()  # ora comanda l'ordine (ordered_group)
 			# Col Fuoco: evidenzia subito le unità che possono sparare (≥1 bersaglio).
 			if card.order == Domain.OrderType.FIRE:
 				_compute_fire_ready()

@@ -184,6 +184,11 @@ var ordered_group: Array[String] = []
 var group_mp: Dictionary = {}
 var move_committed: bool = false
 
+# Anteprima del gruppo di comando: quando si seleziona un leader (o un'unità
+# comandata) PRIMA di dare un ordine, qui finiscono gli id delle unità che quel
+# leader potrebbe attivare nel turno, così le mappe le evidenziano (chi può agire).
+var command_preview_ids: Array[String] = []
+
 # ─── Assemblaggio gruppo di fuoco (O20.3.1) ──────────────────────────────────
 # Quando il giocatore sceglie un bersaglio col FUOCO, si entra nella fase di
 # assemblaggio: `fire_target_*` = esagono bersaglio (-1 = nessuno);
