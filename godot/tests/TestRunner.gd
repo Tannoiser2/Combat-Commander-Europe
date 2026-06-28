@@ -83,6 +83,7 @@ func _ready() -> void:
 	_test_objective_chits()
 	_test_assault_fire()
 	_test_ai_concealment()
+	_test_human_concealment_reaction()
 	_test_exit_vp()
 	_test_spray_fire()
 	_test_fortifications()
@@ -1364,6 +1365,43 @@ func _test_ai_concealment() -> void:
 	Game.state = s3
 	Game._maybe_react_concealment(3, 3)
 	_check(not h.concealed, "Mimetizzazione: l'umano non reagisce in automatico")
+
+
+func _test_human_concealment_reaction() -> void:
+	print("· Mimetizzazione (A29): finestra di reazione del difensore umano")
+	# Accetta: la coroutine apre la finestra, il giocatore sceglie l'unità.
+	var s := _new_state(6, 6)
+	s.human_faction = GER
+	s.phase = Domain.Phase.AI_TURN
+	s.hex_at(2, 2).terrain = Domain.TerrainType.WOODS
+	var d := _mk("ger", GER, SQUAD, RIFLE, 2, 2, 4, 7, 4)
+	s.units[d.id] = d
+	var camo := Card.new(); camo.action_name = "MIMETIZZAZIONE"
+	s.german_hand.append(camo)
+	s.german_deck.append(Card.new()); s.german_deck.append(Card.new())
+	Game.state = s
+	Game._reactive_concealment_human(2, 2)   # si sospende su await
+	_check(s.conceal_offer_ids.has(d.id), "Mimetizzazione umana: finestra con l'unità offerta")
+	_check(s.phase == Domain.Phase.REACTION_WINDOW, "Mimetizzazione umana: fase di reazione")
+	Game.conceal_accept(d.id)                # il giocatore accetta → riprende
+	_check(d.concealed, "Mimetizzazione umana: l'unità si mimetizza")
+	_check(s.conceal_offer_ids.is_empty(), "Mimetizzazione umana: finestra chiusa")
+	_check(s.phase == Domain.Phase.AI_TURN, "Mimetizzazione umana: fase ripristinata")
+
+	# Rinuncia: nessuna mimetizzazione.
+	var s2 := _new_state(6, 6)
+	s2.human_faction = GER
+	s2.phase = Domain.Phase.AI_TURN
+	s2.hex_at(2, 2).terrain = Domain.TerrainType.WOODS
+	var d2 := _mk("ger2", GER, SQUAD, RIFLE, 2, 2, 4, 7, 4)
+	s2.units[d2.id] = d2
+	var camo2 := Card.new(); camo2.action_name = "MIMETIZZAZIONE"
+	s2.german_hand.append(camo2)
+	Game.state = s2
+	Game._reactive_concealment_human(2, 2)
+	Game.conceal_decline()
+	_check(not d2.concealed, "Mimetizzazione umana: rinuncia → niente")
+	_check(s2.conceal_offer_ids.is_empty(), "Mimetizzazione umana: rinuncia chiude la finestra")
 
 
 func _test_assault_fire() -> void:

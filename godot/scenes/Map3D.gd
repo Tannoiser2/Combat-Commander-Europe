@@ -511,6 +511,11 @@ func _add_highlights(s: GameState) -> void:
 			var sv := s.unit_by_id(sid)
 			if sv != null:
 				_hex_disc(sv.q, sv.r, s, Color(1.0, 0.7, 0.1, 0.45))
+		# Finestra di Mimetizzazione: unità su cui puoi giocare la carta (ciano).
+		for cid in s.conceal_offer_ids:
+			var cv := s.unit_by_id(cid)
+			if cv != null:
+				_hex_disc(cv.q, cv.r, s, Color(0.1, 0.85, 1.0, 0.5))
 	if s.selected_unit_id != "":
 		var u := s.unit_by_id(s.selected_unit_id)
 		if u != null:

@@ -665,7 +665,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		KEY_SPACE:
 			if Game.state != null and Game.state.phase == Domain.Phase.REACTION_WINDOW:
-				Game.opfire_decline()
+				if not Game.state.conceal_offer_ids.is_empty():
+					Game.conceal_decline()
+				else:
+					Game.opfire_decline()
 				get_viewport().set_input_as_handled()
 		KEY_X:  # uscita dal bordo avversario (7.2): VP al proprietario
 			if Game.can_exit_selected():
@@ -777,6 +780,8 @@ func _guidance_text(s: GameState) -> String:
 				_:
 					return "Clicca un'unità sulla mappa"
 		Domain.Phase.REACTION_WINDOW:
+			if not s.conceal_offer_ids.is_empty():
+				return "MIMETIZZAZIONE — clicca l'unità (ciano) per mimetizzarti · altrove o SPAZIO = rinuncia"
 			return "FUOCO DI OPPORTUNITÀ — clicca un tiratore (giallo) per sparare · altrove o SPAZIO = non sparare"
 		_:
 			return Domain.PHASE_LABELS.get(s.phase, "")
