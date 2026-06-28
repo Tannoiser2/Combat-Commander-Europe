@@ -600,36 +600,11 @@ func play_action(hand_index: int) -> void:
 		return
 	var card: Card = hand[hand_index]
 	_log("Azione giocata: %s" % card.action_name)
-	if card.action_name == "BOMBE A MANO":
-		_resolve_grenades(state.human_faction)
-	else:
-		for line in Actions.play(state, card, state.human_faction):
-			_log(line)
+	for line in Actions.play(state, card, state.human_faction):
+		_log(line)
 	_discard_card(hand_index)
 	_check_end_conditions()
 	emit_signal("state_changed")
-
-
-## Bombe a mano: la prima unità amica adiacente a un nemico lancia (auto-target).
-func _resolve_grenades(faction: int) -> void:
-	for u in state.units_of(faction):
-		if not (u.is_man() and u.efficient):
-			continue
-		for nb in HexGrid.neighbors(u.q, u.r):
-			if nb.x < 0 or nb.x >= state.map_cols or nb.y < 0 or nb.y >= state.map_rows:
-				continue
-			var enemies := state.men_at(nb.x, nb.y).filter(
-				func(m: Unit) -> bool: return m.faction != faction)
-			if enemies.is_empty():
-				continue
-			var fate := _draw_fate(faction)
-			var res := Actions.grenade_attack(state, u, nb.x, nb.y, _dice_of(fate))
-			_log(String(res["log"]))
-			for id in res["eliminated"]:
-				emit_signal("unit_eliminated", id)
-			_apply_fate(fate, faction)
-			return
-	_log("Bombe a mano: nessun nemico adiacente.")
 
 
 ## Dispatch unico di un clic su un esagono (q,r), indipendente dalla vista (2D o
@@ -868,9 +843,11 @@ func assault_fire(hand_index: int) -> void:
 	var u := state.unit_by_id(state.selected_unit_id)
 	if u == null:
 		u = state.unit_by_id(state.moving_unit_id)
-	# A26: serve un pezzo in movimento con FP «in scatola» (qui: squadra/team non ordnance).
-	if u == null or not u.is_man() or u.is_leader() or not u.efficient or u.fp <= 0 or u.ordnance:
-		_log("Fuoco d'Assalto: serve una squadra/team in movimento con FP.")
+	# A26: il Fuoco d'Assalto richiede una FP «in scatola» (fp_boxed): solo le unità
+	# con FP riquadrata possono sparare mentre sono attivate a muovere.
+	if u == null or not u.is_man() or u.is_leader() or not u.efficient \
+			or u.fp <= 0 or u.ordnance or not u.fp_boxed:
+		_log("Fuoco d'Assalto: serve una squadra/team in movimento con FP «in scatola».")
 		return
 	var target := _best_assault_target(u)
 	if target.x < 0:
@@ -1038,8 +1015,9 @@ func confirm_fire() -> void:
 # ─── Modificatori di fuoco (A30/A37/A41) ──────────────────────────────────────
 
 ## Azioni che modificano un attacco di fuoco e si applicano durante
-## l'assemblaggio (ognuna +2 FP, con prerequisiti propri).
-const FIRE_MOD_NAMES := ["FUOCO MIRATO", "FUOCO SOSTENUTO", "FUOCO INCROCIATO"]
+## l'assemblaggio (ognuna +2 FP, con prerequisiti propri). BOMBE A MANO (A34) è
+## anch'essa un modificatore: +2 se almeno un pezzo spara a un esagono adiacente.
+const FIRE_MOD_NAMES := ["FUOCO MIRATO", "FUOCO SOSTENUTO", "FUOCO INCROCIATO", "BOMBE A MANO"]
 
 ## Azioni "autonome" effettivamente implementate (hanno un effetto reale quando
 ## giocate nella fase ordini). Serve a NON accendere i badge delle azioni che oggi
@@ -1047,7 +1025,6 @@ const FIRE_MOD_NAMES := ["FUOCO MIRATO", "FUOCO SOSTENUTO", "FUOCO INCROCIATO"]
 ## Sventagliata e il Fuoco d'Assalto restano "di contesto" (vedi _action_playable).
 const AUTONOMOUS_ACTIONS := [
 	"MIMETIZZAZIONE", "TRINCERARSI", "FERITE LEGGERE", "GRANATE FUMOGENE",
-	"BOMBE A MANO",
 	"TRINCERAMENTI NASCOSTI", "MINE NASCOSTE", "CASAMATTA NASCOSTA", "FILO SPINATO NASCOSTO",
 ]
 
@@ -1081,6 +1058,11 @@ func _fire_modifier_error(nm: String) -> String:
 				if t.id == state.moving_unit_id:
 					return ""
 			return "solo contro un'unità in movimento"
+		"BOMBE A MANO":  # Hand Grenades (A34): un pezzo deve sparare a un esagono adiacente.
+			for g in group:
+				if HexGrid.distance(g.q, g.r, state.fire_target_q, state.fire_target_r) == 1:
+					return ""
+			return "richiede un pezzo che spari a un esagono adiacente"
 	return ""
 
 

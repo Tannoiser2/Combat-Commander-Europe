@@ -1,3 +1,9 @@
+[b]v0.30.0[/b]
+
+[b]Azioni — conformità degli effetti[/b]
+- Fuoco d'Assalto (A26): ora richiede una FP «in scatola», come da regola (solo le unità con potenza di fuoco riquadrata possono sparare mentre si muovono).
+- Bombe a Mano (A34): non è più un attacco a sé, ma un modificatore di Fuoco (+2 FP, cumulabile) giocabile quando almeno un pezzo spara a un esagono adiacente — come prevede il regolamento.
+
 [b]v0.29.0[/b]
 
 [b]Azioni — correzioni e chiarezza[/b]
