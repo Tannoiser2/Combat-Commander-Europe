@@ -18,12 +18,35 @@ signal game_over(winner: int)        ## Domain.Faction o -1 (patta)
 var state: GameState = null
 var _rng: RandomNumberGenerator = null
 
+# ─── Impostazioni persistenti (user://settings.cfg) ──────────────────────────
+const SETTINGS_PATH := "user://settings.cfg"
+## Modalità tutorial: quando attiva, la GUI apre una finestra di aiuto a ogni
+## ordine/azione (regola + cosa fare). Si attiva dalla schermata iniziale.
+var tutorial_enabled: bool = false
+
 
 # ─── Init ─────────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
 	_rng = RandomNumberGenerator.new()
 	_rng.randomize()
+	_load_settings()
+
+
+## Carica le impostazioni persistenti (modalità tutorial, ecc.).
+func _load_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) == OK:
+		tutorial_enabled = bool(cfg.get_value("ui", "tutorial", false))
+
+
+## Attiva/disattiva la modalità tutorial e la salva su disco.
+func set_tutorial(on: bool) -> void:
+	tutorial_enabled = on
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS_PATH)  # ignora l'errore se il file non esiste ancora
+	cfg.set_value("ui", "tutorial", on)
+	cfg.save(SETTINGS_PATH)
 
 
 ## Avvia una nuova partita. `scenario_num` 1..24 (default 1).

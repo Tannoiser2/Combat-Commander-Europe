@@ -69,6 +69,7 @@ func _ready() -> void:
 	_build_pass_ui()
 	_build_setup_ui()
 	_build_reaction_banner()
+	_build_tutorial_window()
 	log_toggle_btn.pressed.connect(_toggle_sidebar)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	editor_btn.tooltip_text = "Apri l'editor delle mappe"
@@ -1012,7 +1013,16 @@ func _on_end_turn() -> void:
 
 
 func _on_card_pressed(index: int) -> void:
+	var s := Game.state
+	var order := -1
+	if s != null:
+		var hand := s.hand_of(s.human_faction)
+		if index >= 0 and index < hand.size():
+			order = hand[index].order
 	Game.play_card(index)
+	# Modalità tutorial: spiega l'ordine appena giocato (regola + cosa fare).
+	if Game.tutorial_enabled and order >= 0:
+		_show_tutorial(TutorialHelp.for_order(order))
 
 
 ## Badge AZIONE premuto: gioca l'Azione. Durante l'assemblaggio del fuoco applica
@@ -1032,6 +1042,98 @@ func _on_action_pressed(index: int) -> void:
 		_refresh_ui()
 	else:
 		Game.play_action(index)
+	# Modalità tutorial: spiega l'azione (regola + cosa fare).
+	if Game.tutorial_enabled and nm != "":
+		_show_tutorial(TutorialHelp.for_action(nm))
+
+
+# ─── Finestra di aiuto «Modalità tutorial» ────────────────────────────────────
+# Quando la modalità è attiva (dal menù iniziale), a ogni ordine/azione compare
+# una finestra fluttuante con due sezioni in neretto: «Regola» (sunto del
+# regolamento) e «Cosa fare» (come funziona il programma).
+
+var _tut_win: PanelContainer = null
+var _tut_title: RichTextLabel = null
+var _tut_rule: RichTextLabel = null
+var _tut_todo: RichTextLabel = null
+
+
+func _build_tutorial_window() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 55
+	add_child(layer)
+	_tut_win = PanelContainer.new()
+	_tut_win.visible = false
+	_tut_win.anchor_left = 0.0
+	_tut_win.anchor_top = 0.0
+	_tut_win.offset_left = 12
+	_tut_win.offset_top = 62
+	_tut_win.offset_right = 12 + 404
+	_tut_win.grow_vertical = Control.GROW_DIRECTION_END
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.10, 0.12, 0.16, 0.98)
+	sb.border_color = Color(0.45, 0.70, 1.0)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(10)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
+	_tut_win.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	_tut_win.add_child(vb)
+	# Intestazione: titolo + chiusura.
+	var hdr := HBoxContainer.new()
+	_tut_title = _tut_body(18)
+	_tut_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hdr.add_child(_tut_title)
+	var close := Button.new()
+	close.text = "✕"
+	close.flat = true
+	close.focus_mode = Control.FOCUS_NONE
+	close.pressed.connect(func() -> void: _tut_win.visible = false)
+	hdr.add_child(close)
+	vb.add_child(hdr)
+	# Sezioni «Regola» e «Cosa fare» (intestazioni in neretto nei testi).
+	_tut_rule = _tut_body(15)
+	vb.add_child(_tut_rule)
+	_tut_todo = _tut_body(15)
+	vb.add_child(_tut_todo)
+	# Piè di pagina: disattiva la modalità senza tornare al menù.
+	var foot := HBoxContainer.new()
+	foot.alignment = BoxContainer.ALIGNMENT_END
+	var off := Button.new()
+	off.text = "Disattiva tutorial"
+	off.focus_mode = Control.FOCUS_NONE
+	off.pressed.connect(func() -> void:
+		Game.set_tutorial(false)
+		_tut_win.visible = false)
+	foot.add_child(off)
+	vb.add_child(foot)
+	layer.add_child(_tut_win)
+
+
+func _tut_body(font_size: int) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.custom_minimum_size = Vector2(376, 0)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.add_theme_font_size_override("normal_font_size", font_size)
+	r.add_theme_font_size_override("bold_font_size", font_size)
+	return r
+
+
+## Mostra/aggiorna la finestra tutorial col contenuto dato. No-op se la modalità
+## non è attiva o il contenuto è vuoto.
+func _show_tutorial(data: Dictionary) -> void:
+	if _tut_win == null or data.is_empty() or not Game.tutorial_enabled:
+		return
+	_tut_title.text = "[b][color=#b3d4ff]%s[/color][/b]" % String(data.get("title", "Aiuto"))
+	_tut_rule.text = "[b][color=#ffd766]Regola[/color][/b]\n%s" % String(data.get("rule", ""))
+	_tut_todo.text = "[b][color=#8bff9a]Cosa fare[/color][/b]\n%s" % String(data.get("todo", ""))
+	_tut_win.visible = true
 
 
 ## Mostra/nasconde la fila carte (il pannello si riduce all'header) per liberare
