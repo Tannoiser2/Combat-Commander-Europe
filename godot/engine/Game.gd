@@ -802,7 +802,24 @@ func click_hex(q: int, r: int) -> void:
 			_click_fire(q, r, key, units_here)
 			return
 		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
-		# Gruppo (Mossa o Avanzata): cliccare un altro membro cambia l'unità attiva.
+		# 1) Click su una DESTINAZIONE valida (esagono evidenziato) = esegui l'ordine,
+		#    anche se l'esagono è occupato da un compagno (impilamento). Ha la priorità
+		#    sulla selezione: durante un ordine cliccare non cambia l'unità attiva.
+		if s.selected_unit_id != "" and s.highlighted_hexes.has(key):
+			match s.current_order:
+				Domain.OrderType.MOVE:
+					click_hex_move(q, r)
+				Domain.OrderType.ADVANCE:
+					click_hex_advance(q, r)
+				Domain.OrderType.ARTY:
+					click_hex_artillery(q, r)
+			return
+		# 2) Click sull'esagono dell'unità attiva = concludi/annulla l'ordine.
+		if sel != null and q == sel.q and r == sel.r:
+			conclude_order()
+			return
+		# 3) Click su un ALTRO membro del gruppo (esagono NON destinazione) = cambia
+		#    l'unità attiva (per muovere/avanzare il prossimo membro).
 		if s.current_order == Domain.OrderType.MOVE or s.current_order == Domain.OrderType.ADVANCE:
 			for gid in s.ordered_group:
 				if gid == s.selected_unit_id:
@@ -811,23 +828,9 @@ func click_hex(q: int, r: int) -> void:
 				if gv != null and gv.q == q and gv.r == r:
 					select_unit(gid)
 					return
-		# Click sull'esagono dell'unità attiva = concludi/annulla l'ordine.
-		if sel != null and q == sel.q and r == sel.r:
-			conclude_order()
-			return
-		# Click su esagono evidenziato = esegui l'ordine.
-		if s.selected_unit_id != "" and s.highlighted_hexes.has(key):
-			match s.current_order:
-				Domain.OrderType.MOVE:
-					click_hex_move(q, r)
-				Domain.OrderType.FIRE:
-					click_hex_fire(q, r)
-				Domain.OrderType.ADVANCE:
-					click_hex_advance(q, r)
-				Domain.OrderType.ARTY:
-					click_hex_artillery(q, r)
-		else:
-			_cycle_select(units_here, false)
+		# 4) Altrimenti, ciclo di selezione (durante Mossa/Avanzata select_unit accetta
+		#    solo i membri del gruppo, quindi non si selezionano unità estranee).
+		_cycle_select(units_here, false)
 	elif s.phase == Domain.Phase.REACTION_WINDOW:
 		# Finestra di Mimetizzazione (difensore umano): clicca l'unità o rinuncia.
 		if not s.conceal_offer_ids.is_empty():
@@ -855,9 +858,13 @@ func click_hex(q: int, r: int) -> void:
 ## selezionabili (uomini, non armi), emette i loro id — coi LEADER per primi, così
 ## la GUI può mostrarli e far scegliere un leader "sotto" lo stack. Vuoto = nascondi.
 func _offer_stack(units_here: Array) -> void:
-	if state.phase != Domain.Phase.PLAYER_TURN \
-			and state.phase != Domain.Phase.PLAYER_MOVING \
-			and state.phase != Domain.Phase.PLAYER_SETUP:
+	# Disponibile nella scelta dell'unità (turno/schieramento) e nel Fuoco (per il
+	# tiratore base); NON durante Mossa/Avanzata, dove cliccare deve muovere, non
+	# selezionare un'altra unità (così si può impilare su un esagono occupato).
+	var ok := state.phase == Domain.Phase.PLAYER_TURN \
+		or state.phase == Domain.Phase.PLAYER_SETUP \
+		or (state.phase == Domain.Phase.PLAYER_MOVING and state.current_order == Domain.OrderType.FIRE)
+	if not ok:
 		emit_signal("stack_offered", [])
 		return
 	var ids: Array = []
