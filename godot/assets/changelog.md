@@ -1,3 +1,8 @@
+[b]v0.35.1[/b]
+
+[b]Correzione — Fuoco: l'ordine si poteva «bloccare»[/b]
+- Risolto un blocco introdotto con la selezione gruppo-prima: una volta dato l'ordine di Fuoco non c'era più modo di annullarlo cliccando, e con i badge spenti (sei «in ordine») sembrava che il gioco si fermasse. Ora cliccare il tiratore selezionato annulla l'ordine di Fuoco e riporta alla scelta della carta, esattamente come per Mossa e Avanzata.
+
 [b]v0.35.0[/b]
 
 [b]Fuoco — selezione «gruppo-prima-del-bersaglio»[/b]
