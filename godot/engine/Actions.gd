@@ -34,11 +34,20 @@ static func _place_fort(state: GameState, faction: int, fort: int, lines: Array[
 		if not u.is_man():
 			continue
 		var hd: GameState.HexData = state.hex_at(u.q, u.r)
-		if hd != null and hd.fortification == Domain.Fort.NONE and not hd.has_foxhole:
+		if _can_fortify(hd):
 			hd.fortification = fort
 			lines.append("%s posato in (%d,%d)." % [Domain.FORT_NAMES.get(fort, "?"), u.q, u.r])
 			return
 	lines.append("%s: nessun esagono idoneo." % Domain.FORT_NAMES.get(fort, "?"))
+
+
+## Esagono idoneo a ospitare una fortificazione/buca (F100/A32): niente acqua,
+## niente incendio, e nessuna fortificazione o buca già presente.
+static func _can_fortify(hd: GameState.HexData) -> bool:
+	return hd != null and not hd.has_foxhole \
+		and hd.fortification == Domain.Fort.NONE \
+		and not hd.has_blaze \
+		and hd.terrain != Domain.TerrainType.WATER_BARRIER
 
 
 ## Ferite leggere: recupera un'unità rotta amica.
@@ -57,7 +66,7 @@ static func _entrench(state: GameState, faction: int, lines: Array[String]) -> v
 		if not u.is_man():
 			continue
 		var hd: GameState.HexData = state.hex_at(u.q, u.r)
-		if hd != null and not hd.has_foxhole:
+		if _can_fortify(hd):
 			hd.has_foxhole = true
 			lines.append("Trincerarsi: buca creata in (%d,%d)." % [u.q, u.r])
 			return
