@@ -245,7 +245,7 @@ static func _hero(state: GameState, faction: int, lines: Array[String]) -> void:
 	h.hero = true
 	h.fp = 2
 	h.range = 4
-	h.move = 6
+	h.move = 4  # Movimento dell'Eroe da tabella unità (CC:E)
 	h.morale = 10
 	h.command = 1
 	h.q = host.q

@@ -504,6 +504,34 @@ func order_feasible(order: int) -> bool:
 			return true
 
 
+## Un'AZIONE autonoma ha davvero un effetto adesso? Serve a illuminare i badge
+## delle azioni solo quando producono qualcosa (altrimenti la carta si
+## scarterebbe a vuoto). Le azioni non elencate sono considerate sempre fattibili.
+func action_feasible(name: String) -> bool:
+	if state == null:
+		return false
+	var fac := state.human_faction
+	match name:
+		"FERITE LEGGERE":  # serve un'unità rotta da curare
+			for u in state.units_of(fac):
+				if u.is_man() and not u.efficient:
+					return true
+			return false
+		"MIMETIZZAZIONE":  # serve un'unità efficiente non già mimetizzata
+			for u in state.units_of(fac):
+				if u.is_man() and u.efficient and not u.concealed:
+					return true
+			return false
+		"TRINCERARSI", "FILO SPINATO NASCOSTO", "MINE NASCOSTE", \
+		"CASAMATTA NASCOSTA", "TRINCERAMENTI NASCOSTI":  # serve un esagono idoneo
+			for u in state.units_of(fac):
+				if u.is_man() and Actions._can_fortify(state.hex_at(u.q, u.r)):
+					return true
+			return false
+		_:
+			return true  # GRANATE FUMOGENE e altre: sempre giocabili
+
+
 func deselect() -> void:
 	if state == null:
 		return
@@ -1129,31 +1157,44 @@ func confirm_fire() -> void:
 		g.activated = true
 		if g.is_weapon():
 			weapon_ids.append(g.id)
-	# Carta ordine + carte modificatore: consumate per riferimento (l'ordine degli
-	# indici non conta) dopo la risoluzione.
+	# Carta ordine + modificatori. Ogni modificatore accodato è VALIDATO ora contro
+	# il bersaglio reale (Incrociato/Bombe/Sventagliata dipendono dal bersaglio): i
+	# validi danno +2 FP e si consumano; quelli non applicabili NON si scartano
+	# (la carta resta in mano).
 	var hand := state.hand_of(state.human_faction)
 	var to_discard: Array = []
 	if state.selected_card_index >= 0 and state.selected_card_index < hand.size():
 		to_discard.append(hand[state.selected_card_index])
+	var fp_bonus := 0
+	var applied_mods: Array[String] = []
+	var spray_q := -1
+	var spray_r := -1
 	for c in state.fire_modifier_cards:
-		to_discard.append(c)
-	var fp_bonus := 2 * state.fire_modifiers.size()
+		var cnm: String = c.action_name
+		if cnm.begins_with("SVENTAGLIATA"):
+			var sp := _spray_target()
+			if sp.x >= 0:
+				spray_q = sp.x
+				spray_r = sp.y
+				to_discard.append(c)
+			else:
+				_log("Sventagliata: nessun 2° esagono valido qui, carta conservata.")
+		elif _fire_modifier_error(cnm) == "":
+			fp_bonus += 2
+			applied_mods.append(cnm)
+			to_discard.append(c)
+		else:
+			_log("%s non applicabile a questo bersaglio: carta conservata." % cnm)
 	var atk_fate := _draw_fate(state.human_faction)
 	var def_fate := _draw_fate(_ai_faction())
 	var atk_dice := _dice_of(atk_fate)
-	var spray_q := -1
-	var spray_r := -1
-	if state.spray_active:
-		var sp := _spray_target()
-		spray_q = sp.x
-		spray_r = sp.y
 	_maybe_react_concealment(tq, tr)
 	var result := Combat.resolve_fire(
 		u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus, spray_q, spray_r)
 	_log(result.log_line, result.detail, "fire")
 	# Fuoco Sostenuto (A41): su un doppio, un'arma (MG/mortaio) che spara si inceppa.
 	if atk_dice.x == atk_dice.y:
-		var breaks := state.fire_modifiers.count("FUOCO SOSTENUTO")
+		var breaks := applied_mods.count("FUOCO SOSTENUTO")
 		for g in group:
 			if breaks <= 0:
 				break
@@ -1230,10 +1271,15 @@ func _fire_modifier_error(nm: String) -> String:
 	return ""
 
 
-## Applica un modificatore di fuoco dalla mano durante l'assemblaggio (+2 FP).
+## Accoda/rimuove un modificatore di fuoco (+2 FP) durante l'assemblaggio del
+## gruppo (flusso gruppo-prima): basta che ci sia un gruppo, non serve il
+## bersaglio. I prerequisiti che dipendono dal bersaglio (Incrociato, Bombe a
+## Mano) si verificano allo sparo, in confirm_fire; se non valgono, la carta NON
+## viene consumata. Cliccare di nuovo lo stesso modificatore lo toglie (toggle).
 func apply_fire_modifier(hand_index: int) -> void:
-	if state == null or state.current_order != Domain.OrderType.FIRE or state.fire_target_q < 0:
-		return
+	if state == null or state.current_order != Domain.OrderType.FIRE \
+			or state.fire_eligible_ids.is_empty():
+		return  # serve un gruppo di fuoco assemblato
 	var hand := state.hand_of(state.human_faction)
 	if hand_index < 0 or hand_index >= hand.size():
 		return
@@ -1245,15 +1291,22 @@ func apply_fire_modifier(hand_index: int) -> void:
 	if not FIRE_MOD_NAMES.has(nm):
 		_log("«%s» non è un modificatore di fuoco (in questo contesto)." % (nm if nm != "" else "—"))
 		return
-	if state.fire_modifier_cards.has(card):
-		return  # già applicata
-	var err := _fire_modifier_error(nm)
-	if err != "":
-		_log("%s: %s." % [nm, err])
+	if state.fire_modifier_cards.has(card):  # toggle: già accodato → rimuovi
+		state.fire_modifier_cards.erase(card)
+		state.fire_modifiers.erase(nm)
+		_log("Modificatore «%s» rimosso." % nm)
+		emit_signal("state_changed")
 		return
+	# Prerequisiti verificabili senza bersaglio (Mirato/Sostenuto: tipo di pezzo nel
+	# gruppo). Quelli legati al bersaglio (Incrociato/Bombe) si validano allo sparo.
+	if nm == "FUOCO MIRATO" or nm == "FUOCO SOSTENUTO" or state.fire_target_q >= 0:
+		var err := _fire_modifier_error(nm)
+		if err != "":
+			_log("%s: %s." % [nm, err])
+			return
 	state.fire_modifiers.append(nm)
 	state.fire_modifier_cards.append(card)
-	_log("Modificatore di fuoco: %s (+2 FP)." % nm)
+	_log("Modificatore di fuoco pronto: %s (+2 FP)." % nm)
 	emit_signal("state_changed")
 
 
@@ -1289,9 +1342,15 @@ func _spray_target() -> Vector2i:
 	return best
 
 
-## Applica la Sventagliata: estende il fuoco al secondo esagono (no bonus FP).
+## Accoda/rimuove la Sventagliata (A40): estende il fuoco a un 2° esagono. Il
+## secondo bersaglio dipende da quello principale, quindi durante l'assemblaggio
+## si accoda soltanto; l'esagono effettivo è calcolato allo sparo (confirm_fire).
 func _apply_spray(card: Card) -> void:
-	if state.fire_modifier_cards.has(card):
+	if state.fire_modifier_cards.has(card):  # toggle: già accodata → annulla
+		state.fire_modifier_cards.erase(card)
+		state.spray_active = false
+		_log("Sventagliata annullata.")
+		emit_signal("state_changed")
 		return
 	var has_man := false
 	for g in _current_fire_group():
@@ -1301,13 +1360,13 @@ func _apply_spray(card: Card) -> void:
 	if not has_man:
 		_log("Sventagliata: richiede squadre/team (non ordnance).")
 		return
-	var sp := _spray_target()
-	if sp.x < 0:
+	# Se il bersaglio è già scelto, conferma subito che esiste un 2° esagono valido.
+	if state.fire_target_q >= 0 and _spray_target().x < 0:
 		_log("Sventagliata: nessun esagono nemico adiacente al bersaglio e a tiro.")
 		return
 	state.spray_active = true
 	state.fire_modifier_cards.append(card)
-	_log("Sventagliata: colpirà anche (%d,%d)." % [sp.x, sp.y])
+	_log("Sventagliata pronta: colpirà un 2° esagono adiacente al bersaglio.")
 	emit_signal("state_changed")
 
 
@@ -2381,35 +2440,46 @@ func _ai_move_order(faction: int) -> void:
 			u.activated = true
 			continue
 		var dest := FlipBot.move_destination(state, faction, u)
-		for _step in maxi(1, u.move):
+		# Budget di Punti Movimento (come il giocatore): Movimento + Comando − arma.
+		# Ogni passo costa secondo il terreno, così l'IA non si muove più del dovuto.
+		var budget := Rules.move_allowance(state, u)
+		while budget > 0:
 			if u.q == dest.x and u.r == dest.y:
 				break
-			var moved: bool = await _ai_move_toward(u, dest.x, dest.y, faction)
-			if not moved or state.phase == Domain.Phase.GAME_OVER:
+			var spent: int = await _ai_move_toward(u, dest.x, dest.y, faction, budget)
+			if spent <= 0 or state.phase == Domain.Phase.GAME_OVER:
 				break
+			budget -= spent
 		u.activated = true
 
 
-## Sposta l'unità di UN esagono verso (tq,tr), scegliendo tra gli esagoni che si
-## avvicinano quello migliore per (copertura, vicinanza al bordo nemico). Evita
-## nemici e sovraccarico. Restituisce true se si è mossa (coroutine: può attendere
-## la finestra di reazione del difensore umano).
-func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> bool:
-	if u.move <= 0:
-		return false
+## Sposta l'unità di UN esagono verso (tq,tr), scegliendo fra gli esagoni che si
+## avvicinano quello migliore per (copertura, vicinanza al bordo nemico). Rispetta
+## i Punti Movimento residui (`budget`): scarta i passi che costano più dei PM
+## rimasti. Evita nemici e sovraccarico. Restituisce i PM SPESI (0 se non si muove;
+## coroutine: può attendere la finestra di reazione del difensore umano).
+func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int, budget: int) -> int:
+	if u.move <= 0 or budget <= 0:
+		return 0
 	var here := Vector2i(u.q, u.r)
 	var cur_dist := HexGrid.distance(u.q, u.r, tq, tr)
 	if cur_dist == 0:
-		return false
+		return 0
 	var enemy_col := FlipBot.enemy_edge_col(state, faction)
 	var best := here
 	var best_key := [cur_dist, 0, 9999]  # [distanza, -copertura, dist. bordo nemico]
+	var best_cost := 0
 	for n in HexGrid.neighbors(u.q, u.r):
 		if n.x < 0 or n.x >= state.map_cols or n.y < 0 or n.y >= state.map_rows:
 			continue
 		var d := HexGrid.distance(n.x, n.y, tq, tr)
 		if d >= cur_dist:
 			continue  # il passo deve avvicinare alla destinazione
+		# Costo del terreno (e dei lati): salta gli esagoni impraticabili o troppo
+		# cari per i PM rimasti — così l'IA paga davvero il terreno.
+		var cost := HexGrid.step_cost(state, u.q, u.r, n.x, n.y)
+		if cost < 0 or cost > budget:
+			continue
 		var enemy := false
 		for m in state.men_at(n.x, n.y):
 			if m.faction != faction:
@@ -2423,8 +2493,9 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> bool:
 		if _key_less(key, best_key):
 			best_key = key
 			best = n
+			best_cost = cost
 	if best == here:
-		return false
+		return 0
 	var oq := u.q
 	var orr := u.r
 	state.set_unit_pos(u, best.x, best.y)  # porta con sé l'eventuale arma (11.1)
@@ -2432,14 +2503,14 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int) -> bool:
 	# Mine (F103) sull'IA che si muove: se colpita, il movimento si ferma.
 	if _mine_attack_on_move(u, oq, orr):
 		_check_end_conditions()
-		return false
+		return 0
 	# Il difensore reagisce col Fuoco di Opportunità (finestra interattiva se il
 	# difensore è l'umano). Marca l'unità «in movimento» per il pareggio (A33).
 	var prev_moving := state.moving_unit_id
 	state.moving_unit_id = u.id
 	await _reactive_op_fire(u, _opponent(u.faction))
 	state.moving_unit_id = prev_moving
-	return true
+	return best_cost
 
 
 ## Confronto lessicografico fra due chiavi (array di interi): a < b?
