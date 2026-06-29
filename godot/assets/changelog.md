@@ -1,3 +1,8 @@
+[b]v0.35.2[/b]
+
+[b]Correzione — finestra di reazione più chiara (niente «blocco»)[/b]
+- Durante il turno dell'IA il gioco può chiederti una reazione (Fuoco di Opportunità su un'unità che si muove, o Mimetizzazione): è una fase «non tua», quindi ordini, azioni e «Fine Turno» sono spenti. Prima l'unico avviso era una riga nella colonna laterale (facile da non vedere, specie a colonna chiusa), così sembrava che il gioco si fermasse. Ora compare un banner centrale ben visibile che spiega cosa fare, con un pulsante «Non sparare / Non mimetizzarmi» (anche col tasto SPAZIO) per proseguire.
+
 [b]v0.35.1[/b]
 
 [b]Correzione — Fuoco: l'ordine si poteva «bloccare»[/b]

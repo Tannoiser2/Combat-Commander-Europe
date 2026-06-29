@@ -68,6 +68,7 @@ func _ready() -> void:
 	_build_sidebar_handle()
 	_build_pass_ui()
 	_build_setup_ui()
+	_build_reaction_banner()
 	log_toggle_btn.pressed.connect(_toggle_sidebar)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	editor_btn.tooltip_text = "Apri l'editor delle mappe"
@@ -907,8 +908,96 @@ func _on_phase_changed(phase: int) -> void:
 	if phase != Domain.Phase.PLAYER_TURN:
 		_close_pass_dialog()
 	_update_setup_bar(phase)
+	_update_reaction_banner(phase)
 	if Game.state:
 		_refresh_unit_info()
+
+
+# ─── Banner della finestra di reazione (Op Fire / Mimetizzazione) ─────────────
+# Durante il turno dell'IA il gioco può chiederti una reazione (sparare a un'unità
+# che si muove, o mimetizzarti). È una fase «non tua»: ordini e «Fine Turno» sono
+# spenti. Per non lasciarti senza indicazioni, un banner centrale spiega cosa fare
+# e offre un pulsante per proseguire senza reagire.
+
+var _reaction_banner: PanelContainer = null
+var _reaction_label: RichTextLabel = null
+var _reaction_btn: Button = null
+
+
+func _build_reaction_banner() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 60  # sopra la HUD e la vista 3D
+	add_child(layer)
+	_reaction_banner = PanelContainer.new()
+	_reaction_banner.visible = false
+	# Centrato in alto, larghezza fissa; l'altezza cresce col contenuto.
+	_reaction_banner.anchor_left = 0.5
+	_reaction_banner.anchor_right = 0.5
+	_reaction_banner.anchor_top = 0.0
+	_reaction_banner.anchor_bottom = 0.0
+	_reaction_banner.offset_left = -320
+	_reaction_banner.offset_right = 320
+	_reaction_banner.offset_top = 54
+	_reaction_banner.grow_vertical = Control.GROW_DIRECTION_END
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.14, 0.07, 0.05, 0.97)
+	sb.border_color = Color(1.0, 0.62, 0.2)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(12)
+	sb.content_margin_left = 18
+	sb.content_margin_right = 18
+	sb.content_margin_top = 14
+	sb.content_margin_bottom = 14
+	_reaction_banner.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 10)
+	_reaction_banner.add_child(vb)
+	_reaction_label = RichTextLabel.new()
+	_reaction_label.bbcode_enabled = true
+	_reaction_label.fit_content = true
+	_reaction_label.custom_minimum_size = Vector2(604, 0)
+	_reaction_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(_reaction_label)
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	_reaction_btn = Button.new()
+	_reaction_btn.custom_minimum_size = Vector2(240, 36)
+	_reaction_btn.pressed.connect(_on_reaction_decline)
+	hb.add_child(_reaction_btn)
+	vb.add_child(hb)
+	layer.add_child(_reaction_banner)
+
+
+## Mostra/aggiorna il banner secondo la fase e il tipo di reazione in corso.
+func _update_reaction_banner(phase: int) -> void:
+	if _reaction_banner == null:
+		return
+	var s := Game.state
+	if s == null or phase != Domain.Phase.REACTION_WINDOW:
+		_reaction_banner.visible = false
+		return
+	if not s.conceal_offer_ids.is_empty():
+		_reaction_label.text = "[b][color=#7fe0ff]MIMETIZZAZIONE[/color][/b]  —  reazione\n" \
+			+ "L'IA sta per spararti. Clicca un'unità [color=#7fe0ff]ciano[/color] sulla mappa per " \
+			+ "mimetizzarti (la Copertura ridurrà il colpo), oppure prosegui."
+		_reaction_btn.text = "Non mimetizzarmi  (SPAZIO)"
+	else:
+		_reaction_label.text = "[b][color=#ffcf66]FUOCO DI OPPORTUNITÀ[/color][/b]  —  reazione\n" \
+			+ "Un'unità nemica si muove allo scoperto. Clicca un tuo tiratore [color=#ffd24a]giallo[/color] " \
+			+ "sulla mappa per sparargli, oppure prosegui senza sparare."
+		_reaction_btn.text = "Non sparare  (SPAZIO)"
+	_reaction_banner.visible = true
+
+
+## Pulsante del banner: rinuncia alla reazione (equivale a SPAZIO / clic altrove).
+func _on_reaction_decline() -> void:
+	var s := Game.state
+	if s == null or s.phase != Domain.Phase.REACTION_WINDOW:
+		return
+	if not s.conceal_offer_ids.is_empty():
+		Game.conceal_decline()
+	else:
+		Game.opfire_decline()
 
 
 func _on_end_turn() -> void:
