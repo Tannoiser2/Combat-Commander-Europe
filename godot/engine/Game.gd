@@ -5,7 +5,7 @@ extends Node
 # ─── Segnali ─────────────────────────────────────────────────────────────────
 
 signal state_changed()               ## Aggiornamento generico — ridisegna tutto
-signal log_added(line: String)       ## Nuova riga di log
+signal log_added(line: String, detail: String, kind: String)  ## Riga di log (+formula collassabile, +categoria)
 signal fire_resolved(result: Object) ## Combat.FireResult
 signal phase_changed(phase: int)     ## Nuova fase
 signal unit_moved(unit_id: String, q: int, r: int)
@@ -83,11 +83,11 @@ func start_new_game(human_faction: int = Domain.Faction.GERMAN, scenario_num: in
 	# SSR: carte garantite in mano a inizio partita (es. «inizia con G-65»).
 	_apply_opening_cards(state)
 
-	_log("=== SCENARIO %d: %s ===" % [state.scenario_number, state.scenario_name])
+	_log("SCENARIO %d: %s" % [state.scenario_number, state.scenario_name], "", "turn")
 	_log("Turno %d — iniziativa: %s" % [
 		state.turn_number,
 		Domain.FACTION_NAMES.get(state.initiative_holder, "?")
-	])
+	], "", "turn")
 	# Schieramento manuale SOLO per gli scenari con una zona di schieramento vera
 	# (dalle schede, via il loader generico). Lo scenario 1 — e ogni scenario con
 	# piazzamento storico fisso curato a mano — NON ha una zona: parte direttamente
@@ -535,7 +535,7 @@ func play_card(hand_index: int) -> void:
 			state.order_count, state.max_orders])
 		return
 
-	_log("Carta #%d giocata: %s" % [card.number, Domain.ORDER_LABELS.get(card.order, card.order_label)])
+	_log("Carta #%d giocata: [b]%s[/b]" % [card.number, Domain.ORDER_LABELS.get(card.order, card.order_label)], "", "order")
 
 	match card.order:
 		Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE:
@@ -970,7 +970,7 @@ func assault_fire(hand_index: int) -> void:
 	_maybe_react_concealment(target.x, target.y)
 	var result := Combat.resolve_fire(
 		u, target.x, target.y, state, atk_dice, _dice_of(def_fate), group, 0)
-	_log("Fuoco d'Assalto — " + result.log_line)
+	_log("Fuoco d'Assalto — " + result.log_line, result.detail, "fire")
 	for uid2 in result.eliminated:
 		emit_signal("unit_eliminated", uid2)
 	emit_signal("fire_resolved", result)
@@ -1150,7 +1150,7 @@ func confirm_fire() -> void:
 	_maybe_react_concealment(tq, tr)
 	var result := Combat.resolve_fire(
 		u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus, spray_q, spray_r)
-	_log(result.log_line)
+	_log(result.log_line, result.detail, "fire")
 	# Fuoco Sostenuto (A41): su un doppio, un'arma (MG/mortaio) che spara si inceppa.
 	if atk_dice.x == atk_dice.y:
 		var breaks := state.fire_modifiers.count("FUOCO SOSTENUTO")
@@ -1671,7 +1671,7 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 		_resolve_melee_ambushes(attackers, defenders)  # A25: Imboscata prima dei dadi
 		var mr := Rules.resolve_melee(
 			state, attackers, defenders, _dice_of(af), _dice_of(df))
-		_log(mr.log_line)
+		_log(mr.log_line, mr.detail, "melee")
 		for uid in mr.eliminated:
 			emit_signal("unit_eliminated", uid)
 		_apply_fate(af, u.faction)
@@ -2044,7 +2044,7 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	var def_fate := _draw_fate(mover.faction)
 	_maybe_react_concealment(mover.q, mover.r)  # il mover (se IA) può mimetizzarsi
 	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
-	_log("Opportunità — " + res.log_line)
+	_log("Opportunità — " + res.log_line, res.detail, "fire")
 	for id in res.eliminated:
 		emit_signal("unit_eliminated", id)
 	_apply_fate(atk_fate, defender, { "kind": "fire", "weapons": weapon_ids })
@@ -2214,7 +2214,7 @@ func _end_player_turn() -> void:
 		return
 
 	state.turn_number += 1
-	_log("--- Fine turno %d ---" % (state.turn_number - 1))
+	_log("Fine turno %d" % (state.turn_number - 1), "", "turn")
 	# Turno dell'IA: coroutine «fire-and-forget» — può sospendersi sulla finestra
 	# di reazione (Op Fire) del giocatore e riprendere alla sua decisione. Il
 	# ritorno al turno del giocatore avviene alla fine di _run_ai_turn.
@@ -2232,7 +2232,7 @@ func _run_ai_turn() -> void:
 		_ai_pass_discard(faction)
 		if state.phase != Domain.Phase.GAME_OVER:
 			_change_phase(Domain.Phase.PLAYER_TURN)
-			_log("Turno %d — il tuo ordine" % state.turn_number)
+			_log("Turno %d — il tuo ordine" % state.turn_number, "", "turn")
 		return
 	# FlipBot: Recupero per primo, poi il primo ordine giocabile da sinistra.
 	var plays := 0
@@ -2253,7 +2253,7 @@ func _run_ai_turn() -> void:
 	# coroutine può essersi sospesa sulla finestra di reazione).
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
-		_log("Turno %d — il tuo ordine" % state.turn_number)
+		_log("Turno %d — il tuo ordine" % state.turn_number, "", "turn")
 
 
 ## FlipBot passa e scarta: scarta le carte "dud" (Confusione d'Ordini,
@@ -2293,7 +2293,7 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 				var dfate := _draw_fate(_opponent(faction))
 				await _reactive_concealment_human(fq, fr)  # il difensore umano può mimetizzarsi
 				var fres := Combat.resolve_fire(atk, fq, fr, state, _dice_of(ffate), _dice_of(dfate))
-				_log("IA — " + fres.log_line)
+				_log("IA — " + fres.log_line, fres.detail, "ai")
 				for fid in fres.eliminated:
 					emit_signal("unit_eliminated", fid)
 				_apply_fate(ffate, faction, { "kind": "fire", "weapons": weapon_ids })
@@ -2357,7 +2357,7 @@ func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
 	_resolve_melee_ambushes(attackers, defenders)  # A25: Imboscata prima dei dadi
 	var mr := Rules.resolve_melee(
 		state, attackers, defenders, _dice_of(af), _dice_of(df))
-	_log("IA — " + mr.log_line)
+	_log("IA — " + mr.log_line, mr.detail, "ai")
 	for mid in mr.eliminated:
 		emit_signal("unit_eliminated", mid)
 	_apply_fate(af, faction)
@@ -2589,10 +2589,10 @@ func _end_game(winner: int) -> void:
 
 # ─── Utilità ──────────────────────────────────────────────────────────────────
 
-func _log(msg: String) -> void:
+func _log(msg: String, detail: String = "", kind: String = "") -> void:
 	if state:
-		state.add_log(msg)
-	emit_signal("log_added", msg)
+		state.add_log(msg, detail, kind)
+	emit_signal("log_added", msg, detail, kind)
 
 
 func _change_phase(new_phase: int) -> void:

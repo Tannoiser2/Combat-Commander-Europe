@@ -103,6 +103,7 @@ func _ready() -> void:
 	_test_fire_group_first()
 	_test_fire_cancel()
 	_test_tutorial_help()
+	_test_log_detail()
 	_test_order_feasible()
 	_test_actions()
 	_test_grenade()
@@ -2396,6 +2397,27 @@ func _test_tutorial_help() -> void:
 	var fb := TutorialHelp.for_action("AZIONE SCONOSCIUTA XYZ")
 	_check(not String(fb.get("rule", "")).is_empty() and not String(fb.get("todo", "")).is_empty(),
 		"azione sconosciuta: aiuto generico non vuoto")
+
+
+func _test_log_detail() -> void:
+	print("· Log: fuoco/mischia danno sommario + formula; gli array del log restano allineati")
+	var s := _new_state(6, 1)
+	s.human_faction = GER
+	var sh := _mk("sh", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	var df := _mk("df", RUS, SQUAD, RIFLE, 2, 0, 5, 7)
+	s.units[sh.id] = sh
+	s.units[df.id] = df
+	var res := Combat.resolve_fire(sh, 2, 0, s, Vector2i(6, 6), Vector2i(1, 1))
+	_check(not res.detail.is_empty(), "il fuoco produce un dettaglio (formula) non vuoto")
+	_check(res.detail.contains("Attacco") and res.detail.contains("Difesa"),
+		"la formula del fuoco mostra Attacco e Difesa")
+	_check(not res.log_line.is_empty(), "il fuoco produce un sommario")
+	# add_log mantiene allineati riga / dettaglio / categoria.
+	s.add_log("riga", "formula", "fire")
+	_check(s.log.size() == s.log_details.size() and s.log.size() == s.log_kinds.size(),
+		"log / dettagli / categorie restano allineati")
+	_check(s.log_details[0] == "formula" and s.log_kinds[0] == "fire",
+		"dettaglio e categoria della riga salvati")
 
 
 func _test_scenario_rules() -> void:

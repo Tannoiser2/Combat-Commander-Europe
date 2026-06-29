@@ -1,3 +1,9 @@
+[b]v0.37.0[/b]
+
+[b]Registro più ricco e leggibile[/b]
+- Il registro ora distingue le situazioni: [b]inizio/fine turno[/b] su banda colorata, l'[b]ordine giocato[/b] in rosso, il [b]fuoco[/b] e la [b]mischia[/b] in arancio, le mosse dell'[b]IA[/b] in azzurro; le parole chiave (ROTTE, ELIMINATE, SOPPRESSE…) sono in neretto.
+- Per le risoluzioni con un calcolo (fuoco, corpo a corpo) compare un dettaglio [b]«formula» collassabile[/b] (chiuso di default): cliccaci sopra per vedere la formula e i numeri usati (FP, ostacolo, copertura, dadi, totali). Richiudibile con un clic.
+
 [b]v0.36.0[/b]
 
 [b]Modalità tutorial (aiuto guidato)[/b]

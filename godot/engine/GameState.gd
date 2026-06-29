@@ -232,8 +232,12 @@ var conceal_offer_ids: Array[String] = []
 
 
 # ─── Log ─────────────────────────────────────────────────────────────────────
-
+# Tre array paralleli: `log` = riga visibile; `log_details` = dettaglio del
+# calcolo (formula) collassabile, "" se assente; `log_kinds` = categoria per la
+# colorazione ("turn", "order", "fire", "melee", "ai", "recover", …), "" = neutro.
 var log: Array[String] = []
+var log_details: Array[String] = []
+var log_kinds: Array[String] = []
 var last_ai_action: String = ""
 
 
@@ -442,7 +446,11 @@ func _build_side_index() -> void:
 	_side_index_built = true
 
 
-func add_log(msg: String) -> void:
+func add_log(msg: String, detail: String = "", kind: String = "") -> void:
 	log.push_front(msg)
+	log_details.push_front(detail)
+	log_kinds.push_front(kind)
 	if log.size() > 50:
 		log.resize(50)
+		log_details.resize(50)
+		log_kinds.resize(50)
