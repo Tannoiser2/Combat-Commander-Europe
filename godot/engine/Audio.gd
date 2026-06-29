@@ -68,7 +68,7 @@ func _on_game_over(_winner: int) -> void:
 	play("deck")
 
 
-func _on_log(line: String) -> void:
+func _on_log(line: String, _detail: String = "", _kind: String = "") -> void:
 	var l := line.to_lower()
 	if l.contains("tempo!") or l.contains("morte subitanea"):
 		play("time")

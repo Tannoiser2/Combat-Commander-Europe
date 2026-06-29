@@ -70,6 +70,7 @@ func _ready() -> void:
 	_build_setup_ui()
 	_build_reaction_banner()
 	_build_tutorial_window()
+	_build_log_view()
 	log_toggle_btn.pressed.connect(_toggle_sidebar)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	editor_btn.tooltip_text = "Apri l'editor delle mappe"
@@ -83,9 +84,14 @@ func _ready() -> void:
 	resized.connect(_update_map_rect)
 	_refresh_ui()
 	_update_map_rect.call_deferred()
-	# Riempi il registro con le righe già accumulate
-	for line in Game.state.log:
-		log_list.add_item(line)
+	# Riempi il registro (dal più vecchio al più recente: state.log è newest-first).
+	var _lg := Game.state.log
+	var _dt := Game.state.log_details
+	var _kd := Game.state.log_kinds
+	for i in range(_lg.size() - 1, -1, -1):
+		_add_log_entry(_lg[i],
+			String(_dt[i]) if i < _dt.size() else "",
+			String(_kd[i]) if i < _kd.size() else "")
 
 
 ## Comunica alla mappa l'area di disegno libera dai pannelli (top bar, colonna a
@@ -894,11 +900,142 @@ func _refresh_hand() -> void:
 		hand_container.add_child(col)
 
 
-func _on_log_added(line: String) -> void:
-	log_list.add_item(line)
-	log_list.ensure_current_is_visible()
-	while log_list.item_count > 60:
-		log_list.remove_item(0)
+func _on_log_added(line: String, detail: String = "", kind: String = "") -> void:
+	_add_log_entry(line, detail, kind)
+
+
+# ─── Registro ricco (banda di turno, colori, neretto, formula collassabile) ───
+
+var _log_scroll: ScrollContainer = null
+var _log_box: VBoxContainer = null
+
+
+## Sostituisce l'ItemList con un registro scorrevole a voci formattate.
+func _build_log_view() -> void:
+	if log_list == null:
+		return
+	log_list.visible = false
+	_log_scroll = ScrollContainer.new()
+	_log_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_log_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_log_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_log_box = VBoxContainer.new()
+	_log_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_log_box.add_theme_constant_override("separation", 3)
+	_log_scroll.add_child(_log_box)
+	var parent := log_list.get_parent()
+	parent.add_child(_log_scroll)
+	parent.move_child(_log_scroll, log_list.get_index() + 1)
+
+
+## Aggiunge una voce al registro: banda per i turni, riga colorata per il resto,
+## con eventuale dettaglio del calcolo (formula) collassabile.
+func _add_log_entry(line: String, detail: String, kind: String) -> void:
+	if _log_box == null:
+		return
+	var k := kind
+	if k == "":  # categoria inferita dal testo (righe IA) per la colorazione
+		if line.begins_with("IA ") or line.begins_with("Opportunità") or line.begins_with("FlipBot"):
+			k = "ai"
+	if k == "turn":
+		_log_box.add_child(_make_turn_band(line))
+	else:
+		_log_box.add_child(_make_log_line(line, detail, k))
+	while _log_box.get_child_count() > 80:
+		_log_box.get_child(0).queue_free()
+	_scroll_log_bottom()
+
+
+## Banda colorata per l'inizio/fine di un turno.
+func _make_turn_band(line: String) -> Control:
+	var p := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.17, 0.27, 0.20)
+	sb.border_color = Color(0.35, 0.55, 0.38)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(4)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 3
+	sb.content_margin_bottom = 3
+	p.add_theme_stylebox_override("panel", sb)
+	var l := _log_label(12)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.text = "[b][color=#d8f0c8]— %s —[/color][/b]" % line
+	p.add_child(l)
+	return p
+
+
+## Riga di registro colorata per categoria; collassabile se ha una formula.
+func _make_log_line(line: String, detail: String, kind: String) -> Control:
+	var l := _log_label(12)
+	var col := _log_color(kind)
+	var body := _bold_keywords(line)
+	if detail == "":
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		l.text = "[color=%s]%s[/color]" % [col, body]
+	else:
+		l.set_meta("summary", body)
+		l.set_meta("detail", detail)
+		l.set_meta("color", col)
+		l.set_meta("open", false)
+		l.meta_clicked.connect(func(_m: Variant) -> void:
+			l.set_meta("open", not bool(l.get_meta("open")))
+			_render_collapsible(l))
+		_render_collapsible(l)
+	return l
+
+
+func _render_collapsible(l: RichTextLabel) -> void:
+	var summary := String(l.get_meta("summary"))
+	var detail := String(l.get_meta("detail"))
+	var col := String(l.get_meta("color"))
+	if bool(l.get_meta("open")):
+		l.text = "[color=%s]%s[/color]  [url=t][color=#8fd0ff]▼ formula[/color][/url]\n[color=#a8b6c4]    %s[/color]" % [
+			col, summary, detail.replace("\n", "\n    ")]
+	else:
+		l.text = "[color=%s]%s[/color]  [url=t][color=#8fd0ff]▶ formula[/color][/url]" % [col, summary]
+
+
+func _log_label(font_size: int) -> RichTextLabel:
+	var l := RichTextLabel.new()
+	l.bbcode_enabled = true
+	l.fit_content = true
+	l.scroll_active = false
+	l.add_theme_font_size_override("normal_font_size", font_size)
+	l.add_theme_font_size_override("bold_font_size", font_size)
+	return l
+
+
+## Colore della riga per categoria (rosso = ordine giocato, ecc.).
+func _log_color(kind: String) -> String:
+	match kind:
+		"order":   return "#ff7a66"
+		"fire":    return "#ffb060"
+		"melee":   return "#ff9a5a"
+		"ai":      return "#86b6e0"
+		"recover": return "#7fd08a"
+		_:         return "#c8c8c8"
+
+
+## Mette in neretto alcune parole chiave, se la riga non è già formattata a monte.
+func _bold_keywords(line: String) -> String:
+	if line.contains("[b]"):
+		return line
+	var s := line
+	for kw in ["ELIMINATE", "ELIMINATA", "ROTTE", "ROTTA", "SOPPRESSE", "SOPPRESSA",
+			"ANNULLATO", "MANCATO", "Recupero", "Fuga", "Imboscata"]:
+		s = s.replace(kw, "[b]%s[/b]" % kw)
+	return s
+
+
+func _scroll_log_bottom() -> void:
+	if _log_scroll == null:
+		return
+	await get_tree().process_frame
+	var bar := _log_scroll.get_v_scroll_bar()
+	if bar != null:
+		_log_scroll.scroll_vertical = int(bar.max_value)
 
 
 func _on_phase_changed(phase: int) -> void:

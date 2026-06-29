@@ -20,7 +20,8 @@ class FireResult:
 	var broken: Array[String] = []      ## IDs unità rotte in questo attacco
 	var eliminated: Array[String] = []  ## IDs unità eliminate (erano già rotte)
 	var suppressed: Array[String] = []  ## IDs unità soppresse in questo attacco
-	var log_line: String
+	var log_line: String                ## Sommario (esito) per il registro
+	var detail: String = ""             ## Formula del calcolo (dettaglio collassabile)
 
 
 ## Unità che concorrono al fuoco da un esagono: tutte le unità efficienti della
@@ -76,6 +77,15 @@ static func potential_fire_group(attacker: Unit, state: GameState) -> Array[Unit
 	if not group.has(attacker):
 		group.append(attacker)  # il pezzo base è sempre incluso
 	return group
+
+
+## Nomi (per il log) delle unità dai loro id; usa l'id se l'unità non esiste più.
+static func _names(state: GameState, ids: Array) -> String:
+	var out: Array[String] = []
+	for id in ids:
+		var u := state.unit_by_id(String(id))
+		out.append(u.unit_name if u != null else String(id))
+	return ", ".join(out)
 
 
 ## Colpisce un'unità: efficiente → rotta; già rotta → eliminata.
@@ -176,21 +186,26 @@ static func resolve_fire(
 	if spray_q >= 0 and spray_r >= 0:
 		spray_cover = _resolve_hex_defenders(state, attacker, spray_q, spray_r, attack_total, def_roll, res)
 
-	# ─── Log ─────────────────────────────────────────────────────────────────
-	res.log_line = "%s (×%d) spara su (%d,%d): ATT %d (FP%d-h%d+%d) vs DIF (mor+cop%d+%d)" % [
-		attacker.unit_name, group.size(), tq, tr,
-		attack_total, fp, hind, res.dice_roll, cover, def_roll
-	]
-	if spray_cover >= 0:
-		res.log_line += " | sventagliata su (%d,%d) cop%d" % [spray_q, spray_r, spray_cover]
+	# ─── Log: sommario (esito) + formula collassabile ────────────────────────
+	var effects: Array[String] = []
 	if res.eliminated.size() > 0:
-		res.log_line += " => ELIMINATE: %s" % ", ".join(res.eliminated)
+		effects.append("[b]ELIMINATE[/b] %s" % _names(state, res.eliminated))
 	if res.broken.size() > 0:
-		res.log_line += " => ROTTE: %s" % ", ".join(res.broken)
+		effects.append("[b]ROTTE[/b] %s" % _names(state, res.broken))
 	if res.suppressed.size() > 0:
-		res.log_line += " => SOPPRESSE: %s" % ", ".join(res.suppressed)
-	if res.eliminated.is_empty() and res.broken.is_empty() and res.suppressed.is_empty():
-		res.log_line += " => nessun effetto"
+		effects.append("[b]SOPPRESSE[/b] %s" % _names(state, res.suppressed))
+	var outcome := " · ".join(effects) if not effects.is_empty() else "nessun effetto"
+	res.log_line = "%s (×%d) [b]spara[/b] su (%d,%d) — %s" % [
+		attacker.unit_name, group.size(), tq, tr, outcome]
+	res.detail = "[b]Attacco[/b] = FP %d − ostacolo %d + dadi(%d+%d) = [b]%d[/b]\n" % [
+			fp, hind, atk_dice.x, atk_dice.y, attack_total] \
+		+ "[b]Difesa[/b] (per unità) = Morale + copertura %d + dadi(%d+%d) [+ comando − filo]\n" % [
+			cover, def_dice.x, def_dice.y] \
+		+ "Colpita se Attacco %d ≥ Difesa; pari → soppressa (rotta se in movimento)" % attack_total
+	if spray_cover >= 0:
+		res.log_line += " | [b]sventagliata[/b] su (%d,%d)" % [spray_q, spray_r]
+		res.detail += "\nSventagliata: stesso Attacco %d sull'esagono (%d,%d), copertura %d" % [
+			attack_total, spray_q, spray_r, spray_cover]
 
 	# Rimuove dallo stato le unità eliminate (contandole sul Casualty Track).
 	for uid in res.eliminated:

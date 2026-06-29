@@ -248,6 +248,7 @@ class MeleeResult:
 	var winner: int = -1            ## Domain.Faction vincitrice
 	var eliminated: Array[String] = []
 	var log_line: String = ""
+	var detail: String = ""  ## Formula del calcolo (dettaglio collassabile)
 
 
 ## Somma FP di un gruppo per il corpo a corpo: FP effettivo (dimezzato se rotto)
@@ -310,8 +311,15 @@ static func resolve_melee(
 	var outcome := "PAREGGIO (entrambi eliminati)"
 	if res.winner != -1:
 		outcome = "vince %s" % Domain.FACTION_SHORT.get(res.winner, "?")
-	res.log_line = "Corpo a corpo: ATT %d vs DIF %d -> %s, eliminate %d unità" % [
+	var atk_str := res.atk_total - atk_dice.x - atk_dice.y
+	var def_str := res.def_total - def_dice.x - def_dice.y
+	res.log_line = "[b]Corpo a corpo[/b]: ATT %d vs DIF %d — %s ([b]%d[/b] eliminate)" % [
 		res.atk_total, res.def_total, outcome, res.eliminated.size()]
+	res.detail = "[b]Attaccanti[/b] = forza %d + dadi(%d+%d) = [b]%d[/b]\n" % [
+			atk_str, atk_dice.x, atk_dice.y, res.atk_total] \
+		+ "[b]Difensori[/b] = forza %d + dadi(%d+%d) = [b]%d[/b]\n" % [
+			def_str, def_dice.x, def_dice.y, res.def_total] \
+		+ "Vince il totale più alto; a pari, eliminati entrambi (salvo Casamatta/Bunker)"
 	return res
 
 
