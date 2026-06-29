@@ -85,6 +85,7 @@ func _ready() -> void:
 	_test_ai_concealment()
 	_test_human_concealment_reaction()
 	_test_ai_ambush()
+	_test_entrench_restrictions()
 	_test_exit_vp()
 	_test_spray_fire()
 	_test_fortifications()
@@ -1403,6 +1404,29 @@ func _test_human_concealment_reaction() -> void:
 	Game.conceal_decline()
 	_check(not d2.concealed, "Mimetizzazione umana: rinuncia → niente")
 	_check(s2.conceal_offer_ids.is_empty(), "Mimetizzazione umana: rinuncia chiude la finestra")
+
+
+func _test_entrench_restrictions() -> void:
+	print("· Trincerarsi (A32): vincoli di posa (no acqua/incendio/fortificazione)")
+	var s := _new_state(6, 6)
+	_check(Actions._can_fortify(s.hex_at(1, 1)), "Trincerarsi: esagono normale idoneo")
+	var w := s.hex_at(2, 2); w.terrain = Domain.TerrainType.WATER_BARRIER
+	_check(not Actions._can_fortify(w), "Trincerarsi: acqua non idonea")
+	var b := s.hex_at(3, 3); b.has_blaze = true
+	_check(not Actions._can_fortify(b), "Trincerarsi: incendio non idoneo")
+	var f := s.hex_at(4, 4); f.fortification = Domain.Fort.WIRE
+	_check(not Actions._can_fortify(f), "Trincerarsi: fortificazione già presente")
+	var fx := s.hex_at(5, 5); fx.has_foxhole = true
+	_check(not Actions._can_fortify(fx), "Trincerarsi: buca già presente")
+
+	# _entrench non scava sull'acqua.
+	var s2 := _new_state(6, 6)
+	s2.hex_at(0, 0).terrain = Domain.TerrainType.WATER_BARRIER
+	var u := _mk("g", GER, SQUAD, RIFLE, 0, 0)
+	s2.units[u.id] = u
+	var lines: Array[String] = []
+	Actions._entrench(s2, GER, lines)
+	_check(not s2.hex_at(0, 0).has_foxhole, "Trincerarsi: niente buca sull'acqua")
 
 
 func _test_ai_ambush() -> void:

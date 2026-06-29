@@ -1,3 +1,8 @@
+[b]v0.34.0[/b]
+
+[b]Azioni — Trincerarsi: vincoli di posa[/b]
+- Trincerarsi (A32) e le fortificazioni «nascoste» (A35) ora rispettano i vincoli del regolamento: non si può scavare/fortificare su acqua, su un incendio, né dove c'è già una fortificazione o una buca.
+
 [b]v0.33.0[/b]
 
 [b]Azioni — tempistica reattiva (3/n): Imboscata dell'IA[/b]
