@@ -1,3 +1,10 @@
+[b]v0.38.0[/b]
+
+[b]Correzioni — badge azioni/ordini e movimento dell'IA[/b]
+- [b]Azioni[/b]: i badge azione ora si accendono solo quando l'azione ha davvero un effetto (es. Ferite Leggere solo se hai un'unità rotta, Mimetizzazione solo se hai un'unità idonea, Trincerarsi/fortificazioni solo se c'è un esagono valido). Prima si accendevano sempre e poi la carta si scartava a vuoto.
+- [b]Modificatori di fuoco[/b]: con la selezione «gruppo-prima» i modificatori (Fuoco Mirato/Sostenuto/Incrociato, Bombe a Mano, Sventagliata) erano diventati ingiocabili. Ora si accendono e si applicano durante l'assemblaggio del gruppo: premi il badge per accodarli (ri-premi per toglierli), e allo sparo vengono validati sul bersaglio — quelli non applicabili restano in mano, non si sprecano.
+- [b]Movimento dell'IA[/b]: l'avversario ignorava i costi di movimento del terreno e si muoveva un numero di esagoni pari al suo Movimento (ogni esagono come 1 PM), spostandosi 2-3 volte troppo in bosco/macchia/ruscello. Ora l'IA spende i Punti Movimento secondo il terreno, esattamente come il giocatore. (Nota di regola: il bonus di Comando ai Punti Movimento del giocatore è corretto, 3.3.1.2 del regolamento.)
+
 [b]v0.37.0[/b]
 
 [b]Registro più ricco e leggibile[/b]

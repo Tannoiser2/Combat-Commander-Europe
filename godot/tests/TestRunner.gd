@@ -104,6 +104,8 @@ func _ready() -> void:
 	_test_fire_cancel()
 	_test_tutorial_help()
 	_test_log_detail()
+	_test_action_feasible()
+	_test_fire_modifier_assembly()
 	_test_order_feasible()
 	_test_actions()
 	_test_grenade()
@@ -2418,6 +2420,49 @@ func _test_log_detail() -> void:
 		"log / dettagli / categorie restano allineati")
 	_check(s.log_details[0] == "formula" and s.log_kinds[0] == "fire",
 		"dettaglio e categoria della riga salvati")
+
+
+func _test_action_feasible() -> void:
+	print("· Azioni: feasibility reale (il badge si accende solo se l'azione fa qualcosa)")
+	var s := _new_state(6, 1)
+	s.human_faction = GER
+	var sq := _mk("a", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	s.units["a"] = sq
+	Game.state = s
+	_check(not Game.action_feasible("FERITE LEGGERE"), "Ferite Leggere spenta senza unità rotte")
+	sq.break_unit()
+	_check(Game.action_feasible("FERITE LEGGERE"), "Ferite Leggere accesa con un'unità rotta")
+	_check(not Game.action_feasible("MIMETIZZAZIONE"), "Mimetizzazione spenta se l'unica unità è rotta")
+	sq.recover()
+	_check(Game.action_feasible("MIMETIZZAZIONE"), "Mimetizzazione accesa con un'unità efficiente")
+	_check(Game.action_feasible("TRINCERARSI"), "Trincerarsi fattibile su un esagono idoneo")
+
+
+func _test_fire_modifier_assembly() -> void:
+	print("· Fuoco: i modificatori si accodano in assemblaggio (senza bersaglio) e fanno toggle")
+	var s := _new_state(8, 1)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.FIRE
+	s.units["sh"] = _mk("sh", GER, SQUAD, RIFLE, 0, 0, 6, 7, 99)
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 5, 0, 5, 7)
+	var c := Card.new()
+	c.faction = GER
+	c.action_name = "FUOCO MIRATO"
+	var hand := s.hand_of(GER)
+	hand.clear()
+	hand.append(c)
+	Game.state = s
+	Game._compute_fire_ready()
+	Game.select_unit("sh")
+	_check(not s.fire_eligible_ids.is_empty() and s.fire_target_q < 0,
+		"gruppo assemblato senza bersaglio (gruppo-prima)")
+	Game.apply_fire_modifier(0)
+	_check(s.fire_modifiers.has("FUOCO MIRATO"),
+		"il modificatore si accoda durante l'assemblaggio (prima del bersaglio)")
+	Game.apply_fire_modifier(0)
+	_check(not s.fire_modifiers.has("FUOCO MIRATO"),
+		"ri-cliccando lo stesso modificatore lo si toglie (toggle)")
 
 
 func _test_scenario_rules() -> void:

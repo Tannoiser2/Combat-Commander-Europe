@@ -275,9 +275,12 @@ func _make_badge(path: String, fallback_text: String, lit: bool, width: float) -
 func _action_playable(card: Card, s: GameState) -> bool:
 	var name := card.action_name
 	if s.phase == Domain.Phase.PLAYER_TURN:
-		return name in Game.AUTONOMOUS_ACTIONS
+		# Solo le azioni autonome implementate E con un effetto reale adesso.
+		return name in Game.AUTONOMOUS_ACTIONS and Game.action_feasible(name)
 	if s.phase == Domain.Phase.PLAYER_MOVING:
-		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+		# Fuoco: i modificatori si applicano durante l'assemblaggio (gruppo-prima),
+		# cioè appena c'è un gruppo, non solo dopo aver scelto il bersaglio.
+		if s.current_order == Domain.OrderType.FIRE and not s.fire_eligible_ids.is_empty():
 			return name in Game.FIRE_MOD_NAMES or name.begins_with("SVENTAGLIATA")
 		if s.current_order == Domain.OrderType.MOVE:
 			return name == "FUOCO D'ASSALTO"
@@ -1171,7 +1174,7 @@ func _on_action_pressed(index: int) -> void:
 		return
 	var hand := s.hand_of(s.human_faction)
 	var nm := hand[index].action_name if index >= 0 and index < hand.size() else ""
-	if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
+	if s.current_order == Domain.OrderType.FIRE and not s.fire_eligible_ids.is_empty():
 		Game.apply_fire_modifier(index)
 	elif s.phase == Domain.Phase.PLAYER_MOVING and s.current_order == Domain.OrderType.MOVE \
 			and nm == "FUOCO D'ASSALTO":
