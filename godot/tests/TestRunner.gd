@@ -101,6 +101,8 @@ func _ready() -> void:
 	_test_fire_command_group()
 	_test_fire_ready()
 	_test_fire_group_first()
+	_test_fire_cancel()
+	_test_tutorial_help()
 	_test_order_feasible()
 	_test_actions()
 	_test_grenade()
@@ -2355,6 +2357,45 @@ func _test_fire_group_first() -> void:
 	Game.click_hex_fire(6, 1)
 	_check(s.current_order == -1, "dopo il fuoco l'ordine è concluso")
 	_check(s.fire_eligible_ids.is_empty() and s.fire_target_q < 0, "stato di assemblaggio azzerato")
+
+
+func _test_fire_cancel() -> void:
+	print("· Fuoco: cliccare il tiratore selezionato ANNULLA l'ordine (torna a PLAYER_TURN)")
+	var s := _new_state(8, 3)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.FIRE
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 0, 1, 6, 7, 99)
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 6, 1, 5, 7)
+	Game.state = s
+	Game._compute_fire_ready()
+	Game.select_unit("A")
+	_check(not s.fire_eligible_ids.is_empty(), "gruppo assemblato dopo la selezione del tiratore")
+	# Click sull'esagono del tiratore base = annulla l'intero ordine di Fuoco.
+	Game.click_hex(0, 1)
+	_check(s.phase == Domain.Phase.PLAYER_TURN,
+		"cliccando il tiratore selezionato si torna a PLAYER_TURN (ordine annullato)")
+	_check(s.current_order == -1 and s.fire_eligible_ids.is_empty(),
+		"lo stato del Fuoco è azzerato dopo l'annullamento")
+
+
+func _test_tutorial_help() -> void:
+	print("· Tutorial: ogni ordine ha regola + cosa fare; le azioni hanno un aiuto")
+	for o in [Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE,
+			Domain.OrderType.RECOVER, Domain.OrderType.ROUT, Domain.OrderType.ARTY,
+			Domain.OrderType.PASS]:
+		var d := TutorialHelp.for_order(o)
+		_check(not d.is_empty() \
+			and not String(d.get("rule", "")).is_empty() \
+			and not String(d.get("todo", "")).is_empty(),
+			"ordine %d ha titolo/regola/cosa-fare" % o)
+	var a := TutorialHelp.for_action("MIMETIZZAZIONE")
+	_check(String(a.get("title", "")).contains("MIMETIZZAZIONE"), "azione nota: titolo coerente")
+	var sv := TutorialHelp.for_action("SVENTAGLIATA DI FUOCO")
+	_check(String(sv.get("title", "")).contains("SVENTAGLIATA"), "Sventagliata riconosciuta via prefisso")
+	var fb := TutorialHelp.for_action("AZIONE SCONOSCIUTA XYZ")
+	_check(not String(fb.get("rule", "")).is_empty() and not String(fb.get("todo", "")).is_empty(),
+		"azione sconosciuta: aiuto generico non vuoto")
 
 
 func _test_scenario_rules() -> void:

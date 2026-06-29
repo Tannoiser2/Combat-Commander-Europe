@@ -18,12 +18,35 @@ signal game_over(winner: int)        ## Domain.Faction o -1 (patta)
 var state: GameState = null
 var _rng: RandomNumberGenerator = null
 
+# ─── Impostazioni persistenti (user://settings.cfg) ──────────────────────────
+const SETTINGS_PATH := "user://settings.cfg"
+## Modalità tutorial: quando attiva, la GUI apre una finestra di aiuto a ogni
+## ordine/azione (regola + cosa fare). Si attiva dalla schermata iniziale.
+var tutorial_enabled: bool = false
+
 
 # ─── Init ─────────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
 	_rng = RandomNumberGenerator.new()
 	_rng.randomize()
+	_load_settings()
+
+
+## Carica le impostazioni persistenti (modalità tutorial, ecc.).
+func _load_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) == OK:
+		tutorial_enabled = bool(cfg.get_value("ui", "tutorial", false))
+
+
+## Attiva/disattiva la modalità tutorial e la salva su disco.
+func set_tutorial(on: bool) -> void:
+	tutorial_enabled = on
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS_PATH)  # ignora l'errore se il file non esiste ancora
+	cfg.set_value("ui", "tutorial", on)
+	cfg.save(SETTINGS_PATH)
 
 
 ## Avvia una nuova partita. `scenario_num` 1..24 (default 1).
@@ -978,12 +1001,15 @@ func exit_selected_unit() -> void:
 
 ## Gestione del click durante il Fuoco (flusso gruppo-prima-del-bersaglio).
 ##  • con un gruppo assemblato: click su un membro idoneo = includi/escludi;
-##    click su un bersaglio candidato = fuoco; click sul pezzo base = annulla;
-##    click su un altro tiratore pronto = nuovo pezzo base;
-##  • senza gruppo: seleziona un tiratore pronto (o un leader per vederne i tiratori).
+##    click su un bersaglio candidato = fuoco; click sul pezzo base = ANNULLA
+##    l'ordine (torna alla scelta della carta); click su un altro tiratore = nuovo base;
+##  • con un leader selezionato (anteprima): click su un tiratore comandato = nuovo
+##    base; click sul leader = annulla l'ordine;
+##  • senza selezione: scegli un tiratore pronto (o un leader per vederne i tiratori).
 func _click_fire(q: int, r: int, key: String, units_here: Array) -> void:
 	var s := state
-	if s.selected_unit_id != "" and not s.fire_eligible_ids.is_empty():
+	var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
+	if sel != null and not s.fire_eligible_ids.is_empty():
 		# 1) Click su un pezzo idoneo del gruppo (≠ base): includi/escludi.
 		for eid in s.fire_eligible_ids:
 			if eid == s.selected_unit_id:
@@ -996,10 +1022,10 @@ func _click_fire(q: int, r: int, key: String, units_here: Array) -> void:
 		if s.highlighted_hexes.has(key):
 			click_hex_fire(q, r)
 			return
-		# 3) Click sul pezzo base: annulla l'assemblaggio.
-		var sel := s.unit_by_id(s.selected_unit_id)
-		if sel != null and q == sel.q and r == sel.r:
-			_cancel_fire_assembly()
+		# 3) Click sul pezzo base: ANNULLA l'ordine di Fuoco (torna a PLAYER_TURN),
+		#    come per gli altri ordini. Così non si resta mai bloccati nell'ordine.
+		if q == sel.q and r == sel.r:
+			conclude_order()
 			return
 		# 4) Click su un altro tiratore pronto: cambia pezzo base.
 		for u2 in units_here:
@@ -1007,7 +1033,19 @@ func _click_fire(q: int, r: int, key: String, units_here: Array) -> void:
 				select_unit(u2.id)
 				return
 		return
-	# Nessun gruppo: seleziona un tiratore pronto o un leader presente nell'esagono.
+	# Leader selezionato (anteprima dei tiratori comandati), nessun gruppo ancora.
+	if sel != null:
+		# Click sul leader = annulla l'ordine; su un tiratore comandato = nuovo base.
+		if q == sel.q and r == sel.r:
+			conclude_order()
+			return
+		for u2 in units_here:
+			if u2.faction == s.human_faction and u2.id != s.selected_unit_id \
+					and (s.fire_ready_ids.has(u2.id) or u2.is_leader()):
+				select_unit(u2.id)
+				return
+		return
+	# Nessuna selezione: scegli un tiratore pronto o un leader presente nell'esagono.
 	for u2 in units_here:
 		if u2.faction == s.human_faction and (s.fire_ready_ids.has(u2.id) or u2.is_leader()):
 			select_unit(u2.id)

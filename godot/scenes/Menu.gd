@@ -194,6 +194,19 @@ func _build_ui() -> void:
 	diff_opt.item_selected.connect(func(idx: int) -> void:
 		_difficulty = diff_opt.get_item_id(idx))
 	add_child(diff_opt)
+
+	# Modalità tutorial: aiuto guidato a ogni ordine/azione (persistente).
+	var tut := CheckButton.new()
+	tut.text = "Modalità tutorial (aiuto guidato)"
+	tut.button_pressed = Game.tutorial_enabled
+	tut.tooltip_text = "Se attiva, a ogni ordine o azione compare una finestra con la regola e cosa fare nel programma"
+	tut.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	tut.offset_left = 620
+	tut.offset_top = -46
+	tut.offset_right = 1000
+	tut.offset_bottom = -8
+	tut.toggled.connect(func(on: bool) -> void: Game.set_tutorial(on))
+	add_child(tut)
 	# Nota: l'«Editor mappe» è stato spostato nella colonna laterale in partita.
 
 

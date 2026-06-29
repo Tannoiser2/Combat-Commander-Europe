@@ -1,3 +1,18 @@
+[b]v0.36.0[/b]
+
+[b]Modalità tutorial (aiuto guidato)[/b]
+- Nuova opzione nella schermata iniziale: «Modalità tutorial». Quando è attiva, ogni volta che premi un ordine o un'azione compare una finestra fluttuante con due sezioni: [b]Regola[/b] (sunto del regolamento CC:E) e [b]Cosa fare[/b] (come funziona il programma in quel momento). Coperti tutti gli ordini (Mossa, Fuoco, Avanzata, Recupero, Fuga, Artiglieria, Passa) e le azioni principali. La finestra si chiude col tasto «✕» o «Disattiva tutorial», e l'impostazione viene ricordata.
+
+[b]v0.35.2[/b]
+
+[b]Correzione — finestra di reazione più chiara (niente «blocco»)[/b]
+- Durante il turno dell'IA il gioco può chiederti una reazione (Fuoco di Opportunità su un'unità che si muove, o Mimetizzazione): è una fase «non tua», quindi ordini, azioni e «Fine Turno» sono spenti. Prima l'unico avviso era una riga nella colonna laterale (facile da non vedere, specie a colonna chiusa), così sembrava che il gioco si fermasse. Ora compare un banner centrale ben visibile che spiega cosa fare, con un pulsante «Non sparare / Non mimetizzarmi» (anche col tasto SPAZIO) per proseguire.
+
+[b]v0.35.1[/b]
+
+[b]Correzione — Fuoco: l'ordine si poteva «bloccare»[/b]
+- Risolto un blocco introdotto con la selezione gruppo-prima: una volta dato l'ordine di Fuoco non c'era più modo di annullarlo cliccando, e con i badge spenti (sei «in ordine») sembrava che il gioco si fermasse. Ora cliccare il tiratore selezionato annulla l'ordine di Fuoco e riporta alla scelta della carta, esattamente come per Mossa e Avanzata.
+
 [b]v0.35.0[/b]
 
 [b]Fuoco — selezione «gruppo-prima-del-bersaglio»[/b]
