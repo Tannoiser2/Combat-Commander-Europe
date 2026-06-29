@@ -5,6 +5,7 @@ extends Node
 # ─── Segnali ─────────────────────────────────────────────────────────────────
 
 signal state_changed()               ## Aggiornamento generico — ridisegna tutto
+signal stack_offered(unit_ids: Array)  ## Esagono con 2+ unità amiche: scegli quale (selettore di stack)
 signal log_added(line: String, detail: String, kind: String)  ## Riga di log (+formula collassabile, +categoria)
 signal fire_resolved(result: Object) ## Combat.FireResult
 signal phase_changed(phase: int)     ## Nuova fase
@@ -789,6 +790,9 @@ func click_hex(q: int, r: int) -> void:
 	var s := state
 	var key := "%d,%d" % [q, r]
 	var units_here := s.units_at(q, r)
+	# Selettore di stack: se l'esagono ha 2+ unità amiche selezionabili, offre la
+	# scelta esplicita (così si può prendere un leader "sotto" lo stack).
+	_offer_stack(units_here)
 	if s.phase == Domain.Phase.PLAYER_MOVING:
 		# Fuoco: flusso dedicato gruppo-prima-del-bersaglio.
 		if s.current_order == Domain.OrderType.FIRE:
@@ -842,6 +846,26 @@ func click_hex(q: int, r: int) -> void:
 		_cycle_select(units_here, true)
 	elif s.phase == Domain.Phase.PLAYER_SETUP:
 		_setup_click(q, r, units_here)
+
+
+## Offre il selettore di stack: se l'esagono cliccato contiene 2+ unità amiche
+## selezionabili (uomini, non armi), emette i loro id — coi LEADER per primi, così
+## la GUI può mostrarli e far scegliere un leader "sotto" lo stack. Vuoto = nascondi.
+func _offer_stack(units_here: Array) -> void:
+	if state.phase != Domain.Phase.PLAYER_TURN \
+			and state.phase != Domain.Phase.PLAYER_MOVING \
+			and state.phase != Domain.Phase.PLAYER_SETUP:
+		emit_signal("stack_offered", [])
+		return
+	var ids: Array = []
+	for u in units_here:
+		if u.faction == state.human_faction and not u.is_weapon():
+			ids.append(u.id)
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		var ua := state.unit_by_id(a)
+		var ub := state.unit_by_id(b)
+		return ua != null and ua.is_leader() and (ub == null or not ub.is_leader()))
+	emit_signal("stack_offered", ids if ids.size() >= 2 else [])
 
 
 ## Schieramento manuale: con un'unità propria selezionata, un clic su un altro

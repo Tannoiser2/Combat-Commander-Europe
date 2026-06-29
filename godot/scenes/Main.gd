@@ -71,6 +71,7 @@ func _ready() -> void:
 	_build_reaction_banner()
 	_build_tutorial_window()
 	_build_log_view()
+	_build_stack_picker()
 	log_toggle_btn.pressed.connect(_toggle_sidebar)
 	end_turn_btn.tooltip_text = "Concludi il turno e passa all'avversario (anche a ordini finiti)"
 	editor_btn.tooltip_text = "Apri l'editor delle mappe"
@@ -617,6 +618,7 @@ func _connect_signals() -> void:
 	Game.log_added.connect(_on_log_added)
 	Game.phase_changed.connect(_on_phase_changed)
 	Game.game_over.connect(_on_game_over)
+	Game.stack_offered.connect(_on_stack_offered)
 	end_turn_btn.pressed.connect(_on_end_turn)
 	hand_toggle_btn.pressed.connect(_toggle_hand)
 	menu_btn.pressed.connect(_on_menu)
@@ -907,6 +909,75 @@ func _refresh_hand() -> void:
 
 func _on_log_added(line: String, detail: String = "", kind: String = "") -> void:
 	_add_log_entry(line, detail, kind)
+
+
+# ─── Selettore di stack (scegli una pedina impilata, anche un leader sotto) ────
+
+var _stack_panel: PanelContainer = null
+var _stack_row: HBoxContainer = null
+
+
+func _build_stack_picker() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 58
+	add_child(layer)
+	_stack_panel = PanelContainer.new()
+	_stack_panel.visible = false
+	_stack_panel.anchor_left = 0.5
+	_stack_panel.anchor_right = 0.5
+	_stack_panel.anchor_top = 0.0
+	_stack_panel.anchor_bottom = 0.0
+	_stack_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_stack_panel.grow_vertical = Control.GROW_DIRECTION_END
+	_stack_panel.offset_top = 110
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.12, 0.14, 0.18, 0.98)
+	sb.border_color = Color(0.50, 0.75, 1.0)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(10)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	_stack_panel.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 6)
+	_stack_panel.add_child(vb)
+	var lbl := Label.new()
+	lbl.text = "Scegli l'unità nello stack:"
+	lbl.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
+	vb.add_child(lbl)
+	_stack_row = HBoxContainer.new()
+	_stack_row.add_theme_constant_override("separation", 6)
+	vb.add_child(_stack_row)
+	layer.add_child(_stack_panel)
+
+
+## Mostra/aggiorna il selettore con le unità impilate (id passati da Game), o lo
+## nasconde se ce n'è meno di due. Un clic su un pulsante seleziona quell'unità.
+func _on_stack_offered(ids: Array) -> void:
+	if _stack_panel == null:
+		return
+	for c in _stack_row.get_children():
+		c.queue_free()
+	var s := Game.state
+	if ids.size() < 2 or s == null:
+		_stack_panel.visible = false
+		return
+	for id in ids:
+		var u := s.unit_by_id(String(id))
+		if u == null:
+			continue
+		var b := Button.new()
+		b.focus_mode = Control.FOCUS_NONE
+		var mark := "♚ " if u.is_leader() else ""
+		var tag := "  ·  rotta" if not u.efficient else ""
+		b.text = "%s%s%s" % [mark, u.unit_name, tag]
+		b.pressed.connect(func() -> void:
+			Game.select_unit(String(id))
+			_stack_panel.visible = false)
+		_stack_row.add_child(b)
+	_stack_panel.visible = true
 
 
 # ─── Registro ricco (banda di turno, colori, neretto, formula collassabile) ───

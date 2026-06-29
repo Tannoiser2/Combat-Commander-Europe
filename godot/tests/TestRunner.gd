@@ -107,6 +107,7 @@ func _ready() -> void:
 	_test_action_feasible()
 	_test_fire_modifier_assembly()
 	_test_advance_group()
+	_test_stack_picker()
 	_test_uphill_move()
 	_test_cumulative_command()
 	_test_order_feasible()
@@ -2496,6 +2497,28 @@ func _test_advance_group() -> void:
 	_check(s.current_order == -1, "dopo l'avanzata di tutti i membri l'ordine conclude")
 	_check(s.units["L"].activated and s.units["A"].activated and s.units["B"].activated,
 		"tutte le unità del gruppo risultano attivate")
+
+
+func _test_stack_picker() -> void:
+	print("· Stack: cliccando un esagono con 2+ unità si offre la scelta (leader per primi)")
+	var s := _new_state(5, 5)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_TURN
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 2, 2, 6, 7)
+	s.units["L"] = _mk("L", GER, LEADER, ELITE, 2, 2, 0, 8, 0, 2)
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 4, 4, 5, 7)  # nemico: evita la fine partita
+	Game.state = s
+	var captured: Array = []
+	var cb := func(ids: Array) -> void:
+		captured.clear()
+		captured.append_array(ids)
+	Game.stack_offered.connect(cb)
+	Game.click_hex(2, 2)
+	_check(captured.size() == 2, "due unità amiche nell'esagono → offerte entrambe")
+	_check(captured.size() == 2 and String(captured[0]) == "L", "il leader è elencato per primo")
+	Game.click_hex(4, 4)  # solo un'unità (nemica): nessuna offerta
+	_check(captured.is_empty(), "esagono senza 2+ unità amiche → nessuna offerta")
+	Game.stack_offered.disconnect(cb)
 
 
 func _test_uphill_move() -> void:

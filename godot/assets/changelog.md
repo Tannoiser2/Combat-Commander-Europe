@@ -1,3 +1,8 @@
+[b]v0.40.0[/b]
+
+[b]Selettore di stack (scegli una pedina impilata)[/b]
+- Cliccando un esagono con più unità tue compare un piccolo pannello che le elenca: clicca quella che vuoi per selezionarla. Così è facile prendere anche un [b]leader «sotto» lo stack[/b], che prima in 3D era scomodo da centrare. I leader sono elencati per primi. (In 2D resta anche lo scorrimento a clic ripetuti.)
+
 [b]v0.39.0[/b]
 
 [b]Avanzata di gruppo (ordine dato al leader)[/b]
