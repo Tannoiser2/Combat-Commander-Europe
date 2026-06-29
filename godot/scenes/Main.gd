@@ -212,11 +212,10 @@ func _help_text() -> String:
 		+ " - Clicca di nuovo l'unità attiva per concludere la sua mossa.\n\n" \
 		+ "[b]Fuoco[/b]\n" \
 		+ " - Dopo l'ordine, le unità che possono sparare hanno un [color=#4fd8ff]anello ciano[/color].\n" \
-		+ " - Clicca una di esse: le linee rosse mostrano i bersagli validi (chi spara a chi).\n" \
-		+ " - Clicca un BERSAGLIO: il [color=#ffae5a]gruppo di fuoco[/color] si forma da solo (i pezzi co-locati e quelli\n" \
-		+ "   entro il Comando del leader che possono colpirlo). I pezzi nel gruppo sono cerchiati d'arancio.\n" \
-		+ " - Clic su un pezzo arancione = aggiungilo/toglilo dal gruppo. La targhetta = FP vs Difesa + esito.\n" \
-		+ " - Clicca di nuovo il bersaglio per sparare.\n\n" \
+		+ " - Clicca un tiratore (o un leader per vederne i tiratori): il [color=#ffae5a]gruppo di fuoco[/color] si\n" \
+		+ "   assembla subito (pezzi co-locati e quelli entro il Comando del leader). I pezzi sono cerchiati d'arancio.\n" \
+		+ " - Clic su un pezzo arancione = aggiungilo/toglilo dal gruppo; le linee rosse mostrano i bersagli validi.\n" \
+		+ " - Passa il mouse su un BERSAGLIO per le statistiche (FP vs Difesa + esito), poi clic per sparare.\n\n" \
 		+ "[b]Avanzata / Artiglieria[/b]\n" \
 		+ " - Avanzata: clicca un esagono adiacente (può scatenare il corpo a corpo).\n" \
 		+ " - Artiglieria: serve Radio + spotter; clicca il bersaglio nella LOS. «S» alterna fumo/esplosivo.\n\n" \
@@ -768,8 +767,10 @@ func _guidance_text(s: GameState) -> String:
 						var n := s.fire_ready_ids.size()
 						if n == 0:
 							return "FUOCO — nessuna unità ha un bersaglio valido · «Fine Turno» o gioca un'Azione"
-						return "FUOCO — clicca un'unità con l'anello ciano (%d possono sparare)" % n
-					return "FUOCO — le linee rosse mostrano i bersagli validi · clicca un BERSAGLIO per sparare (il gruppo di fuoco si forma da solo) · l'unità per annullare"
+						return "FUOCO — clicca un tiratore (anello ciano) o un leader per vederne i tiratori (%d possono sparare)" % n
+					if s.fire_eligible_ids.is_empty() and not s.command_preview_ids.is_empty():
+						return "FUOCO — leader: clicca uno dei tiratori comandati (arancio) per assemblare il gruppo"
+					return "FUOCO — gruppo assemblato: clic su un pezzo = aggiungi/togli · mouse su un BERSAGLIO per le statistiche · clic per sparare · il tiratore per annullare"
 				Domain.OrderType.ADVANCE:
 					if not has_unit:
 						return "AVANZATA — clicca l'unità che avanza"

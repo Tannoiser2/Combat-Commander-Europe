@@ -1,3 +1,12 @@
+[b]v0.35.0[/b]
+
+[b]Fuoco — selezione «gruppo-prima-del-bersaglio»[/b]
+- Il Fuoco ora si imposta nell'ordine naturale: selezioni un tiratore (o un leader per vederne i tiratori comandati) e il [color=#ffae5a]gruppo di fuoco[/color] si assembla SUBITO, prima di scegliere il bersaglio.
+- I pezzi del gruppo sono modificabili al volo: clic su un pezzo = aggiungilo/toglilo. A ogni modifica si ricalcolano i bersagli validi.
+- Si illuminano tutti i bersagli possibili, con linee di mira da ogni tiratore verso ogni bersaglio (2D e 3D).
+- In 3D, passando il mouse su un bersaglio compare un flyover con le statistiche del tiro: FP d'attacco vs Difesa, copertura, numero di difensori e tiratori, ed esito stimato.
+- Un clic sul bersaglio apre il fuoco e conclude l'ordine in un colpo solo.
+
 [b]v0.34.0[/b]
 
 [b]Azioni — Trincerarsi: vincoli di posa[/b]

@@ -299,22 +299,36 @@ func _draw() -> void:
 		# Riquadro di anteprima sopra il bersaglio: FP attacco vs DIF stimata + esito.
 		_draw_fire_readout(tgt)
 
-	# FUOCO, prima di scegliere il bersaglio: evidenzia chi può sparare (anello
-	# ciano) e, per l'unità selezionata, traccia le linee verso TUTTI i bersagli
-	# validi — così si vede subito "chi spara a chi".
+	# FUOCO, prima di scegliere il bersaglio (gruppo-prima): anello ciano su chi
+	# può sparare; col gruppo assemblato, pezzi inclusi/esclusi e linee da OGNI
+	# tiratore verso OGNI bersaglio candidato — così si vede subito "chi spara a chi".
 	if s.current_order == Domain.OrderType.FIRE and s.fire_target_q < 0:
+		var assembling: bool = s.selected_unit_id != "" and not s.fire_eligible_ids.is_empty()
 		for fid in s.fire_ready_ids:
-			if fid == s.selected_unit_id:
+			if fid == s.selected_unit_id or (assembling and s.fire_eligible_ids.has(fid)):
 				continue
 			var fv := s.unit_by_id(fid)
 			if fv:
 				_draw_hex_outline(fv.q, fv.r, COL_FIRE_READY, 2.5)
-		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
-		if sel != null:
-			var from := _hex_center(sel.q, sel.r)
+		if assembling:
+			# Pezzi del gruppo: inclusi (arancio pieno) / esclusi (grigio).
+			for eid in s.fire_eligible_ids:
+				if eid == s.selected_unit_id:
+					continue
+				var ev := s.unit_by_id(eid)
+				if ev == null:
+					continue
+				var inc: bool = s.fire_group_ids.has(eid)
+				_draw_hex_outline(ev.q, ev.r, COL_GROUP if inc else COL_GROUP_OFF, 3.0 if inc else 2.0)
+			# Linee di mira da ogni tiratore incluso verso ogni bersaglio candidato.
 			for key in s.highlighted_hexes:
 				var p := String(key).split(",")
-				_draw_aim_line(from, _hex_center(int(p[0]), int(p[1])))
+				var tqh := int(p[0])
+				var trh := int(p[1])
+				for gid in s.fire_group_ids:
+					var gu := s.unit_by_id(gid)
+					if gu != null and Combat.can_fire(gu, tqh, trh, s):
+						_draw_aim_line(_hex_center(gu.q, gu.r), _hex_center(tqh, trh))
 
 	# Finestra di reazione (Fuoco di Opportunità): mover in rosso, tiratori in giallo
 	if s.phase == Domain.Phase.REACTION_WINDOW:
