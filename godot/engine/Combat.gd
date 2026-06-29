@@ -53,6 +53,31 @@ static func fire_group(attacker: Unit, tq: int, tr: int, state: GameState) -> Ar
 	return group
 
 
+## Pezzi che POTREBBERO formare un gruppo di fuoco con l'attaccante, a prescindere
+## dal bersaglio (O20.3.1): i pezzi efficienti con FP della sua fazione co-locati
+## con lui, oppure — se un leader lo comanda — entro il raggio di Comando del
+## leader. Serve all'assemblaggio "gruppo-prima-del-bersaglio": il giocatore vede
+## subito il gruppo modificabile, poi sceglie su quale bersaglio aprire il fuoco.
+static func potential_fire_group(attacker: Unit, state: GameState) -> Array[Unit]:
+	var group: Array[Unit] = []
+	# Ordnance (11.5): spara da sola, niente gruppo.
+	if attacker.ordnance:
+		group.append(attacker)
+		return group
+	var leader := Rules.commanding_leader(state, attacker)
+	for u in state.units.values():
+		if u.faction != attacker.faction or not u.efficient or u.fp <= 0 or u.ordnance:
+			continue
+		var co_located: bool = u.q == attacker.q and u.r == attacker.r
+		var commanded: bool = leader != null \
+			and HexGrid.distance(leader.q, leader.r, u.q, u.r) <= leader.command
+		if co_located or commanded:
+			group.append(u)
+	if not group.has(attacker):
+		group.append(attacker)  # il pezzo base è sempre incluso
+	return group
+
+
 ## Colpisce un'unità: efficiente → rotta; già rotta → eliminata.
 static func _apply_hit(t: Unit, res: FireResult) -> void:
 	if t.efficient:

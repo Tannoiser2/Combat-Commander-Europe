@@ -235,6 +235,13 @@ func select_unit(unit_id: String) -> void:
 		emit_signal("state_changed")
 		return
 
+	# ─── Fuoco: assemblaggio gruppo-prima-del-bersaglio ──────────────────────
+	# Selezionare un leader illumina i tiratori che comanda; selezionare un
+	# tiratore assembla subito il gruppo e illumina i bersagli (con linee).
+	if state.phase == Domain.Phase.PLAYER_MOVING and state.current_order == Domain.OrderType.FIRE:
+		_select_fire_base(u)
+		return
+
 	# ─── Altri ordini ────────────────────────────────────────────────────────
 	state.selected_unit_id = unit_id
 	state.highlighted_hexes.clear()
@@ -347,6 +354,87 @@ func _any_fire_ready() -> bool:
 		if not _fire_targets(u).is_empty():
 			return true
 	return false
+
+
+## Selezione del pezzo base del Fuoco (flusso gruppo-prima-del-bersaglio).
+##  • un LEADER che non spara (nessun bersaglio proprio) illumina i tiratori che
+##    comanda, così il giocatore ne sceglie uno (passo «seleziona leader»);
+##  • un TIRATORE pronto assembla subito il gruppo potenziale (co-locati +
+##    comandati), lo rende modificabile e illumina i bersagli con le linee.
+func _select_fire_base(u: Unit) -> void:
+	if u == null or u.faction != state.human_faction:
+		return
+	# Leader-direttore senza fuoco proprio: mostra i tiratori comandati.
+	if u.is_leader() and _fire_targets(u).is_empty() and not state.fire_ready_ids.has(u.id):
+		state.selected_unit_id = u.id
+		state.fire_eligible_ids.clear()
+		state.fire_group_ids.clear()
+		state.fire_target_q = -1
+		state.fire_target_r = -1
+		state.highlighted_hexes.clear()
+		state.command_preview_ids = _fire_command_preview(u)
+		emit_signal("state_changed")
+		return
+	# Non è un tiratore valido adesso: ignora il click.
+	if not state.fire_ready_ids.has(u.id):
+		return
+	state.selected_unit_id = u.id
+	state.command_preview_ids.clear()
+	state.fire_target_q = -1
+	state.fire_target_r = -1
+	state.fire_eligible_ids.clear()
+	state.fire_group_ids.clear()
+	for g in Combat.potential_fire_group(u, state):
+		state.fire_eligible_ids.append(g.id)
+		state.fire_group_ids.append(g.id)
+	_recompute_fire_targets()
+	emit_signal("state_changed")
+
+
+## Tiratori pronti (≥1 bersaglio) entro il raggio di Comando di un leader: gli id
+## che si illuminano quando si seleziona quel leader nell'ordine di Fuoco.
+func _fire_command_preview(leader: Unit) -> Array[String]:
+	var ids: Array[String] = []
+	for v in state.units_of(state.human_faction):
+		if v.id == leader.id:
+			continue
+		if not state.fire_ready_ids.has(v.id):
+			continue
+		if HexGrid.distance(leader.q, leader.r, v.q, v.r) <= leader.command:
+			ids.append(v.id)
+	return ids
+
+
+## Ricalcola i bersagli candidati = unione degli esagoni che i pezzi attualmente
+## nel gruppo di fuoco possono colpire (gittata + LOS + nemico). Usato a ogni
+## modifica del gruppo finché non si sceglie un bersaglio.
+func _recompute_fire_targets() -> void:
+	var seen := {}
+	state.highlighted_hexes.clear()
+	for id in state.fire_group_ids:
+		var g := state.unit_by_id(id)
+		if g == null:
+			continue
+		for h in _fire_targets(g):
+			var k := "%d,%d" % [h.x, h.y]
+			if not seen.has(k):
+				seen[k] = true
+				state.highlighted_hexes.append(k)
+
+
+## Annulla l'assemblaggio del fuoco e torna alla scelta del tiratore: i pezzi
+## pronti restano accesi, niente gruppo/bersaglio selezionato.
+func _cancel_fire_assembly() -> void:
+	state.selected_unit_id = ""
+	state.command_preview_ids.clear()
+	state.fire_eligible_ids.clear()
+	state.fire_group_ids.clear()
+	state.fire_target_q = -1
+	state.fire_target_r = -1
+	state.spray_active = false
+	state.highlighted_hexes.clear()
+	_compute_fire_ready()
+	emit_signal("state_changed")
 
 
 ## Un ordine di questo tipo è davvero eseguibile ora dal giocatore? Usato per
@@ -618,22 +706,11 @@ func click_hex(q: int, r: int) -> void:
 	var key := "%d,%d" % [q, r]
 	var units_here := s.units_at(q, r)
 	if s.phase == Domain.Phase.PLAYER_MOVING:
-		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
-		# Fuoco: assemblaggio del gruppo (bersaglio già scelto).
-		if s.current_order == Domain.OrderType.FIRE and s.fire_target_q >= 0:
-			if q == s.fire_target_q and r == s.fire_target_r:
-				confirm_fire()
-				return
-			for eid in s.fire_eligible_ids:
-				if eid == s.selected_unit_id:
-					continue
-				var ev := s.unit_by_id(eid)
-				if ev != null and ev.q == q and ev.r == r:
-					toggle_fire_piece(eid)
-					return
-			if sel != null and q == sel.q and r == sel.r:
-				cancel_fire_target()
+		# Fuoco: flusso dedicato gruppo-prima-del-bersaglio.
+		if s.current_order == Domain.OrderType.FIRE:
+			_click_fire(q, r, key, units_here)
 			return
+		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
 		# Mossa di gruppo: cliccare un altro membro attivato cambia il mover attivo.
 		if s.current_order == Domain.OrderType.MOVE:
 			for gid in s.ordered_group:
@@ -899,37 +976,70 @@ func exit_selected_unit() -> void:
 		_after_mover_done()
 
 
-## Giocatore clicca un esagono nemico col FUOCO: entra nell'assemblaggio del
-## gruppo di fuoco (O20.3.1). Se solo il pezzo base può colpire, spara subito.
+## Gestione del click durante il Fuoco (flusso gruppo-prima-del-bersaglio).
+##  • con un gruppo assemblato: click su un membro idoneo = includi/escludi;
+##    click su un bersaglio candidato = fuoco; click sul pezzo base = annulla;
+##    click su un altro tiratore pronto = nuovo pezzo base;
+##  • senza gruppo: seleziona un tiratore pronto (o un leader per vederne i tiratori).
+func _click_fire(q: int, r: int, key: String, units_here: Array) -> void:
+	var s := state
+	if s.selected_unit_id != "" and not s.fire_eligible_ids.is_empty():
+		# 1) Click su un pezzo idoneo del gruppo (≠ base): includi/escludi.
+		for eid in s.fire_eligible_ids:
+			if eid == s.selected_unit_id:
+				continue
+			var ev := s.unit_by_id(eid)
+			if ev != null and ev.q == q and ev.r == r:
+				toggle_fire_piece(eid)
+				return
+		# 2) Click su un bersaglio candidato: apri il fuoco.
+		if s.highlighted_hexes.has(key):
+			click_hex_fire(q, r)
+			return
+		# 3) Click sul pezzo base: annulla l'assemblaggio.
+		var sel := s.unit_by_id(s.selected_unit_id)
+		if sel != null and q == sel.q and r == sel.r:
+			_cancel_fire_assembly()
+			return
+		# 4) Click su un altro tiratore pronto: cambia pezzo base.
+		for u2 in units_here:
+			if u2.faction == s.human_faction and s.fire_ready_ids.has(u2.id):
+				select_unit(u2.id)
+				return
+		return
+	# Nessun gruppo: seleziona un tiratore pronto o un leader presente nell'esagono.
+	for u2 in units_here:
+		if u2.faction == s.human_faction and (s.fire_ready_ids.has(u2.id) or u2.is_leader()):
+			select_unit(u2.id)
+			return
+	_cycle_select(units_here, false)
+
+
+## Il giocatore sceglie un bersaglio candidato: il gruppo assemblato apre il fuoco
+## (un solo click). Partecipano i membri del gruppo che colpiscono davvero il
+## bersaglio (gittata + LOS); il resto della risoluzione è in confirm_fire().
 func click_hex_fire(tq: int, tr: int) -> void:
 	if state == null or state.current_order != Domain.OrderType.FIRE:
 		return
-	var u := state.unit_by_id(state.selected_unit_id)
-	if u == null or u.faction != state.human_faction:
+	var firers: Array[String] = []
+	for id in state.fire_group_ids:
+		var g := state.unit_by_id(id)
+		if g != null and Combat.can_fire(g, tq, tr, state):
+			firers.append(g.id)
+	if firers.is_empty():
+		_log("Nessun pezzo del gruppo può colpire (%d,%d)." % [tq, tr])
 		return
-	if not Combat.can_fire(u, tq, tr, state):
-		_log("Fuoco illegale verso (%d,%d)" % [tq, tr])
-		return
-	# Pezzi idonei a colpire il bersaglio (base + co-locati/in-comando, LOS+gittata).
-	var elig := Combat.fire_group(u, tq, tr, state)
+	state.fire_group_ids = firers
 	state.fire_target_q = tq
 	state.fire_target_r = tr
-	state.fire_eligible_ids.clear()
-	state.fire_group_ids.clear()
-	for g in elig:
-		state.fire_eligible_ids.append(g.id)
-		state.fire_group_ids.append(g.id)
-	# Un solo pezzo idoneo → niente da assemblare: spara subito.
-	if state.fire_eligible_ids.size() <= 1:
-		confirm_fire()
-		return
-	state.highlighted_hexes = ["%d,%d" % [tq, tr]]
-	emit_signal("state_changed")
+	confirm_fire()
 
 
-## Include/esclude un pezzo idoneo dal gruppo di fuoco (il base resta sempre).
+## Include/esclude un pezzo idoneo dal gruppo di fuoco (il pezzo base resta sempre
+## incluso). Funziona durante l'assemblaggio, prima di scegliere il bersaglio:
+## dopo ogni modifica si ricalcolano i bersagli candidati.
 func toggle_fire_piece(id: String) -> void:
-	if state == null or state.current_order != Domain.OrderType.FIRE or state.fire_target_q < 0:
+	if state == null or state.current_order != Domain.OrderType.FIRE:
 		return
 	if id == state.selected_unit_id or not state.fire_eligible_ids.has(id):
 		return
@@ -937,23 +1047,16 @@ func toggle_fire_piece(id: String) -> void:
 		state.fire_group_ids.erase(id)
 	else:
 		state.fire_group_ids.append(id)
+	if state.fire_target_q < 0:
+		_recompute_fire_targets()  # gruppo-prima: i bersagli dipendono dal gruppo
 	emit_signal("state_changed")
 
 
-## Annulla la scelta del bersaglio e torna alla selezione del bersaglio.
+## Compat: annulla l'assemblaggio del fuoco (alias di _cancel_fire_assembly).
 func cancel_fire_target() -> void:
 	if state == null:
 		return
-	state.fire_target_q = -1
-	state.fire_target_r = -1
-	state.fire_eligible_ids.clear()
-	state.fire_group_ids.clear()
-	state.spray_active = false
-	var u := state.unit_by_id(state.selected_unit_id)
-	if u != null:
-		select_unit(u.id)  # ri-evidenzia i bersagli possibili
-	else:
-		emit_signal("state_changed")
+	_cancel_fire_assembly()
 
 
 ## Risolve il fuoco col gruppo attualmente scelto dal giocatore.
@@ -972,6 +1075,17 @@ func confirm_fire() -> void:
 			group.append(g)
 	if group.is_empty():
 		group.append(u)
+	# Ancora di risoluzione: l'attaccante usato da Combat.resolve_fire deve poter
+	# colpire il bersaglio (per LOS/ostacolo). Se il pezzo base non lo vede (gruppo
+	# diretto da un leader), usa il membro col FP più alto che lo colpisce.
+	if not Combat.can_fire(u, tq, tr, state):
+		var anchor: Unit = null
+		for g in group:
+			if Combat.can_fire(g, tq, tr, state) \
+					and (anchor == null or Rules.fp_with_command(state, g) > Rules.fp_with_command(state, anchor)):
+				anchor = g
+		if anchor != null:
+			u = anchor
 	var weapon_ids: Array = []
 	for g in group:
 		g.activated = true
@@ -1215,6 +1329,66 @@ func fire_preview() -> Dictionary:
 	return {
 		"fp": fp, "cover": cover, "defenders": n,
 		"defense": best_def, "margin": margin, "verdict": verdict,
+	}
+
+
+## FP proiettato di un insieme di pezzi (per id) su un bersaglio qualsiasi (per il
+## flyover): miglior FP col Comando + 1 per pezzo extra + modificatori, meno
+## l'ostacolo lungo la LOS del pezzo "ancora" (quello col FP più alto).
+func _group_fp_at(ids: Array, tq: int, tr: int) -> int:
+	var fp := 0
+	var count := 0
+	var anchor: Unit = null
+	for id in ids:
+		var g := state.unit_by_id(id)
+		if g == null:
+			continue
+		count += 1
+		var gfp := Rules.fp_with_command(state, g)
+		fp = maxi(fp, gfp)
+		if not g.ordnance and (anchor == null or gfp > Rules.fp_with_command(state, anchor)):
+			anchor = g
+	if count > 1:
+		fp += count - 1
+	fp += 2 * state.fire_modifiers.size()
+	if anchor != null:
+		var hind := HexGrid.los_hindrance(anchor.q, anchor.r, tq, tr, state) + maxi(0, state.global_hindrance)
+		fp = maxi(0, fp - hind)
+	return fp
+
+
+## Anteprima del fuoco su un bersaglio CANDIDATO qualsiasi (per il flyover in
+## hover): considera i membri del gruppo che colpiscono (tq,tr). Stessa formula di
+## fire_preview(). {} se nessun pezzo del gruppo colpisce il bersaglio.
+func fire_preview_at(tq: int, tr: int) -> Dictionary:
+	if state == null or state.current_order != Domain.OrderType.FIRE:
+		return {}
+	var firers: Array = []
+	for id in state.fire_group_ids:
+		var g := state.unit_by_id(id)
+		if g != null and Combat.can_fire(g, tq, tr, state):
+			firers.append(g.id)
+	if firers.is_empty():
+		return {}
+	var anchor := state.unit_by_id(String(firers[0]))
+	var ordnance := anchor != null and anchor.ordnance
+	var cover := Rules.cover_at(state, tq, tr, ordnance)
+	var best_def := -1
+	var n := 0
+	for t in state.men_at(tq, tr):
+		if anchor != null and t.faction == anchor.faction:
+			continue
+		n += 1
+		var d: int = t.morale + cover + Rules.unit_command_bonus(state, t) - Rules.wire_penalty(state, t)
+		best_def = maxi(best_def, d)
+	var fp := _group_fp_at(firers, tq, tr)
+	var margin: int = (fp - best_def) if best_def >= 0 else 0
+	var verdict := "—"
+	if best_def >= 0:
+		verdict = "favorevole" if margin >= 3 else ("sfavorevole" if margin <= -3 else "incerto")
+	return {
+		"fp": fp, "cover": cover, "defenders": n, "defense": best_def,
+		"margin": margin, "verdict": verdict, "shooters": firers.size(),
 	}
 
 

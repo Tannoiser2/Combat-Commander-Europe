@@ -144,7 +144,8 @@ func _update_tooltip(vpos: Vector2) -> void:
 		return
 	if hx != _hover_hex:
 		_hover_hex = hx
-		_tip_label.text = _hex_info_text(Game.state, hx.x, hx.y)
+		var fly := _fire_flyover_text(hx)
+		_tip_label.text = fly if fly != "" else _hex_info_text(Game.state, hx.x, hx.y)
 	_tip.visible = true
 	_tip.reset_size()
 	var vs := get_viewport().get_visible_rect().size
@@ -158,6 +159,34 @@ func _hide_tooltip() -> void:
 	_hover_hex = Vector2i(-9999, -9999)
 	if _tip != null:
 		_tip.visible = false
+
+
+## Flyover delle statistiche del Fuoco: passando col mouse su un bersaglio
+## candidato durante l'assemblaggio (gruppo-prima-del-bersaglio), mostra FP
+## d'attacco vs difesa stimata ed esito. "" fuori da quel contesto.
+func _fire_flyover_text(hx: Vector2i) -> String:
+	var s := Game.state
+	if s == null or s.current_order != Domain.OrderType.FIRE:
+		return ""
+	if s.selected_unit_id == "" or s.fire_eligible_ids.is_empty() or s.fire_target_q >= 0:
+		return ""
+	if not s.highlighted_hexes.has("%d,%d" % [hx.x, hx.y]):
+		return ""
+	var pv := Game.fire_preview_at(hx.x, hx.y)
+	if pv.is_empty():
+		return ""
+	var col := "#ffe066"
+	match String(pv.get("verdict", "")):
+		"favorevole":  col = "#6cff6c"
+		"sfavorevole": col = "#ff7066"
+	var txt := "[b]Fuoco su (%d,%d)[/b]" % [hx.x, hx.y]
+	txt += "\n[color=#9fd]FP %d[/color]  vs  DIF %d" % [int(pv.get("fp", 0)), int(pv.get("defense", 0))]
+	txt += "\ncopertura %d · difensori %d · tiratori %d" % [
+		int(pv.get("cover", 0)), int(pv.get("defenders", 0)), int(pv.get("shooters", 0))]
+	txt += "\n[color=%s]%s (margine %+d)[/color]" % [
+		col, String(pv.get("verdict", "—")), int(pv.get("margin", 0))]
+	txt += "\n[color=#aaa]clic per aprire il fuoco[/color]"
+	return txt
 
 
 ## Testo informativo dell'esagono: terreno + copertura + marker + unità presenti.
@@ -484,6 +513,28 @@ func _add_highlights(s: GameState) -> void:
 			var pv := s.unit_by_id(pid)
 			if pv != null:
 				_hex_disc(pv.q, pv.r, s, Color(1.0, 0.55, 0.0, 0.35))
+	# Fuoco PRIMA del bersaglio (gruppo-prima): pezzi inclusi (arancio) / esclusi
+	# (grigio) e linee di mira da ogni tiratore verso OGNI bersaglio candidato.
+	var fire_assembling: bool = s.current_order == Domain.OrderType.FIRE \
+		and s.selected_unit_id != "" and not s.fire_eligible_ids.is_empty() and s.fire_target_q < 0
+	if fire_assembling:
+		for eid in s.fire_eligible_ids:
+			if eid == s.selected_unit_id:
+				continue
+			var ev := s.unit_by_id(eid)
+			if ev == null:
+				continue
+			var inc: bool = s.fire_group_ids.has(eid)
+			_hex_disc(ev.q, ev.r, s,
+				Color(1.0, 0.55, 0.0, 0.45) if inc else Color(0.6, 0.6, 0.6, 0.35))
+		for key in s.highlighted_hexes:
+			var pp := String(key).split(",")
+			var tqh := int(pp[0])
+			var trh := int(pp[1])
+			for gid in s.fire_group_ids:
+				var gu := s.unit_by_id(gid)
+				if gu != null and Combat.can_fire(gu, tqh, trh, s):
+					_los_line(gu.q, gu.r, tqh, trh, s, Color(0.95, 0.25, 0.2, 0.45))
 	# Assemblaggio del gruppo di fuoco: pezzi inclusi (arancio) / esclusi (grigio).
 	if s.fire_target_q >= 0:
 		for eid in s.fire_eligible_ids:

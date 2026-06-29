@@ -100,6 +100,7 @@ func _ready() -> void:
 	_test_initial_fortifications()
 	_test_fire_command_group()
 	_test_fire_ready()
+	_test_fire_group_first()
 	_test_order_feasible()
 	_test_actions()
 	_test_grenade()
@@ -2316,6 +2317,44 @@ func _test_fire_ready() -> void:
 	Game._compute_fire_ready()
 	_check(s.fire_ready_ids.has("A"), "una squadra con bersaglio è pronta a sparare")
 	_check(not s.fire_ready_ids.has("F"), "una squadra senza bersaglio non è pronta")
+
+
+func _test_fire_group_first() -> void:
+	print("· Fuoco gruppo-prima: tiratore → gruppo+bersagli; toggle ricalcola; click bersaglio = fuoco")
+	var s := _new_state(8, 3)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.FIRE
+	# Leader (raggio di comando ampio) + due squadre non co-locate + un nemico a tiro.
+	s.units["L"] = _mk("L", GER, LEADER, ELITE, 1, 1, 0, 8, 0, 9)
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 0, 1, 6, 7, 99)
+	s.units["B"] = _mk("B", GER, SQUAD, RIFLE, 2, 1, 6, 7, 99)
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 6, 1, 5, 7)
+	Game.state = s
+	# Gruppo potenziale (senza bersaglio): A + B legate dal comando del leader.
+	var pot: Array = []
+	for g in Combat.potential_fire_group(s.units["A"], s):
+		pot.append(g.id)
+	_check(pot.has("A") and pot.has("B"), "il gruppo potenziale unisce A e B (comando del leader)")
+	# Selezione del tiratore: assembla il gruppo e illumina i bersagli PRIMA del bersaglio.
+	Game._compute_fire_ready()
+	Game.select_unit("A")
+	_check(s.fire_eligible_ids.has("A") and s.fire_eligible_ids.has("B"),
+		"selezionando A il gruppo (A+B) è già assemblato")
+	_check(s.fire_target_q < 0, "nessun bersaglio scelto durante l'assemblaggio")
+	_check(s.highlighted_hexes.has("6,1"), "il bersaglio candidato è illuminato")
+	# Flyover su un bersaglio candidato: FP del gruppo = 6 + 1 (pezzo extra).
+	var pv := Game.fire_preview_at(6, 1)
+	_check(int(pv.get("fp", 0)) == 7, "flyover: FP 6 + 1 (due pezzi) = 7")
+	_check(int(pv.get("shooters", 0)) == 2, "flyover: due tiratori colpiscono il bersaglio")
+	# Escludo B: i bersagli si ricalcolano e l'FP cala a 6.
+	Game.toggle_fire_piece("B")
+	_check(not s.fire_group_ids.has("B"), "B escluso dal gruppo col toggle")
+	_check(int(Game.fire_preview_at(6, 1).get("fp", 0)) == 6, "con un solo pezzo FP = 6")
+	# Click sul bersaglio = fuoco in un colpo: l'assemblaggio si azzera e l'ordine si chiude.
+	Game.click_hex_fire(6, 1)
+	_check(s.current_order == -1, "dopo il fuoco l'ordine è concluso")
+	_check(s.fire_eligible_ids.is_empty() and s.fire_target_q < 0, "stato di assemblaggio azzerato")
 
 
 func _test_scenario_rules() -> void:
