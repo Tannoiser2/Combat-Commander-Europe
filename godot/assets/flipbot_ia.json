@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema-less",
+  "meta": {
+    "titolo": "FlipBot — Meccanismo di comportamento dell'IA",
+    "gioco": "Combat Commander: Europe (port Godot)",
+    "versione_motore": "0.34.0",
+    "fonte_codice": [
+      "godot/engine/FlipBot.gd",
+      "godot/engine/Game.gd (_run_ai_turn, _ai_execute, reazioni)"
+    ],
+    "descrizione": "Il FlipBot (di Russ Brown) è l'avversario senza giocatore. Non bara: pesca le stesse carte di un umano e segue regole deterministiche. Questo documento descrive l'intera catena decisionale, pensato per generare un'infografica.",
+    "principio_guida": "L'IA decide SOLO QUALE ordine giocare e QUANDO passare (FlipBot.gd); la scelta tattica fine (quali unità, quali bersagli) è in euristiche pure riusate dal motore."
+  },
+
+  "ciclo_turno": {
+    "descrizione": "Sequenza eseguita a ogni turno dell'IA (Game._run_ai_turn).",
+    "passi": [
+      {
+        "n": 1,
+        "nome": "Calcola Disposizione",
+        "dettaglio": "All'inizio del turno ricalcola Offensiva/Difensiva (vedi blocco 'disposizione').",
+        "rif": "FlipBot.compute_disposition"
+      },
+      {
+        "n": 2,
+        "nome": "Passa e scarta?",
+        "dettaglio": "Se più di metà della mano è fatta di carte inutili (dud), passa, scarta le dud e ripesca; il turno finisce.",
+        "rif": "FlipBot.should_pass_and_discard"
+      },
+      {
+        "n": 3,
+        "nome": "Gioca ordini",
+        "dettaglio": "Finché restano ordini disponibili (max ai_max_orders): sceglie un ordine, lo esegue, controlla le condizioni di fine partita. Recupero ha priorità assoluta, poi il primo ordine giocabile da sinistra a destra.",
+        "rif": "FlipBot.choose_turn_order + Game._ai_execute"
+      },
+      {
+        "n": 4,
+        "nome": "Nessun ordine giocabile",
+        "dettaglio": "Se non ha eseguito alcun ordine, passa e scarta le dud (o cicla una carta per non bloccare la mano).",
+        "rif": "Game._ai_pass_discard"
+      },
+      {
+        "n": 5,
+        "nome": "Cede il turno",
+        "dettaglio": "Torna al giocatore umano (salvo fine partita).",
+        "rif": "Phase.PLAYER_TURN"
+      }
+    ]
+  },
+
+  "disposizione": {
+    "descrizione": "Stato strategico globale dell'IA, ricalcolato a ogni avanzamento del Tempo (e a inizio turno). Guida le destinazioni di Mossa.",
+    "formula": "valore = VP_del_bot + (obiettivi_controllati × DISPOSITION_OBJ_WEIGHT)",
+    "soglia": "se valore >= DISPOSITION_DEFEND_AT (7) → DIFENSIVA, altrimenti OFFENSIVA",
+    "costanti": {
+      "DISPOSITION_OBJ_WEIGHT": 2,
+      "DISPOSITION_DEFEND_AT": 7
+    },
+    "effetto": {
+      "OFFENSIVA": "punta a conquistare obiettivi nuovi e ad avvicinarsi/attaccare il nemico; ignora il presidio di obiettivi già propri.",
+      "DIFENSIVA": "in più rispetto all'offensiva, mantiene gli obiettivi amici già controllati (priorità di Mossa #2)."
+    },
+    "rif": "FlipBot.compute_disposition"
+  },
+
+  "gestione_mano": {
+    "descrizione": "Il FlipBot scarta le carte che non sa usare (dud) e ripesca, per non restare bloccato.",
+    "carte_dud": {
+      "definizione": "Carte 'inutili' per il bot.",
+      "regole": [
+        {"ordine": "PASS (Confusione d'Ordini)", "dud": "SEMPRE"},
+        {"ordine": "ARTY_DENIED (Artiglieria Negata)", "dud": "se il NEMICO non ha Radio efficiente"},
+        {"ordine": "ARTY (Richiesta d'Artiglieria)", "dud": "se il BOT non ha Radio efficiente"}
+      ],
+      "rif": "FlipBot.is_dud / has_radio"
+    },
+    "passa_e_scarta": {
+      "condizione": "duds × 2 > dimensione_mano  (cioè più di metà della mano è dud)",
+      "azione": "scarta tutte le dud e ne ripesca altrettante; se non ci sono dud ma serve sbloccare, cicla la carta più a sinistra.",
+      "rif": "FlipBot.should_pass_and_discard / Game._ai_pass_discard"
+    }
+  },
+
+  "selezione_ordine": {
+    "descrizione": "Come l'IA sceglie quale carta-ordine giocare in un dato momento.",
+    "priorita": [
+      {
+        "rango": 1,
+        "nome": "Recupero per primo",
+        "condizione": "se esiste almeno un'unità amica ROTTA",
+        "azione": "gioca la carta Recupero più a sinistra in mano",
+        "rif": "OrderType.RECOVER"
+      },
+      {
+        "rango": 2,
+        "nome": "Primo ordine giocabile da sinistra a destra",
+        "condizione": "scorre la mano da sinistra; gioca la prima carta il cui ordine produce un'azione utile",
+        "test_giocabilita_per_ordine": {
+          "FIRE": "esiste un bersaglio valido che soddisfa la FP minima (best_fire ≠ vuoto)",
+          "ADVANCE": "esiste un'avanzata utile, conquista o mischia non perdente (best_advance ≠ vuoto)",
+          "ARTY": "esiste osservatore + radio + bersaglio (AI.best_artillery)",
+          "RECOVER": "esiste un'unità rotta o soppressa",
+          "ROUT": "esiste un'unità rotta sotto pressione (AI._has_pressured_broken)",
+          "MOVE": "esiste almeno un'unità muovibile (AI._has_movable)",
+          "PASS / ARTY_DENIED": "MAI giocabili come ordine"
+        },
+        "rif": "FlipBot.choose_turn_order / _order_play"
+      }
+    ]
+  },
+
+  "euristiche_tattiche": {
+    "descrizione": "Una volta scelto l'ordine, come l'IA seleziona unità e bersagli.",
+
+    "FUOCO": {
+      "rif": "FlipBot.best_fire",
+      "attivazione": "fra tutte le unità non attivate, efficienti e con FP>0, sceglie il GRUPPO di fuoco con la MASSIMA FP totale che ha un bersaglio valido in gittata e linea di vista.",
+      "fp_gruppo": "miglior pezzo (con bonus Comando) + 1 per ogni pezzo aggiuntivo (O20.3.1.2).",
+      "filtro_fp_minima": "scarta i bersagli per cui  FP < difesa_efficace − FIRE_MIN_MARGIN (5): un tiro troppo debole non vale l'attivazione.",
+      "scelta_bersaglio": {
+        "primario": "esagono nemico con la DIFESA EFFICACE più bassa",
+        "difesa_efficace": "morale_minimo_nell_esagono + copertura + ostacolo_LOS(+hindrance globale) + Comando difensivo",
+        "spareggio_1": "a parità di FP, bersaglio a difesa più bassa",
+        "spareggio_2": "a parità anche di difesa, esagono con PIÙ nemici (colpo più denso)"
+      },
+      "costanti": {"FIRE_MIN_MARGIN": 5}
+    },
+
+    "AVANZATA": {
+      "rif": "FlipBot.best_advance",
+      "scansione": "per ogni unità ordinabile (non arma) e ogni esagono adiacente valuta due mosse:",
+      "opzioni": [
+        {
+          "tipo": "Conquista (capture)",
+          "rango": 2,
+          "condizione": "esagono adiacente SENZA nemici, con un obiettivo non controllato dal bot",
+          "punteggio": "copertura dell'esagono (preferisce posizioni difendibili)"
+        },
+        {
+          "tipo": "Corpo a corpo (melee)",
+          "rango": "1 se l'esagono è un obiettivo conteso, altrimenti 0",
+          "condizione": "esagono adiacente CON nemici",
+          "margine": "FP_efficace_attaccante(+1 se in box) − Σ FP_efficace_difensori(+1 se in box)  (O16.4: niente Comando)",
+          "look_ahead": "se margine <= −MELEE_MAX_DEFICIT (−2) RINUNCIA: non avanza in una mischia che perderebbe di 2+ punti"
+        }
+      ],
+      "selezione_finale": "rango più alto; a parità di rango, punteggio più alto (copertura per la conquista, margine per la mischia).",
+      "costanti": {"MELEE_MAX_DEFICIT": 2}
+    },
+
+    "MOSSA": {
+      "rif": "FlipBot.move_destination / Game._ai_move_order",
+      "ordine_unita": "muove prima le unità rotte (in ritirata), poi le efficienti.",
+      "non_abbandona": "se un'unità è l'unico amico su un obiettivo controllato, resta (should_hold_objective).",
+      "destinazione_per_priorita": [
+        {"p": 0, "caso": "unità ROTTA", "meta": "ritirata verso il bordo mappa AMICO, stessa riga"},
+        {"p": 1, "caso": "obiettivo libero conquistabile entro 5", "meta": "vai a conquistarlo"},
+        {"p": 2, "caso": "obiettivo amico entro 5 (SOLO in DIFENSIVA)", "meta": "tienilo"},
+        {"p": 3, "caso": "obiettivo occupato dal nemico entro 5", "meta": "avvicinati"},
+        {"p": 4, "caso": "esagono nemico entro 5", "meta": "avvicinati al nemico più vicino"},
+        {"p": 5, "caso": "default", "meta": "bordo mappa NEMICO — oppure, in scenari 'No Quarter/Breakout/Ritirata', il nemico più vicino (no_edge_objective: 7 sempre; 8 se Alleato; 13 e 20 se Asse)"}
+      ],
+      "movimento": "si sposta un esagono alla volta verso la destinazione, fino ai suoi PM, scegliendo l'esagono migliore per copertura e avvicinamento; evita nemici e sovraccarico.",
+      "costanti": {"MOVE_RANGE": 5},
+      "edge": {
+        "bordo_nemico": "Asse (Tedesco) attacca verso Ovest (col 0); Alleati (Russo) verso Est (ultima colonna).",
+        "bordo_amico": "opposto del bordo nemico (ritirata delle unità rotte)."
+      }
+    },
+
+    "RECUPERO": {
+      "rif": "Game._ai_execute (RECOVER)",
+      "azione": "azzera la soppressione della fazione e tenta il recupero di ogni unità rotta con un tiro del Fato."
+    },
+
+    "FUGA": {
+      "rif": "Game._ai_execute (ROUT)",
+      "azione": "fa fuggire le unità rotte; se la fuga le elimina, le rimuove."
+    },
+
+    "ARTIGLIERIA": {
+      "rif": "AI.best_artillery / Game._ai_artillery",
+      "condizione": "richiede osservatore + radio efficienti; sceglie il bersaglio e risolve il bombardamento (O18)."
+    }
+  },
+
+  "reazioni": {
+    "descrizione": "Comportamenti dell'IA fuori dal proprio turno, nelle finestre di reazione.",
+    "fuoco_di_opportunita": {
+      "rif": "FlipBot.best_op_fire",
+      "trigger": "un'unità nemica si muove in vista (A33).",
+      "scelta": "fra i tiratori idonei contro il mover, sceglie quello il cui GRUPPO ha la massima FP totale.",
+      "fp_reazione": "FP_gruppo − ostacolo_LOS (+ hindrance globale).",
+      "filtro_fp_minima": "reagisce solo se  FP >= difesa_statica_del_mover − FIRE_MIN_MARGIN (5); altrimenti la reazione è troppo debole e non conviene.",
+      "difesa_statica": "morale del mover + copertura dell'esagono in cui si trova."
+    },
+    "mimetizzazione_reattiva": {
+      "rif": "Game._maybe_react_concealment (A29)",
+      "trigger": "l'IA sta per essere bersaglio di un attacco di fuoco e ha la carta MIMETIZZAZIONE in mano.",
+      "condizione": "l'esagono difeso ha copertura > 0 (senza copertura non darebbe effetto: non spreca la carta).",
+      "effetto": "arma un'unità difendente: il prossimo attacco subìto è ridotto del valore della Copertura (one-shot), poi la carta è scartata."
+    },
+    "imboscata_in_mischia": {
+      "rif": "Game._ai_ambush (A25)",
+      "trigger": "una mischia sta per essere risolta e l'IA ha la carta IMBOSCATA.",
+      "scelta_vittima": "rompe l'unità avversaria PARTECIPANTE intatta con la FP efficace più bassa; se nessuna è intatta non spreca la carta.",
+      "tempistica": "applicata PRIMA del tiro dei dadi della mischia."
+    }
+  },
+
+  "difficolta": {
+    "descrizione": "Il lato controllato dall'IA (l'opposto dell'umano) riceve bonus a inizio partita, prima di distribuire le mani.",
+    "rif": "FlipBot.apply_difficulty",
+    "livelli": ["GREEN", "LINE", "VETERAN"],
+    "bonus": {
+      "ordini_per_turno": {"GREEN": 0, "LINE": 1, "VETERAN": 2},
+      "carte_in_mano": {"GREEN": 0, "LINE": 1, "VETERAN": 2, "nota": "limite massimo 7"},
+      "soglia_di_resa": {"GREEN": 0, "LINE": 1, "VETERAN": 2, "nota": "resa più tenace"}
+    }
+  },
+
+  "costanti_globali": {
+    "DISPOSITION_OBJ_WEIGHT": {"valore": 2, "uso": "peso di ogni obiettivo controllato nella Disposizione"},
+    "DISPOSITION_DEFEND_AT": {"valore": 7, "uso": "soglia (a favore del bot) per passare in Difensiva"},
+    "MOVE_RANGE": {"valore": 5, "uso": "raggio 'entro 5 esagoni' nelle destinazioni di Mossa"},
+    "FIRE_MIN_MARGIN": {"valore": 5, "uso": "FP minima: il fuoco deve arrivare entro 5 dalla difesa efficace"},
+    "MELEE_MAX_DEFICIT": {"valore": 2, "uso": "look-ahead: non avanza se perderebbe la mischia di 2+ punti"}
+  },
+
+  "glossario": {
+    "FP": "Firepower / Potenza di Fuoco.",
+    "VP": "Victory Points / Punti Vittoria (il tracciato è a favore di un lato).",
+    "difesa_efficace": "morale + copertura + ostacolo LOS + Comando difensivo del bersaglio.",
+    "dud": "carta inutile per il bot, da scartare.",
+    "Disposizione": "stato Offensivo/Difensivo globale dell'IA.",
+    "Fato": "tiro a due dadi pescato dal mazzo del Fato.",
+    "Comando": "bonus di un Leader alle unità nel suo raggio."
+  }
+}
