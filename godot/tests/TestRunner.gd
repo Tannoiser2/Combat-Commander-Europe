@@ -106,6 +106,7 @@ func _ready() -> void:
 	_test_log_detail()
 	_test_action_feasible()
 	_test_fire_modifier_assembly()
+	_test_advance_group()
 	_test_uphill_move()
 	_test_cumulative_command()
 	_test_order_feasible()
@@ -2465,6 +2466,36 @@ func _test_fire_modifier_assembly() -> void:
 	Game.apply_fire_modifier(0)
 	_check(not s.fire_modifiers.has("FUOCO MIRATO"),
 		"ri-cliccando lo stesso modificatore lo si toglie (toggle)")
+
+
+func _test_advance_group() -> void:
+	print("· Avanzata: un ordine dato a un leader fa avanzare il GRUPPO di comando (O7/O14.1)")
+	var s := _new_state(6, 5)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.ADVANCE
+	s.units["L"] = _mk("L", GER, LEADER, ELITE, 2, 2, 0, 8, 0, 3)
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 1, 2, 6, 7)
+	s.units["B"] = _mk("B", GER, SQUAD, RIFLE, 3, 2, 6, 7)
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 5, 4, 5, 7)  # nemico lontano (no fine partita)
+	Game.state = s
+	# Selezionando una squadra comandata si forma il gruppo (L + A + B).
+	Game.select_unit("A")
+	_check(s.ordered_group.size() == 3, "il gruppo di Avanzata include leader + 2 squadre comandate")
+	# Avanza A in un esagono adiacente vuoto: l'ordine NON conclude (restano L e B).
+	Game.click_hex_advance(1, 1)
+	_check(s.units["A"].q == 1 and s.units["A"].r == 1, "A è avanzata di un esagono")
+	_check(s.current_order == Domain.OrderType.ADVANCE, "l'ordine resta aperto: altri membri possono avanzare")
+	_check(int(s.group_mp.get("A", -1)) == 0, "A ha consumato la sua avanzata")
+	# Avanza B, poi L: dopo l'ultimo l'ordine si conclude da solo.
+	Game.select_unit("B")
+	Game.click_hex_advance(3, 1)
+	_check(s.current_order == Domain.OrderType.ADVANCE, "ancora aperto: manca il leader")
+	Game.select_unit("L")
+	Game.click_hex_advance(2, 1)
+	_check(s.current_order == -1, "dopo l'avanzata di tutti i membri l'ordine conclude")
+	_check(s.units["L"].activated and s.units["A"].activated and s.units["B"].activated,
+		"tutte le unità del gruppo risultano attivate")
 
 
 func _test_uphill_move() -> void:

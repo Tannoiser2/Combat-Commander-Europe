@@ -784,8 +784,10 @@ func _guidance_text(s: GameState) -> String:
 					return "FUOCO — gruppo assemblato: clic su un pezzo = aggiungi/togli · mouse su un BERSAGLIO per le statistiche · clic per sparare · il tiratore per annullare"
 				Domain.OrderType.ADVANCE:
 					if not has_unit:
-						return "AVANZATA — clicca l'unità che avanza"
-					return "AVANZATA — clicca un esagono adiacente · l'unità per annullare"
+						return "AVANZATA — clicca l'unità (o un leader: avanza tutto il gruppo entro il Comando)"
+					if s.ordered_group.size() > 1:
+						return "AVANZATA DI GRUPPO — clicca un esagono adiacente · membro arancio per il prossimo · l'unità per concludere"
+					return "AVANZATA — clicca un esagono adiacente · l'unità per concludere/annullare"
 				Domain.OrderType.ARTY:
 					var mode := "FUMO" if s.artillery_smoke else "esplosivo"
 					return "ARTIGLIERIA [%s] — clicca il bersaglio (giallo) nella LOS · «S» = fumo/esplosivo · lo spotter per annullare" % mode

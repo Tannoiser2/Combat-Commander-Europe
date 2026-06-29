@@ -1,3 +1,9 @@
+[b]v0.39.0[/b]
+
+[b]Avanzata di gruppo (ordine dato al leader)[/b]
+- Come la Mossa, ora anche l'[b]Avanzata[/b] data «tramite» un leader attiva il leader [b]e[/b] tutte le squadre/team entro il suo raggio di Comando: ciascun membro avanza di un esagono (con eventuale corpo a corpo), poi si passa al successivo (membro arancio) e l'ordine si conclude da solo. Prima l'Avanzata muoveva una sola unità. (Regole O7/O14.1 + 3.3.1.1, confermate sul regolamento ufficiale.)
+- Nota: Recupero e Rotta restano correttamente «a livello di giocatore» (agiscono su tutte le unità rotte, non sul gruppo di un leader), come da regolamento (O22/O23).
+
 [b]v0.38.0[/b]
 
 [b]Correzioni — badge azioni/ordini e movimento dell'IA[/b]

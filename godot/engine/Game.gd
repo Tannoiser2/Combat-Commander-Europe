@@ -265,6 +265,22 @@ func select_unit(unit_id: String) -> void:
 		_select_fire_base(u)
 		return
 
+	# ─── Avanzata: gruppo di comando (O7, come la Mossa) ─────────────────────
+	# Anche l'Avanzata può essere data «tramite» un leader: attiva il leader e le
+	# unità idonee entro il suo raggio di Comando, ciascuna avanza di un esagono.
+	if state.phase == Domain.Phase.PLAYER_MOVING and state.current_order == Domain.OrderType.ADVANCE:
+		if state.ordered_group.is_empty():
+			if u.faction != state.human_faction or not Rules.can_be_ordered(u):
+				return
+			_form_advance_group(u)
+		elif not state.ordered_group.has(unit_id):
+			return
+		state.selected_unit_id = unit_id
+		state.command_preview_ids.clear()
+		_highlight_advance(u)
+		emit_signal("state_changed")
+		return
+
 	# ─── Altri ordini ────────────────────────────────────────────────────────
 	state.selected_unit_id = unit_id
 	state.highlighted_hexes.clear()
@@ -275,15 +291,6 @@ func select_unit(unit_id: String) -> void:
 		var grp := _command_group_ids(u)
 		if grp.size() > 1:
 			state.command_preview_ids = grp
-	if state.phase == Domain.Phase.PLAYER_MOVING:
-		match state.current_order:
-			Domain.OrderType.FIRE:
-				for h in _fire_targets(u):
-					state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
-			Domain.OrderType.ADVANCE:
-				for h in HexGrid.neighbors(u.q, u.r):
-					if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
-						state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 	emit_signal("state_changed")
 
 
@@ -303,6 +310,32 @@ func _form_move_group(u: Unit) -> void:
 	var leader := Rules.commanding_leader(state, u, true)
 	if ids.size() > 1 and leader != null:
 		_log("Comando: %s attiva %d unità entro raggio %d." % [leader.unit_name, ids.size(), leader.command])
+
+
+## Forma il gruppo di comando per un'Avanzata (O7): come la Mossa, ma ogni membro
+## ha UNA avanzata (un esagono) — qui `group_mp[id]` vale 1 finché non ha avanzato,
+## poi 0. Un'unità non comandata avanza da sola.
+func _form_advance_group(u: Unit) -> void:
+	state.ordered_group.clear()
+	state.group_mp.clear()
+	state.move_committed = false
+	var ids := _command_group_ids(u)
+	for id in ids:
+		state.ordered_group.append(id)
+		state.group_mp[id] = 1  # una avanzata a testa
+	var leader := Rules.commanding_leader(state, u, true)
+	if ids.size() > 1 and leader != null:
+		_log("Comando: %s fa avanzare %d unità entro raggio %d." % [leader.unit_name, ids.size(), leader.command])
+
+
+## Evidenzia gli esagoni adiacenti dove l'unità può avanzare (se non l'ha già fatto).
+func _highlight_advance(u: Unit) -> void:
+	state.highlighted_hexes.clear()
+	if int(state.group_mp.get(u.id, 0)) <= 0:
+		return  # ha già avanzato in questo ordine
+	for h in HexGrid.neighbors(u.q, u.r):
+		if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
+			state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 
 
 ## Id delle unità che un ordine dato "tramite" `u` attiverebbe: il leader che la
@@ -762,8 +795,8 @@ func click_hex(q: int, r: int) -> void:
 			_click_fire(q, r, key, units_here)
 			return
 		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
-		# Mossa di gruppo: cliccare un altro membro attivato cambia il mover attivo.
-		if s.current_order == Domain.OrderType.MOVE:
+		# Gruppo (Mossa o Avanzata): cliccare un altro membro cambia l'unità attiva.
+		if s.current_order == Domain.OrderType.MOVE or s.current_order == Domain.OrderType.ADVANCE:
 			for gid in s.ordered_group:
 				if gid == s.selected_unit_id:
 					continue
@@ -1504,6 +1537,9 @@ func click_hex_advance(tq: int, tr: int) -> void:
 	if not Rules.can_be_ordered(u):
 		_log("Avanzata: l'unità è immobilizzata (rotta o soppressa).")
 		return
+	if int(state.group_mp.get(u.id, 1)) <= 0:
+		_log("Avanzata: questa unità ha già avanzato.")
+		return
 	if HexGrid.distance(u.q, u.r, tq, tr) != 1:
 		_log("Avanzata: scegli un esagono adiacente.")
 		return
@@ -1589,6 +1625,10 @@ func cancel_order() -> void:
 	if state.current_order == Domain.OrderType.MOVE and state.move_committed:
 		finish_move()
 		return
+	# Avanzata di gruppo già impegnata: la si conclude (le unità attivate restano tali).
+	if state.current_order == Domain.OrderType.ADVANCE and state.move_committed:
+		_finish_advance()
+		return
 	if state.order_count > 0:
 		state.order_count -= 1
 	_clear_order_selection()
@@ -1602,6 +1642,8 @@ func conclude_order() -> void:
 		return
 	if state.current_order == Domain.OrderType.MOVE and state.move_committed:
 		finish_move()
+	elif state.current_order == Domain.OrderType.ADVANCE and state.move_committed:
+		_finish_advance()
 	else:
 		cancel_order()
 
@@ -1736,9 +1778,53 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 		_apply_fate(af, u.faction)
 		_apply_fate(df, def_faction)
 
-	_discard_card(state.selected_card_index)
-	_clear_order_selection()
+	# Questo membro ha avanzato. Se il gruppo (leader + comandate) ne ha altri che
+	# possono ancora avanzare, si sceglie il prossimo; altrimenti l'ordine conclude.
+	state.group_mp[u.id] = 0
+	state.move_committed = true
 	_check_end_conditions()  # aggiorna obiettivi/VP e gestisce la fine partita
+	if state.phase == Domain.Phase.GAME_OVER:
+		return
+	_after_advance_done()
+
+
+## Dopo che un membro ha avanzato: se restano membri del gruppo che possono ancora
+## avanzare, lascia scegliere il prossimo; altrimenti conclude l'ordine di Avanzata.
+func _after_advance_done() -> void:
+	state.selected_unit_id = ""
+	state.highlighted_hexes.clear()
+	if state.ordered_group.size() > 1 and _any_group_advancer_left():
+		emit_signal("state_changed")  # il giocatore sceglie il prossimo membro
+	else:
+		_finish_advance()
+
+
+## C'è ancora un membro del gruppo che non ha avanzato e ha un esagono adiacente?
+func _any_group_advancer_left() -> bool:
+	for id in state.ordered_group:
+		var v := state.unit_by_id(id)
+		if v == null or not v.efficient:
+			continue
+		if int(state.group_mp.get(id, 0)) <= 0:
+			continue  # ha già avanzato
+		for h in HexGrid.neighbors(v.q, v.r):
+			if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
+				return true
+	return false
+
+
+## Conclude l'Avanzata di gruppo: marca attivate TUTTE le unità del gruppo (anche
+## quelle non avanzate: l'ordine le ha usate), scarta la carta e torna al turno.
+func _finish_advance() -> void:
+	var card_idx := state.selected_card_index
+	for id in state.ordered_group:
+		var v := state.unit_by_id(id)
+		if v != null:
+			v.activated = true
+	if card_idx >= 0:
+		_discard_card(card_idx)
+	_clear_order_selection()
+	_check_end_conditions()
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
 
