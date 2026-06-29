@@ -1,0 +1,237 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1580" viewBox="0 0 1240 1580" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#6b6453"/>
+    </marker>
+    <linearGradient id="hdr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#445436"/>
+      <stop offset="1" stop-color="#33402a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="1240" height="1580" fill="#f4f1e8"/>
+
+  <!-- ============ HEADER ============ -->
+  <rect x="0" y="0" width="1240" height="104" fill="url(#hdr)"/>
+  <rect x="0" y="100" width="1240" height="4" fill="#c8932b"/>
+  <text x="64" y="50" font-size="34" font-weight="700" fill="#ffffff">FlipBot — il cervello dell'IA</text>
+  <text x="64" y="83" font-size="17" fill="#d8d2bf">Combat Commander: Europe · come decide il bot avversario (gioco deterministico, non bara)</text>
+  <text x="1176" y="46" text-anchor="end" font-size="13" fill="#a9b399">FlipBot.gd</text>
+  <text x="1176" y="66" text-anchor="end" font-size="13" fill="#a9b399">Game.gd</text>
+  <text x="1176" y="86" text-anchor="end" font-size="13" fill="#a9b399">v0.34</text>
+
+  <!-- ============ SEZIONE: CICLO DEL TURNO ============ -->
+  <rect x="64" y="128" width="8" height="26" fill="#4a7c3f"/>
+  <text x="84" y="149" font-size="22" font-weight="700" fill="#2b2b25">Il ciclo del turno</text>
+
+  <!-- 5 step boxes -->
+  <!-- step 1 -->
+  <g>
+    <rect x="64" y="168" width="200" height="124" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+    <circle cx="92" cy="196" r="15" fill="#4a7c3f"/><text x="92" y="201" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">1</text>
+    <text x="118" y="201" font-size="16" font-weight="700" fill="#2b2b25">Disposizione</text>
+    <text x="80" y="232" font-size="13" fill="#6b6453">Ricalcola se gioca</text>
+    <text x="80" y="251" font-size="13" fill="#6b6453">in modo Offensivo</text>
+    <text x="80" y="270" font-size="13" fill="#6b6453">o Difensivo.</text>
+  </g>
+  <!-- step 2 -->
+  <g>
+    <rect x="292" y="168" width="200" height="124" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+    <circle cx="320" cy="196" r="15" fill="#4a7c3f"/><text x="320" y="201" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">2</text>
+    <text x="346" y="201" font-size="16" font-weight="700" fill="#2b2b25">Mano scadente?</text>
+    <text x="308" y="232" font-size="13" fill="#6b6453">Se &gt; metà mano è</text>
+    <text x="308" y="251" font-size="13" fill="#6b6453">fatta di carte inutili:</text>
+    <text x="308" y="270" font-size="13" fill="#6b6453">passa, scarta, ripesca.</text>
+  </g>
+  <!-- step 3 -->
+  <g>
+    <rect x="520" y="168" width="200" height="124" rx="10" fill="#ffffff" stroke="#4a7c3f" stroke-width="2.5"/>
+    <circle cx="548" cy="196" r="15" fill="#4a7c3f"/><text x="548" y="201" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">3</text>
+    <text x="574" y="201" font-size="16" font-weight="700" fill="#2b2b25">Gioca ordini</text>
+    <text x="536" y="232" font-size="13" fill="#6b6453">Sceglie ed esegue un</text>
+    <text x="536" y="251" font-size="13" fill="#6b6453">ordine. Ripete finché</text>
+    <text x="536" y="270" font-size="13" fill="#6b6453">restano ordini (max).</text>
+  </g>
+  <!-- step 4 -->
+  <g>
+    <rect x="748" y="168" width="200" height="124" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+    <circle cx="776" cy="196" r="15" fill="#4a7c3f"/><text x="776" y="201" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">4</text>
+    <text x="802" y="201" font-size="16" font-weight="700" fill="#2b2b25">Niente da fare?</text>
+    <text x="764" y="232" font-size="13" fill="#6b6453">Se non ha giocato</text>
+    <text x="764" y="251" font-size="13" fill="#6b6453">nulla: passa e scarta</text>
+    <text x="764" y="270" font-size="13" fill="#6b6453">(o cicla una carta).</text>
+  </g>
+  <!-- step 5 -->
+  <g>
+    <rect x="976" y="168" width="200" height="124" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+    <circle cx="1004" cy="196" r="15" fill="#4a7c3f"/><text x="1004" y="201" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">5</text>
+    <text x="1030" y="201" font-size="16" font-weight="700" fill="#2b2b25">Cede il turno</text>
+    <text x="992" y="232" font-size="13" fill="#6b6453">Torna al giocatore</text>
+    <text x="992" y="251" font-size="13" fill="#6b6453">umano (salvo</text>
+    <text x="992" y="270" font-size="13" fill="#6b6453">fine partita).</text>
+  </g>
+  <!-- arrows between steps -->
+  <line x1="266" y1="230" x2="290" y2="230" stroke="#6b6453" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="494" y1="230" x2="518" y2="230" stroke="#6b6453" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="722" y1="230" x2="746" y2="230" stroke="#6b6453" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="950" y1="230" x2="974" y2="230" stroke="#6b6453" stroke-width="2" marker-end="url(#arrow)"/>
+  <!-- loop-back on step 3 -->
+  <path d="M560,292 C560,318 680,318 680,292" fill="none" stroke="#4a7c3f" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="620" y="332" text-anchor="middle" font-size="11.5" fill="#4a7c3f">ripeti per ogni ordine</text>
+
+  <!-- ============ DISPOSIZIONE + GESTIONE MANO ============ -->
+  <rect x="64" y="368" width="8" height="26" fill="#c8932b"/>
+  <text x="84" y="389" font-size="22" font-weight="700" fill="#2b2b25">Le due bussole del bot</text>
+
+  <!-- Disposizione card -->
+  <rect x="64" y="408" width="544" height="196" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+  <rect x="64" y="408" width="544" height="34" rx="10" fill="#c8932b"/><rect x="64" y="424" width="544" height="18" fill="#c8932b"/>
+  <text x="84" y="431" font-size="16" font-weight="700" fill="#fff">DISPOSIZIONE — offensivo o difensivo?</text>
+  <rect x="84" y="456" width="504" height="40" rx="6" fill="#f7f2e4" stroke="#e0d6bb"/>
+  <text x="336" y="481" text-anchor="middle" font-size="17" font-weight="700" fill="#2b2b25">valore = VP del bot  +  (obiettivi controllati × 2)</text>
+  <circle cx="150" cy="528" r="7" fill="#9e3b2e"/><text x="166" y="533" font-size="14.5" fill="#2b2b25">valore ≥ 7  →  DIFENSIVA (tiene i propri obiettivi)</text>
+  <circle cx="150" cy="556" r="7" fill="#4a7c3f"/><text x="166" y="561" font-size="14.5" fill="#2b2b25">valore &lt; 7  →  OFFENSIVA (conquista e attacca)</text>
+  <text x="84" y="591" font-size="12.5" fill="#6b6453" font-style="italic">Ricalcolata a ogni avanzamento del Tempo. Guida le destinazioni di Mossa.</text>
+
+  <!-- Gestione mano card -->
+  <rect x="632" y="408" width="544" height="196" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+  <rect x="632" y="408" width="544" height="34" rx="10" fill="#7a6a3a"/><rect x="632" y="424" width="544" height="18" fill="#7a6a3a"/>
+  <text x="652" y="431" font-size="16" font-weight="700" fill="#fff">GESTIONE DELLA MANO — scarta l'inutile</text>
+  <text x="652" y="470" font-size="14.5" font-weight="700" fill="#2b2b25">Carte «dud» (che il bot non sa usare):</text>
+  <circle cx="668" cy="494" r="5" fill="#7a6a3a"/><text x="682" y="499" font-size="14" fill="#2b2b25">Confusione d'Ordini — sempre</text>
+  <circle cx="668" cy="518" r="5" fill="#7a6a3a"/><text x="682" y="523" font-size="14" fill="#2b2b25">Artiglieria Negata — se il nemico non ha Radio</text>
+  <circle cx="668" cy="542" r="5" fill="#7a6a3a"/><text x="682" y="547" font-size="14" fill="#2b2b25">Richiesta d'Artiglieria — se il bot non ha Radio</text>
+  <rect x="652" y="562" width="504" height="30" rx="6" fill="#f7f2e4" stroke="#e0d6bb"/>
+  <text x="664" y="582" font-size="13.5" font-weight="700" fill="#9e3b2e">dud &gt; metà mano  →  passa, scarta le dud e ripesca</text>
+
+  <!-- ============ SELEZIONE ORDINE ============ -->
+  <rect x="64" y="640" width="8" height="26" fill="#3a6b8c"/>
+  <text x="84" y="661" font-size="22" font-weight="700" fill="#2b2b25">Quale ordine giocare?</text>
+
+  <rect x="64" y="680" width="340" height="96" rx="10" fill="#eef3ee" stroke="#4a7c3f" stroke-width="2"/>
+  <text x="84" y="712" font-size="16" font-weight="700" fill="#2b2b25">1 · C'è un'unità rotta?</text>
+  <text x="84" y="740" font-size="14.5" fill="#2b2b25">→ gioca subito RECUPERO</text>
+  <text x="84" y="761" font-size="13" fill="#6b6453">(la carta Recupero più a sinistra)</text>
+
+  <line x1="404" y1="728" x2="448" y2="728" stroke="#6b6453" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="426" y="718" text-anchor="middle" font-size="11.5" fill="#6b6453">altrimenti</text>
+
+  <rect x="452" y="680" width="724" height="96" rx="10" fill="#eef2f5" stroke="#3a6b8c" stroke-width="2"/>
+  <text x="472" y="712" font-size="16" font-weight="700" fill="#2b2b25">2 · Primo ordine GIOCABILE da sinistra a destra</text>
+  <text x="472" y="740" font-size="14" fill="#2b2b25">Scorre la mano e gioca la prima carta che produce un'azione utile.</text>
+  <text x="472" y="762" font-size="13" fill="#6b6453">Fuoco · Avanzata · Artiglieria · Recupero · Fuga · Mossa — (Passa / Art. Negata: mai come ordine)</text>
+
+  <!-- ============ EURISTICHE TATTICHE ============ -->
+  <rect x="64" y="812" width="8" height="26" fill="#9e3b2e"/>
+  <text x="84" y="833" font-size="22" font-weight="700" fill="#2b2b25">Come sceglie unità e bersagli</text>
+
+  <!-- FUOCO -->
+  <rect x="64" y="852" width="360" height="240" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+  <rect x="64" y="852" width="360" height="38" rx="10" fill="#c8932b"/><rect x="64" y="870" width="360" height="20" fill="#c8932b"/>
+  <text x="84" y="877" font-size="17" font-weight="700" fill="#fff">🎯 FUOCO</text>
+  <text x="84" y="918" font-size="13.5" fill="#2b2b25"><tspan font-weight="700">Attiva</tspan> il gruppo con la FP totale</text>
+  <text x="84" y="937" font-size="13.5" fill="#2b2b25">più alta che ha un bersaglio in vista.</text>
+  <line x1="84" y1="952" x2="404" y2="952" stroke="#eadfc4"/>
+  <text x="84" y="975" font-size="13.5" fill="#2b2b25"><tspan font-weight="700">Bersaglio:</tspan> difesa efficace più bassa</text>
+  <text x="84" y="994" font-size="12" fill="#6b6453">morale + copertura + ostacolo + comando</text>
+  <line x1="84" y1="1009" x2="404" y2="1009" stroke="#eadfc4"/>
+  <rect x="84" y="1022" width="320" height="26" rx="6" fill="#fbf3df" stroke="#e7cf95"/>
+  <text x="96" y="1040" font-size="13" font-weight="700" fill="#9e3b2e">FP minima: FP ≥ difesa − 5</text>
+  <text x="84" y="1072" font-size="12" fill="#6b6453">Spareggio: difesa più bassa → più nemici</text>
+
+  <!-- AVANZATA -->
+  <rect x="440" y="852" width="360" height="240" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+  <rect x="440" y="852" width="360" height="38" rx="10" fill="#4a7c3f"/><rect x="440" y="870" width="360" height="20" fill="#4a7c3f"/>
+  <text x="460" y="877" font-size="17" font-weight="700" fill="#fff">⚔ AVANZATA</text>
+  <text x="460" y="918" font-size="13.5" fill="#2b2b25">Per ogni unità guarda gli esagoni adiacenti:</text>
+  <circle cx="466" cy="940" r="4" fill="#4a7c3f"/><text x="478" y="945" font-size="13.5" fill="#2b2b25">conquista un obiettivo libero (priorità)</text>
+  <circle cx="466" cy="964" r="4" fill="#4a7c3f"/><text x="478" y="969" font-size="13.5" fill="#2b2b25">oppure corpo a corpo su un nemico</text>
+  <line x1="460" y1="982" x2="780" y2="982" stroke="#e3ecdf"/>
+  <text x="460" y="1004" font-size="13" fill="#2b2b25">Margine = FP attaccante − FP difensori</text>
+  <text x="460" y="1022" font-size="11.5" fill="#6b6453">(nella mischia il Comando non conta)</text>
+  <rect x="460" y="1034" width="320" height="26" rx="6" fill="#eef5ea" stroke="#a9cb9a"/>
+  <text x="472" y="1052" font-size="13" font-weight="700" fill="#9e3b2e">Look-ahead: salta se margine ≤ −2</text>
+  <text x="460" y="1082" font-size="12" fill="#6b6453">Mischia su obiettivo conteso prima</text>
+
+  <!-- MOSSA -->
+  <rect x="816" y="852" width="360" height="240" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+  <rect x="816" y="852" width="360" height="38" rx="10" fill="#3a6b8c"/><rect x="816" y="870" width="360" height="20" fill="#3a6b8c"/>
+  <text x="836" y="877" font-size="17" font-weight="700" fill="#fff">➤ MOSSA</text>
+  <text x="836" y="916" font-size="13.5" font-weight="700" fill="#2b2b25">Destinazione per priorità (entro 5 esagoni):</text>
+  <text x="836" y="940" font-size="13" fill="#2b2b25"><tspan font-weight="700" fill="#3a6b8c">1</tspan>  obiettivo libero conquistabile</text>
+  <text x="836" y="962" font-size="13" fill="#2b2b25"><tspan font-weight="700" fill="#3a6b8c">2</tspan>  obiettivo amico — solo in Difensiva</text>
+  <text x="836" y="984" font-size="13" fill="#2b2b25"><tspan font-weight="700" fill="#3a6b8c">3</tspan>  obiettivo occupato dal nemico</text>
+  <text x="836" y="1006" font-size="13" fill="#2b2b25"><tspan font-weight="700" fill="#3a6b8c">4</tspan>  esagono nemico più vicino</text>
+  <text x="836" y="1028" font-size="13" fill="#2b2b25"><tspan font-weight="700" fill="#3a6b8c">5</tspan>  bordo nemico (o nemico vicino)</text>
+  <rect x="836" y="1042" width="320" height="26" rx="6" fill="#eaf0f4" stroke="#9cbcd0"/>
+  <text x="848" y="1060" font-size="12.5" fill="#2b2b25">Unità rotta → ritirata al bordo amico</text>
+
+  <!-- ============ REAZIONI ============ -->
+  <rect x="64" y="1112" width="8" height="26" fill="#9e3b2e"/>
+  <text x="84" y="1133" font-size="22" font-weight="700" fill="#2b2b25">Reazioni fuori dal proprio turno</text>
+
+  <!-- Op Fire -->
+  <rect x="64" y="1152" width="360" height="170" rx="10" fill="#fdf6f4" stroke="#d8a89f" stroke-width="1.5"/>
+  <text x="84" y="1184" font-size="16" font-weight="700" fill="#9e3b2e">Fuoco di Opportunità</text>
+  <text x="404" y="1180" text-anchor="end" font-size="11" font-weight="700" fill="#c89a92">A33</text>
+  <text x="84" y="1216" font-size="13.5" fill="#2b2b25">Trigger: un nemico si muove in vista.</text>
+  <text x="84" y="1242" font-size="13.5" fill="#2b2b25">Sceglie il tiratore col gruppo a FP</text>
+  <text x="84" y="1261" font-size="13.5" fill="#2b2b25">più alta contro chi si muove.</text>
+  <rect x="84" y="1278" width="320" height="28" rx="6" fill="#fbeeea" stroke="#e7c2b8"/>
+  <text x="96" y="1297" font-size="13" font-weight="700" fill="#9e3b2e">reagisce solo se FP ≥ difesa − 5</text>
+
+  <!-- Mimetizzazione -->
+  <rect x="440" y="1152" width="360" height="170" rx="10" fill="#fdf6f4" stroke="#d8a89f" stroke-width="1.5"/>
+  <text x="460" y="1184" font-size="16" font-weight="700" fill="#9e3b2e">Mimetizzazione</text>
+  <text x="780" y="1180" text-anchor="end" font-size="11" font-weight="700" fill="#c89a92">A29</text>
+  <text x="460" y="1216" font-size="13.5" fill="#2b2b25">Sta per subire fuoco e ha la carta.</text>
+  <text x="460" y="1242" font-size="13.5" fill="#2b2b25">La gioca solo se l'esagono ha</text>
+  <text x="460" y="1261" font-size="13.5" fill="#2b2b25">copertura &gt; 0 (altrimenti la spreca).</text>
+  <rect x="460" y="1278" width="320" height="28" rx="6" fill="#fbeeea" stroke="#e7c2b8"/>
+  <text x="472" y="1297" font-size="13" font-weight="700" fill="#9e3b2e">riduce il colpo della copertura (1 volta)</text>
+
+  <!-- Imboscata -->
+  <rect x="816" y="1152" width="360" height="170" rx="10" fill="#fdf6f4" stroke="#d8a89f" stroke-width="1.5"/>
+  <text x="836" y="1184" font-size="16" font-weight="700" fill="#9e3b2e">Imboscata</text>
+  <text x="1156" y="1180" text-anchor="end" font-size="11" font-weight="700" fill="#c89a92">A25</text>
+  <text x="836" y="1216" font-size="13.5" fill="#2b2b25">Prima dei dadi della mischia.</text>
+  <text x="836" y="1242" font-size="13.5" fill="#2b2b25">Rompe l'unità nemica intatta</text>
+  <text x="836" y="1261" font-size="13.5" fill="#2b2b25">più debole (FP più bassa).</text>
+  <rect x="836" y="1278" width="320" height="28" rx="6" fill="#fbeeea" stroke="#e7c2b8"/>
+  <text x="848" y="1297" font-size="13" font-weight="700" fill="#9e3b2e">se nessuno è intatto: non spreca la carta</text>
+
+  <!-- ============ DIFFICOLTA + COSTANTI ============ -->
+  <rect x="64" y="1342" width="8" height="26" fill="#7a6a3a"/>
+  <text x="84" y="1363" font-size="22" font-weight="700" fill="#2b2b25">Difficoltà &amp; numeri chiave</text>
+
+  <!-- Difficolta table -->
+  <rect x="64" y="1382" width="600" height="160" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+  <text x="84" y="1410" font-size="15" font-weight="700" fill="#2b2b25">Bonus al lato controllato dall'IA</text>
+  <!-- header row -->
+  <text x="300" y="1438" text-anchor="middle" font-size="13.5" font-weight="700" fill="#4a7c3f">GREEN</text>
+  <text x="430" y="1438" text-anchor="middle" font-size="13.5" font-weight="700" fill="#c8932b">LINE</text>
+  <text x="560" y="1438" text-anchor="middle" font-size="13.5" font-weight="700" fill="#9e3b2e">VETERAN</text>
+  <line x1="84" y1="1448" x2="644" y2="1448" stroke="#e0d6bb"/>
+  <text x="84" y="1472" font-size="13.5" fill="#2b2b25">Ordini per turno</text>
+  <text x="300" y="1472" text-anchor="middle" font-size="13.5" fill="#2b2b25">+0</text><text x="430" y="1472" text-anchor="middle" font-size="13.5" fill="#2b2b25">+1</text><text x="560" y="1472" text-anchor="middle" font-size="13.5" fill="#2b2b25">+2</text>
+  <text x="84" y="1498" font-size="13.5" fill="#2b2b25">Carte in mano <tspan fill="#6b6453" font-size="11">(max 7)</tspan></text>
+  <text x="300" y="1498" text-anchor="middle" font-size="13.5" fill="#2b2b25">+0</text><text x="430" y="1498" text-anchor="middle" font-size="13.5" fill="#2b2b25">+1</text><text x="560" y="1498" text-anchor="middle" font-size="13.5" fill="#2b2b25">+2</text>
+  <text x="84" y="1524" font-size="13.5" fill="#2b2b25">Soglia di resa</text>
+  <text x="300" y="1524" text-anchor="middle" font-size="13.5" fill="#2b2b25">+0</text><text x="430" y="1524" text-anchor="middle" font-size="13.5" fill="#2b2b25">+1</text><text x="560" y="1524" text-anchor="middle" font-size="13.5" fill="#2b2b25">+2</text>
+
+  <!-- Costanti chips -->
+  <rect x="688" y="1382" width="488" height="160" rx="10" fill="#ffffff" stroke="#c9bfa3" stroke-width="1.5"/>
+  <text x="708" y="1410" font-size="15" font-weight="700" fill="#2b2b25">Costanti del FlipBot</text>
+  <g font-size="13">
+    <rect x="708" y="1424" width="220" height="30" rx="15" fill="#f1ece0" stroke="#d8cdb0"/><text x="722" y="1444" fill="#2b2b25">Soglia Difensiva = <tspan font-weight="700">7</tspan></text>
+    <rect x="940" y="1424" width="220" height="30" rx="15" fill="#f1ece0" stroke="#d8cdb0"/><text x="954" y="1444" fill="#2b2b25">Margine FP minima = <tspan font-weight="700">5</tspan></text>
+    <rect x="708" y="1462" width="220" height="30" rx="15" fill="#f1ece0" stroke="#d8cdb0"/><text x="722" y="1482" fill="#2b2b25">Deficit mischia max = <tspan font-weight="700">2</tspan></text>
+    <rect x="940" y="1462" width="220" height="30" rx="15" fill="#f1ece0" stroke="#d8cdb0"/><text x="954" y="1482" fill="#2b2b25">Raggio di Mossa = <tspan font-weight="700">5</tspan></text>
+    <rect x="708" y="1500" width="220" height="30" rx="15" fill="#f1ece0" stroke="#d8cdb0"/><text x="722" y="1520" fill="#2b2b25">Peso obiettivo = <tspan font-weight="700">2</tspan></text>
+    <rect x="940" y="1500" width="220" height="30" rx="15" fill="#f1ece0" stroke="#d8cdb0"/><text x="954" y="1520" fill="#2b2b25">Bonus granata (dist.1) = <tspan font-weight="700">+2</tspan></text>
+  </g>
+
+  <!-- footer -->
+  <text x="620" y="1568" text-anchor="middle" font-size="11.5" fill="#9a917c">Combat Commander: Europe (Godot) · schema fedele al codice del FlipBot · generato per infografica</text>
+</svg>
