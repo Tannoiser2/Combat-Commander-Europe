@@ -1,3 +1,9 @@
+[b]v0.42.0[/b]
+
+[b]Colonna laterale separata + impilamento in movimento[/b]
+- La colonna laterale ora è una [b]colonna a sé[/b] (come la barra di stato in alto): non si sovrappone più né alla mappa né alla mano di carte (la mano si ferma al bordo della colonna; chiudendo la colonna la mano torna a tutta larghezza).
+- In [b]movimento[/b], cliccare un esagono occupato da un compagno ora [b]impila[/b] l'unità lì (se c'è spazio, max 7 figure) invece di selezionare l'unità presente e fermare il movimento. Durante Mossa/Avanzata cliccare muove l'unità attiva: non si selezionano più altre unità per sbaglio.
+
 [b]v0.41.0[/b]
 
 [b]Effetti visivi (vista 3D)[/b]

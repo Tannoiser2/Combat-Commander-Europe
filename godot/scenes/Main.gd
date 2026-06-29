@@ -381,18 +381,23 @@ func _place_sidebar(open: bool, animate: bool = false) -> void:
 	var s_right := 0.0 if open else SIDE_W            # bordo destro colonna
 	var h_left := (-SIDE_W - 28.0) if open else -28.0 # maniglia: a sinistra del bordo colonna
 	var h_right := (-SIDE_W - 2.0) if open else -2.0
+	# La mano è una banda in basso che NON deve finire sotto la colonna: il suo
+	# bordo destro si ferma al bordo sinistro della colonna (a tutta larghezza se chiusa).
+	var hand_right := -SIDE_W if open else 0.0
 	if animate:
 		var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		tw.tween_property(sidebar, "offset_left", s_left, 0.22)
 		tw.tween_property(sidebar, "offset_right", s_right, 0.22)
 		tw.tween_property(_sidebar_handle, "offset_left", h_left, 0.22)
 		tw.tween_property(_sidebar_handle, "offset_right", h_right, 0.22)
+		tw.tween_property(hand_panel, "offset_right", hand_right, 0.22)
 		tw.chain().tween_callback(_update_map_rect)
 	else:
 		sidebar.offset_left = s_left
 		sidebar.offset_right = s_right
 		_sidebar_handle.offset_left = h_left
 		_sidebar_handle.offset_right = h_right
+		hand_panel.offset_right = hand_right
 		_update_map_rect.call_deferred()
 	_sidebar_handle.text = "▶" if open else "◀"
 

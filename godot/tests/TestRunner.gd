@@ -108,6 +108,7 @@ func _ready() -> void:
 	_test_fire_modifier_assembly()
 	_test_advance_group()
 	_test_stack_picker()
+	_test_move_onto_occupied()
 	_test_uphill_move()
 	_test_cumulative_command()
 	_test_order_feasible()
@@ -2519,6 +2520,27 @@ func _test_stack_picker() -> void:
 	Game.click_hex(4, 4)  # solo un'unità (nemica): nessuna offerta
 	_check(captured.is_empty(), "esagono senza 2+ unità amiche → nessuna offerta")
 	Game.stack_offered.disconnect(cb)
+
+
+func _test_move_onto_occupied() -> void:
+	print("· Mossa: cliccare un esagono occupato da un compagno IMPILA (non seleziona l'altro)")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 0, 1, 6, 7)
+	s.units["B"] = _mk("B", GER, LEADER, ELITE, 1, 1, 0, 8, 0, 0)  # compagno fermo (1 figura)
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 5, 2, 5, 7)         # nemico lontano (no fine partita)
+	Game.state = s
+	Game.select_unit("A")  # forma il gruppo (solo A) e la seleziona
+	_check(s.highlighted_hexes.has("1,1"),
+		"l'esagono occupato dal compagno è raggiungibile (c'è spazio: impilabile)")
+	Game.click_hex(1, 1)
+	_check(s.units["A"].q == 1 and s.units["A"].r == 1,
+		"A si è mossa sull'esagono occupato (impilamento riuscito)")
+	_check(s.selected_unit_id == "A",
+		"l'unità attiva resta A: cliccando non si è selezionato il compagno")
+	_check(s.current_order == Domain.OrderType.MOVE, "l'ordine di Mossa non si è interrotto")
 
 
 func _test_uphill_move() -> void:
