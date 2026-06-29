@@ -121,8 +121,8 @@ const TERRAIN_MOVE_COST := {
 	TerrainType.WOODS:    2,
 	TerrainType.BUILDING: 2,
 	TerrainType.STREAM:   3,
-	TerrainType.HILL1:    2,
-	TerrainType.HILL2:    3,
+	TerrainType.HILL1:    1,  # collina = terreno sottostante; la salita costa +1 PM (T88.1)
+	TerrainType.HILL2:    1,
 	TerrainType.RUBBLE:   2,
 	TerrainType.FIELD:    1,
 	TerrainType.ORCHARD:  1,

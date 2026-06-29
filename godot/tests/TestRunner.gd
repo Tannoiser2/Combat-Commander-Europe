@@ -106,6 +106,8 @@ func _ready() -> void:
 	_test_log_detail()
 	_test_action_feasible()
 	_test_fire_modifier_assembly()
+	_test_uphill_move()
+	_test_cumulative_command()
 	_test_order_feasible()
 	_test_actions()
 	_test_grenade()
@@ -2463,6 +2465,28 @@ func _test_fire_modifier_assembly() -> void:
 	Game.apply_fire_modifier(0)
 	_check(not s.fire_modifiers.has("FUOCO MIRATO"),
 		"ri-cliccando lo stesso modificatore lo si toglie (toggle)")
+
+
+func _test_uphill_move() -> void:
+	print("· Movimento: salita +1 PM; collina in piano come terreno sottostante (T88.1)")
+	var s := _new_state(4, 1)
+	s.hex_at(1, 0).terrain = Domain.TerrainType.HILL1
+	s.hex_at(2, 0).terrain = Domain.TerrainType.HILL1
+	_check(HexGrid.step_cost(s, 0, 0, 1, 0) == 2, "salire sulla collina (quota 0→1) costa 1+1 = 2")
+	_check(HexGrid.step_cost(s, 1, 0, 2, 0) == 1, "muoversi in piano sulla collina costa 1")
+	_check(HexGrid.step_cost(s, 2, 0, 3, 0) == 1, "scendere dalla collina costa 1")
+
+
+func _test_cumulative_command() -> void:
+	print("· Comando: due leader nello stesso esagono sommano il bonus (3.3.1.2)")
+	var s := _new_state(4, 1)
+	s.human_faction = GER
+	s.units["l1"] = _mk("l1", GER, LEADER, ELITE, 0, 0, 0, 8, 0, 1)
+	s.units["l2"] = _mk("l2", GER, LEADER, ELITE, 0, 0, 0, 8, 0, 2)
+	var sq := _mk("sq", GER, SQUAD, RIFLE, 0, 0, 4, 7)
+	s.units["sq"] = sq
+	_check(Rules.command_bonus_at(s, 0, 0, GER) == 3, "due leader (1+2) → bonus Comando 3")
+	_check(Rules.move_with_command(s, sq) == 7, "Movimento squadra 4 + Comando 3 = 7")
 
 
 func _test_scenario_rules() -> void:

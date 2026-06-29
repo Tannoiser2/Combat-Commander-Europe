@@ -19,14 +19,15 @@ static func roll_dice(rng: RandomNumberGenerator) -> Vector2i:
 
 # ─── Comando dei leader ──────────────────────────────────────────────────────
 
-## Miglior bonus di Comando tra i leader efficienti della fazione nell'esagono.
-## 0 se non vi sono leader. Usato come bonus FP/morale "nello stesso esagono".
+## Bonus di Comando dei leader efficienti della fazione nell'esagono, CUMULATIVO
+## con due o più leader (3.3.1.2). 0 se non vi sono leader. Usato come bonus
+## FP/Gittata/Movimento/Morale "nello stesso esagono".
 static func command_bonus_at(state: GameState, q: int, r: int, faction: int) -> int:
-	var best := 0
+	var total := 0
 	for u in state.units_at(q, r):
 		if u.faction == faction and u.is_leader() and u.efficient:
-			best = maxi(best, u.command)
-	return best
+			total += u.command
+	return total
 
 
 ## True se esiste un leader efficiente della fazione entro il suo raggio di

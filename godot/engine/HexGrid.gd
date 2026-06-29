@@ -200,7 +200,25 @@ static func step_cost(state: GameState, fq: int, fr: int, tq: int, tr: int) -> i
 	if feat == Domain.HexsideFeature.WALL or feat == Domain.HexsideFeature.BOCAGE \
 			or feat == Domain.HexsideFeature.HEDGE or feat == Domain.HexsideFeature.STREAM_SIDE:
 		base += 1
+	# Salita (T88.1): +1 PM per entrare in un esagono a quota SUPERIORE. La quota è
+	# il campo `elevation`, con un minimo implicito dal terreno collina (HILL1/2).
+	var to_elev: int = maxi(hd.elevation, _terrain_elevation(hd.terrain))
+	var from_elev: int = maxi(fhd.elevation, _terrain_elevation(fhd.terrain)) if fhd != null else 0
+	if to_elev > from_elev:
+		base += 1
 	return base
+
+
+## Quota implicita di un terreno collina, se l'esagono non porta già un valore di
+## `elevation` esplicito (così la regola di salita vale anche sulle mappe che
+## codificano le colline solo come tipo di terreno).
+static func _terrain_elevation(terrain: int) -> int:
+	match terrain:
+		Domain.TerrainType.HILL1:
+			return 1
+		Domain.TerrainType.HILL2:
+			return 2
+	return 0
 
 
 ## Restituisce tutti gli esagoni raggiungibili dall'unità u in questo stato.
