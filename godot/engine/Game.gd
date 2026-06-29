@@ -12,6 +12,8 @@ signal phase_changed(phase: int)     ## Nuova fase
 signal unit_moved(unit_id: String, q: int, r: int)
 signal unit_eliminated(unit_id: String)
 signal game_over(winner: int)        ## Domain.Faction o -1 (patta)
+signal grenade_thrown(fq: int, fr: int, tq: int, tr: int)  ## Bombe a mano: lancio da→a (per l'animazione)
+signal artillery_impact(q: int, r: int)  ## Bombardamento caduto: esplosione sull'esagono centro
 
 
 # ─── Stato ────────────────────────────────────────────────────────────────────
@@ -740,6 +742,7 @@ func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, pre
 	for nb in HexGrid.neighbors(sr.x, sr.y):
 		if nb.x >= 0 and nb.x < state.map_cols and nb.y >= 0 and nb.y < state.map_rows:
 			state.last_impact_hexes.append(nb)
+	emit_signal("artillery_impact", sr.x, sr.y)  # esplosione (animazione)
 	if smoke:
 		# Barrage fumogeno (O18.2.3.1): posa fumo sui 7 esagoni, niente esplosivo.
 		var ns := Combat.resolve_smoke_barrage(state, sr.x, sr.y)
@@ -1262,6 +1265,15 @@ func confirm_fire() -> void:
 	for uid2 in result.eliminated:
 		emit_signal("unit_eliminated", uid2)
 	emit_signal("fire_resolved", result)
+	# Bombe a mano (A34): se applicate, l'animazione lancia una granata sul bersaglio
+	# (parte dal pezzo del gruppo adiacente al bersaglio, se c'è).
+	if applied_mods.has("BOMBE A MANO"):
+		var thrower := u
+		for g in group:
+			if HexGrid.distance(g.q, g.r, tq, tr) == 1:
+				thrower = g
+				break
+		emit_signal("grenade_thrown", thrower.q, thrower.r, tq, tr)
 	_apply_fate(atk_fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
 	_apply_fate(def_fate, _ai_faction())
 	for c in to_discard:

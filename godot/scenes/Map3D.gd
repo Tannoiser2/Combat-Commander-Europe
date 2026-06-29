@@ -104,6 +104,12 @@ func _ready() -> void:
 		Game.unit_moved.connect(_on_unit_moved)
 	if not Game.fire_resolved.is_connected(_on_fire_resolved):
 		Game.fire_resolved.connect(_on_fire_resolved)
+	if not Game.unit_eliminated.is_connected(_on_unit_eliminated):
+		Game.unit_eliminated.connect(_on_unit_eliminated)
+	if not Game.grenade_thrown.is_connected(_on_grenade_thrown):
+		Game.grenade_thrown.connect(_on_grenade_thrown)
+	if not Game.artillery_impact.is_connected(_on_artillery_impact):
+		Game.artillery_impact.connect(_on_artillery_impact)
 
 
 func _on_state_changed() -> void:
@@ -252,6 +258,14 @@ func _on_fire_resolved(result: Object) -> void:
 	_spawn_tracer(from, to)
 	_spawn_flash(from, 0.18, Color(1.0, 0.92, 0.45), 0.3)
 	_spawn_flash(to, 0.34, Color(1.0, 0.5, 0.15), 0.65)
+	_spawn_smoke_burst(from + Vector3(0, 0.05, 0), 3, 0.16, Color(0.78, 0.74, 0.6, 0.5))  # fumo alla bocca
+	# Le unità appena rotte lampeggiano di rosso.
+	for bid in result.broken:
+		var bu := s.unit_by_id(bid)
+		if bu != null:
+			var bci := _hex_img(bu.q, bu.r)
+			_spawn_flash(Vector3(bci.x * _world, _top_y(s, bu.q, bu.r) + 0.5, bci.y * _world),
+				0.3, Color(1.0, 0.25, 0.2), 0.45)
 
 
 ## Tracciante: cilindro sottile emissivo orientato da → a, che svanisce.
@@ -301,6 +315,144 @@ func _spawn_flash(pos: Vector3, radius: float, color: Color, dur: float) -> void
 	tw.tween_property(fl, "scale", Vector3(2.2, 2.2, 2.2), dur)
 	tw.parallel().tween_property(m, "albedo_color:a", 0.0, dur)
 	tw.tween_callback(fl.queue_free)
+
+
+## Sbuffo di fumo: alcune sferette grigie che salgono e svaniscono dalla posizione.
+func _spawn_smoke_burst(pos: Vector3, n: int = 3, spread: float = 0.2,
+		color: Color = Color(0.55, 0.55, 0.55, 0.6)) -> void:
+	for i in n:
+		var puff := MeshInstance3D.new()
+		var sph := SphereMesh.new()
+		sph.radius = 0.1
+		sph.height = 0.2
+		puff.mesh = sph
+		var m := StandardMaterial3D.new()
+		m.albedo_color = color
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		puff.material_override = m
+		var ang := float(i) * 2.4
+		puff.position = pos + Vector3(cos(ang) * spread, 0.0, sin(ang) * spread)
+		_fx.add_child(puff)
+		var up := puff.position + Vector3(0.0, 0.5, 0.0)
+		var tw := puff.create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(puff, "position", up, 0.7)
+		tw.tween_property(puff, "scale", Vector3(2.0, 2.0, 2.0), 0.7)
+		tw.tween_property(m, "albedo_color:a", 0.0, 0.7)
+		tw.chain().tween_callback(puff.queue_free)
+
+
+## Esplosione: doppio lampo (fuoco) + sbuffo di fumo. `big` per artiglieria/granate.
+func _explosion(pos: Vector3, big: bool = false) -> void:
+	var r := 0.5 if big else 0.3
+	_spawn_flash(pos, r, Color(1.0, 0.6, 0.2), 0.55 if big else 0.38)
+	_spawn_flash(pos + Vector3(0.0, 0.12, 0.0), r * 0.6, Color(1.0, 0.92, 0.55), 0.24)
+	_spawn_smoke_burst(pos + Vector3(0.0, 0.2, 0.0), 5 if big else 3,
+		0.4 if big else 0.22, Color(0.3, 0.3, 0.3, 0.7))
+
+
+## Esplosione ritardata (per l'onda d'urto sui 7 esagoni dell'artiglieria).
+func _explosion_delayed(pos: Vector3, delay: float, big: bool = false) -> void:
+	var t := get_tree().create_timer(delay)
+	t.timeout.connect(func() -> void: _explosion(pos, big))
+
+
+## Stacca la pedina dell'unità `id` dal layer dinamico (così sopravvive al refresh)
+## e la restituisce; null se non c'è. La toglie anche dalla lista dei click.
+func _detach_piece(id: String) -> Node3D:
+	for i in range(_pieces.size() - 1, -1, -1):
+		if _pieces[i]["id"] == id:
+			var node: Node3D = _pieces[i]["node"]
+			_pieces.remove_at(i)
+			if is_instance_valid(node):
+				node.reparent(_fx)  # fuori da _dynamic: non viene liberata dal rebuild
+				return node
+			return null
+	return null
+
+
+## Posizione lungo un arco parabolico da `from` a `to` con apice `height` (t in 0..1).
+func _arc_pos(from: Vector3, to: Vector3, height: float, t: float) -> Vector3:
+	var p := from.lerp(to, t)
+	p.y += sin(t * PI) * height
+	return p
+
+
+## Setter per il tween dello slittamento con dondolio (camminata). `t` interpolato
+## 0→1; gli altri argomenti sono passati con Callable.bind.
+func _slide_step(t: float, node: Node3D, start: Vector3, base: Vector3) -> void:
+	if is_instance_valid(node):
+		node.position = start.lerp(base, t) + Vector3(0.0, sin(t * PI * 2.0) * 0.06, 0.0)
+
+
+## Setter per il tween dell'arco della granata.
+func _arc_step(t: float, node: Node3D, from: Vector3, to: Vector3, height: float) -> void:
+	if is_instance_valid(node):
+		node.position = _arc_pos(from, to, height, t)
+
+
+## La granata atterra: esplode e si rimuove.
+func _grenade_land(node: Node3D, at: Vector3) -> void:
+	_explosion(at, true)
+	if is_instance_valid(node):
+		node.queue_free()
+
+
+## Unità eliminata: la pedina sprofonda e svanisce, con un'esplosione.
+func _on_unit_eliminated(id: String) -> void:
+	if not active:
+		return
+	var pn := _detach_piece(id)
+	if pn != null and is_instance_valid(pn):
+		_explosion(pn.position + Vector3(0.0, 0.3, 0.0))
+		var down := pn.position - Vector3(0.0, 1.3, 0.0)
+		var tw := pn.create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(pn, "position", down, 0.6)
+		tw.tween_property(pn, "scale", Vector3(0.1, 0.1, 0.1), 0.6)
+		tw.chain().tween_callback(pn.queue_free)
+	elif _last_unit_pos.has(id) and Game.state != null:
+		var p: Vector2i = _last_unit_pos[id]
+		var ci := _hex_img(p.x, p.y)
+		_explosion(Vector3(ci.x * _world, _top_y(Game.state, p.x, p.y) + 0.4, ci.y * _world))
+	_last_unit_pos.erase(id)
+
+
+## Bombe a mano: una granata arcua dal lanciatore al bersaglio, poi esplode.
+func _on_grenade_thrown(fq: int, fr: int, tq: int, tr: int) -> void:
+	if not active or Game.state == null:
+		return
+	var s := Game.state
+	var fci := _hex_img(fq, fr)
+	var tci := _hex_img(tq, tr)
+	var from := Vector3(fci.x * _world, _top_y(s, fq, fr) + 0.8, fci.y * _world)
+	var to := Vector3(tci.x * _world, _top_y(s, tq, tr) + 0.35, tci.y * _world)
+	var g := MeshInstance3D.new()
+	var sph := SphereMesh.new()
+	sph.radius = 0.09
+	sph.height = 0.18
+	g.mesh = sph
+	g.material_override = _mat(Color(0.16, 0.19, 0.14))
+	g.position = from
+	_fx.add_child(g)
+	var tw := g.create_tween()
+	tw.tween_method(_arc_step.bind(g, from, to, 1.4), 0.0, 1.0, 0.55)
+	tw.tween_callback(_grenade_land.bind(g, to))
+
+
+## Artiglieria caduta: esplosione grande sul centro + onda sui 6 adiacenti.
+func _on_artillery_impact(q: int, r: int) -> void:
+	if not active or Game.state == null:
+		return
+	var s := Game.state
+	var ci := _hex_img(q, r)
+	_explosion(Vector3(ci.x * _world, _top_y(s, q, r) + 0.4, ci.y * _world), true)
+	for nb in HexGrid.neighbors(q, r):
+		if nb.x < 0 or nb.x >= s.map_cols or nb.y < 0 or nb.y >= s.map_rows:
+			continue
+		var nci := _hex_img(nb.x, nb.y)
+		_explosion_delayed(Vector3(nci.x * _world, _top_y(s, nb.x, nb.y) + 0.3, nci.y * _world), 0.12, false)
 
 
 ## Transform che mappa l'asse Y del mesh sulla direzione `dir` (per i cilindri).
@@ -809,10 +961,10 @@ func _add_pieces(s: GameState) -> void:
 			var holder := _spawn_unit_figures(u, sel)
 			if holder != null:
 				if _pending_slide.has(u.id):
-					holder.position = _pending_slide[u.id]
+					var start: Vector3 = _pending_slide[u.id]
+					holder.position = start
 					var tw := holder.create_tween()
-					tw.set_trans(Tween.TRANS_SINE)
-					tw.tween_property(holder, "position", base, 0.28)
+					tw.tween_method(_slide_step.bind(holder, start, base), 0.0, 1.0, 0.32)
 					_pending_slide.erase(u.id)
 				else:
 					holder.position = base
@@ -832,10 +984,10 @@ func _add_pieces(s: GameState) -> void:
 			holder2.add_child(pm)
 			_attach_badge(holder2, u, 1.1, sel)
 			if _pending_slide.has(u.id):
-				holder2.position = _pending_slide[u.id]
+				var start2: Vector3 = _pending_slide[u.id]
+				holder2.position = start2
 				var tw := holder2.create_tween()
-				tw.set_trans(Tween.TRANS_SINE)
-				tw.tween_property(holder2, "position", base, 0.28)
+				tw.tween_method(_slide_step.bind(holder2, start2, base), 0.0, 1.0, 0.32)
 				_pending_slide.erase(u.id)
 			else:
 				holder2.position = base

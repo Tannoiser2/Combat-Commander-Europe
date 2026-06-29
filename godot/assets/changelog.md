@@ -1,3 +1,12 @@
+[b]v0.41.0[/b]
+
+[b]Effetti visivi (vista 3D)[/b]
+- [b]Bombe a mano[/b]: la granata arcua dal lanciatore al bersaglio e poi esplode.
+- [b]Artiglieria[/b]: quando cade il bombardamento, esplosione grande sul centro e onda d'urto sui 6 esagoni adiacenti.
+- [b]Rottura / eliminazione[/b]: le unità appena rotte lampeggiano di rosso; quelle eliminate sprofondano e svaniscono con un'esplosione.
+- [b]Fuoco potenziato[/b]: sbuffo di fumo alla bocca dello sparo, oltre a tracciante e lampi già presenti.
+- [b]Movimento[/b]: lo scivolamento ora ha un leggero dondolio (passo) per un effetto «camminata».
+
 [b]v0.40.0[/b]
 
 [b]Selettore di stack (scegli una pedina impilata)[/b]
