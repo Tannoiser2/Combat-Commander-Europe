@@ -109,6 +109,7 @@ func _ready() -> void:
 	_test_advance_group()
 	_test_stack_picker()
 	_test_move_onto_occupied()
+	_test_move_group_conclude_one()
 	_test_uphill_move()
 	_test_cumulative_command()
 	_test_order_feasible()
@@ -2541,6 +2542,31 @@ func _test_move_onto_occupied() -> void:
 	_check(s.selected_unit_id == "A",
 		"l'unità attiva resta A: cliccando non si è selezionato il compagno")
 	_check(s.current_order == Domain.OrderType.MOVE, "l'ordine di Mossa non si è interrotto")
+
+
+func _test_move_group_conclude_one() -> void:
+	print("· Mossa di gruppo: concludere un mover passa al prossimo, non chiude l'ordine")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	s.units["L"] = _mk("L", GER, LEADER, ELITE, 2, 1, 0, 8, 0, 3)
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 1, 1, 6, 7)
+	s.units["B"] = _mk("B", GER, SQUAD, RIFLE, 3, 1, 6, 7)
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 5, 2, 5, 7)  # nemico lontano (no fine partita)
+	Game.state = s
+	Game.select_unit("A")  # forma il gruppo [L,A,B] e seleziona A
+	_check(s.ordered_group.size() == 3, "gruppo di movimento di 3 unità (leader + 2 squadre)")
+	Game.click_hex(1, 1)  # clic su A (ferma): conclude SOLO A
+	_check(s.current_order == Domain.OrderType.MOVE,
+		"concludendo A l'ordine resta aperto (restano L e B da muovere)")
+	_check(int(s.group_mp.get("A", -1)) == 0, "A ha concluso il suo movimento")
+	Game.select_unit("B")
+	Game.click_hex(3, 1)  # conclude B
+	_check(s.current_order == Domain.OrderType.MOVE, "ancora aperto: manca L")
+	Game.select_unit("L")
+	Game.click_hex(2, 1)  # conclude L (ultimo)
+	_check(s.current_order == -1, "concluso l'ultimo membro, l'ordine di Mossa si chiude")
 
 
 func _test_uphill_move() -> void:

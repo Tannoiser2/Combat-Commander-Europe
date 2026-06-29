@@ -1,3 +1,8 @@
+[b]v0.42.1[/b]
+
+[b]Correzione — Mossa/Avanzata di gruppo: concludere un membro[/b]
+- In un gruppo, cliccare l'unità che si è mossa ora conclude [b]solo il suo[/b] movimento e passa al prossimo membro da muovere: l'ordine resta aperto finché ci sono unità da muovere. Prima cliccarla chiudeva l'intero ordine. Vale per Mossa e Avanzata.
+
 [b]v0.42.0[/b]
 
 [b]Colonna laterale separata + impilamento in movimento[/b]

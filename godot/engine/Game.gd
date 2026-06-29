@@ -814,9 +814,16 @@ func click_hex(q: int, r: int) -> void:
 				Domain.OrderType.ARTY:
 					click_hex_artillery(q, r)
 			return
-		# 2) Click sull'esagono dell'unità attiva = concludi/annulla l'ordine.
+		# 2) Click sull'esagono dell'unità attiva = concludi il SUO movimento. In un
+		#    gruppo, se restano membri da muovere/avanzare passa al prossimo (NON
+		#    chiude l'ordine); da sola (o ultimo membro) conclude/annulla l'ordine.
 		if sel != null and q == sel.q and r == sel.r:
-			conclude_order()
+			if s.current_order == Domain.OrderType.MOVE and s.ordered_group.size() > 1:
+				_conclude_mover(s.selected_unit_id)
+			elif s.current_order == Domain.OrderType.ADVANCE and s.ordered_group.size() > 1:
+				_conclude_advancer(s.selected_unit_id)
+			else:
+				conclude_order()
 			return
 		# 3) Click su un ALTRO membro del gruppo (esagono NON destinazione) = cambia
 		#    l'unità attiva (per muovere/avanzare il prossimo membro).
@@ -1703,6 +1710,17 @@ func _after_mover_done() -> void:
 		finish_move()
 
 
+## Conclude il movimento del SOLO mover indicato (anche con PM residui): lo segna
+## attivato e senza PM, poi passa al prossimo membro del gruppo (o conclude
+## l'ordine se non resta nessuno). Per i gruppi: cliccare il mover non chiude tutto.
+func _conclude_mover(mover_id: String) -> void:
+	var mv := state.unit_by_id(mover_id)
+	if mv != null:
+		mv.activated = true
+		state.group_mp[mover_id] = 0
+	_after_mover_done()
+
+
 ## C'è ancora almeno un membro del gruppo con PM residui e un esagono dove andare?
 func _any_group_mover_left() -> bool:
 	for id in state.ordered_group:
@@ -1840,6 +1858,16 @@ func _after_advance_done() -> void:
 		emit_signal("state_changed")  # il giocatore sceglie il prossimo membro
 	else:
 		_finish_advance()
+
+
+## Conclude l'avanzata del SOLO membro indicato (lo segna fatto) e passa al
+## prossimo; conclude l'ordine solo se non resta nessun membro da far avanzare.
+func _conclude_advancer(member_id: String) -> void:
+	var av := state.unit_by_id(member_id)
+	if av != null:
+		av.activated = true
+		state.group_mp[member_id] = 0
+	_after_advance_done()
 
 
 ## C'è ancora un membro del gruppo che non ha avanzato e ha un esagono adiacente?
