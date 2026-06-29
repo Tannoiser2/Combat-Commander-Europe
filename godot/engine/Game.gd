@@ -5,12 +5,15 @@ extends Node
 # ─── Segnali ─────────────────────────────────────────────────────────────────
 
 signal state_changed()               ## Aggiornamento generico — ridisegna tutto
+signal stack_offered(unit_ids: Array)  ## Esagono con 2+ unità amiche: scegli quale (selettore di stack)
 signal log_added(line: String, detail: String, kind: String)  ## Riga di log (+formula collassabile, +categoria)
 signal fire_resolved(result: Object) ## Combat.FireResult
 signal phase_changed(phase: int)     ## Nuova fase
 signal unit_moved(unit_id: String, q: int, r: int)
 signal unit_eliminated(unit_id: String)
 signal game_over(winner: int)        ## Domain.Faction o -1 (patta)
+signal grenade_thrown(fq: int, fr: int, tq: int, tr: int)  ## Bombe a mano: lancio da→a (per l'animazione)
+signal artillery_impact(q: int, r: int)  ## Bombardamento caduto: esplosione sull'esagono centro
 
 
 # ─── Stato ────────────────────────────────────────────────────────────────────
@@ -265,6 +268,22 @@ func select_unit(unit_id: String) -> void:
 		_select_fire_base(u)
 		return
 
+	# ─── Avanzata: gruppo di comando (O7, come la Mossa) ─────────────────────
+	# Anche l'Avanzata può essere data «tramite» un leader: attiva il leader e le
+	# unità idonee entro il suo raggio di Comando, ciascuna avanza di un esagono.
+	if state.phase == Domain.Phase.PLAYER_MOVING and state.current_order == Domain.OrderType.ADVANCE:
+		if state.ordered_group.is_empty():
+			if u.faction != state.human_faction or not Rules.can_be_ordered(u):
+				return
+			_form_advance_group(u)
+		elif not state.ordered_group.has(unit_id):
+			return
+		state.selected_unit_id = unit_id
+		state.command_preview_ids.clear()
+		_highlight_advance(u)
+		emit_signal("state_changed")
+		return
+
 	# ─── Altri ordini ────────────────────────────────────────────────────────
 	state.selected_unit_id = unit_id
 	state.highlighted_hexes.clear()
@@ -275,15 +294,6 @@ func select_unit(unit_id: String) -> void:
 		var grp := _command_group_ids(u)
 		if grp.size() > 1:
 			state.command_preview_ids = grp
-	if state.phase == Domain.Phase.PLAYER_MOVING:
-		match state.current_order:
-			Domain.OrderType.FIRE:
-				for h in _fire_targets(u):
-					state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
-			Domain.OrderType.ADVANCE:
-				for h in HexGrid.neighbors(u.q, u.r):
-					if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
-						state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 	emit_signal("state_changed")
 
 
@@ -303,6 +313,32 @@ func _form_move_group(u: Unit) -> void:
 	var leader := Rules.commanding_leader(state, u, true)
 	if ids.size() > 1 and leader != null:
 		_log("Comando: %s attiva %d unità entro raggio %d." % [leader.unit_name, ids.size(), leader.command])
+
+
+## Forma il gruppo di comando per un'Avanzata (O7): come la Mossa, ma ogni membro
+## ha UNA avanzata (un esagono) — qui `group_mp[id]` vale 1 finché non ha avanzato,
+## poi 0. Un'unità non comandata avanza da sola.
+func _form_advance_group(u: Unit) -> void:
+	state.ordered_group.clear()
+	state.group_mp.clear()
+	state.move_committed = false
+	var ids := _command_group_ids(u)
+	for id in ids:
+		state.ordered_group.append(id)
+		state.group_mp[id] = 1  # una avanzata a testa
+	var leader := Rules.commanding_leader(state, u, true)
+	if ids.size() > 1 and leader != null:
+		_log("Comando: %s fa avanzare %d unità entro raggio %d." % [leader.unit_name, ids.size(), leader.command])
+
+
+## Evidenzia gli esagoni adiacenti dove l'unità può avanzare (se non l'ha già fatto).
+func _highlight_advance(u: Unit) -> void:
+	state.highlighted_hexes.clear()
+	if int(state.group_mp.get(u.id, 0)) <= 0:
+		return  # ha già avanzato in questo ordine
+	for h in HexGrid.neighbors(u.q, u.r):
+		if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
+			state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
 
 
 ## Id delle unità che un ordine dato "tramite" `u` attiverebbe: il leader che la
@@ -706,6 +742,7 @@ func _resolve_artillery_strike(spotter: Unit, radio: Unit, tq: int, tr: int, pre
 	for nb in HexGrid.neighbors(sr.x, sr.y):
 		if nb.x >= 0 and nb.x < state.map_cols and nb.y >= 0 and nb.y < state.map_rows:
 			state.last_impact_hexes.append(nb)
+	emit_signal("artillery_impact", sr.x, sr.y)  # esplosione (animazione)
 	if smoke:
 		# Barrage fumogeno (O18.2.3.1): posa fumo sui 7 esagoni, niente esplosivo.
 		var ns := Combat.resolve_smoke_barrage(state, sr.x, sr.y)
@@ -756,14 +793,17 @@ func click_hex(q: int, r: int) -> void:
 	var s := state
 	var key := "%d,%d" % [q, r]
 	var units_here := s.units_at(q, r)
+	# Selettore di stack: se l'esagono ha 2+ unità amiche selezionabili, offre la
+	# scelta esplicita (così si può prendere un leader "sotto" lo stack).
+	_offer_stack(units_here)
 	if s.phase == Domain.Phase.PLAYER_MOVING:
 		# Fuoco: flusso dedicato gruppo-prima-del-bersaglio.
 		if s.current_order == Domain.OrderType.FIRE:
 			_click_fire(q, r, key, units_here)
 			return
 		var sel := s.unit_by_id(s.selected_unit_id) if s.selected_unit_id != "" else null
-		# Mossa di gruppo: cliccare un altro membro attivato cambia il mover attivo.
-		if s.current_order == Domain.OrderType.MOVE:
+		# Gruppo (Mossa o Avanzata): cliccare un altro membro cambia l'unità attiva.
+		if s.current_order == Domain.OrderType.MOVE or s.current_order == Domain.OrderType.ADVANCE:
 			for gid in s.ordered_group:
 				if gid == s.selected_unit_id:
 					continue
@@ -809,6 +849,26 @@ func click_hex(q: int, r: int) -> void:
 		_cycle_select(units_here, true)
 	elif s.phase == Domain.Phase.PLAYER_SETUP:
 		_setup_click(q, r, units_here)
+
+
+## Offre il selettore di stack: se l'esagono cliccato contiene 2+ unità amiche
+## selezionabili (uomini, non armi), emette i loro id — coi LEADER per primi, così
+## la GUI può mostrarli e far scegliere un leader "sotto" lo stack. Vuoto = nascondi.
+func _offer_stack(units_here: Array) -> void:
+	if state.phase != Domain.Phase.PLAYER_TURN \
+			and state.phase != Domain.Phase.PLAYER_MOVING \
+			and state.phase != Domain.Phase.PLAYER_SETUP:
+		emit_signal("stack_offered", [])
+		return
+	var ids: Array = []
+	for u in units_here:
+		if u.faction == state.human_faction and not u.is_weapon():
+			ids.append(u.id)
+	ids.sort_custom(func(a: String, b: String) -> bool:
+		var ua := state.unit_by_id(a)
+		var ub := state.unit_by_id(b)
+		return ua != null and ua.is_leader() and (ub == null or not ub.is_leader()))
+	emit_signal("stack_offered", ids if ids.size() >= 2 else [])
 
 
 ## Schieramento manuale: con un'unità propria selezionata, un clic su un altro
@@ -1205,6 +1265,15 @@ func confirm_fire() -> void:
 	for uid2 in result.eliminated:
 		emit_signal("unit_eliminated", uid2)
 	emit_signal("fire_resolved", result)
+	# Bombe a mano (A34): se applicate, l'animazione lancia una granata sul bersaglio
+	# (parte dal pezzo del gruppo adiacente al bersaglio, se c'è).
+	if applied_mods.has("BOMBE A MANO"):
+		var thrower := u
+		for g in group:
+			if HexGrid.distance(g.q, g.r, tq, tr) == 1:
+				thrower = g
+				break
+		emit_signal("grenade_thrown", thrower.q, thrower.r, tq, tr)
 	_apply_fate(atk_fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
 	_apply_fate(def_fate, _ai_faction())
 	for c in to_discard:
@@ -1504,6 +1573,9 @@ func click_hex_advance(tq: int, tr: int) -> void:
 	if not Rules.can_be_ordered(u):
 		_log("Avanzata: l'unità è immobilizzata (rotta o soppressa).")
 		return
+	if int(state.group_mp.get(u.id, 1)) <= 0:
+		_log("Avanzata: questa unità ha già avanzato.")
+		return
 	if HexGrid.distance(u.q, u.r, tq, tr) != 1:
 		_log("Avanzata: scegli un esagono adiacente.")
 		return
@@ -1589,6 +1661,10 @@ func cancel_order() -> void:
 	if state.current_order == Domain.OrderType.MOVE and state.move_committed:
 		finish_move()
 		return
+	# Avanzata di gruppo già impegnata: la si conclude (le unità attivate restano tali).
+	if state.current_order == Domain.OrderType.ADVANCE and state.move_committed:
+		_finish_advance()
+		return
 	if state.order_count > 0:
 		state.order_count -= 1
 	_clear_order_selection()
@@ -1602,6 +1678,8 @@ func conclude_order() -> void:
 		return
 	if state.current_order == Domain.OrderType.MOVE and state.move_committed:
 		finish_move()
+	elif state.current_order == Domain.OrderType.ADVANCE and state.move_committed:
+		_finish_advance()
 	else:
 		cancel_order()
 
@@ -1736,9 +1814,53 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 		_apply_fate(af, u.faction)
 		_apply_fate(df, def_faction)
 
-	_discard_card(state.selected_card_index)
-	_clear_order_selection()
+	# Questo membro ha avanzato. Se il gruppo (leader + comandate) ne ha altri che
+	# possono ancora avanzare, si sceglie il prossimo; altrimenti l'ordine conclude.
+	state.group_mp[u.id] = 0
+	state.move_committed = true
 	_check_end_conditions()  # aggiorna obiettivi/VP e gestisce la fine partita
+	if state.phase == Domain.Phase.GAME_OVER:
+		return
+	_after_advance_done()
+
+
+## Dopo che un membro ha avanzato: se restano membri del gruppo che possono ancora
+## avanzare, lascia scegliere il prossimo; altrimenti conclude l'ordine di Avanzata.
+func _after_advance_done() -> void:
+	state.selected_unit_id = ""
+	state.highlighted_hexes.clear()
+	if state.ordered_group.size() > 1 and _any_group_advancer_left():
+		emit_signal("state_changed")  # il giocatore sceglie il prossimo membro
+	else:
+		_finish_advance()
+
+
+## C'è ancora un membro del gruppo che non ha avanzato e ha un esagono adiacente?
+func _any_group_advancer_left() -> bool:
+	for id in state.ordered_group:
+		var v := state.unit_by_id(id)
+		if v == null or not v.efficient:
+			continue
+		if int(state.group_mp.get(id, 0)) <= 0:
+			continue  # ha già avanzato
+		for h in HexGrid.neighbors(v.q, v.r):
+			if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
+				return true
+	return false
+
+
+## Conclude l'Avanzata di gruppo: marca attivate TUTTE le unità del gruppo (anche
+## quelle non avanzate: l'ordine le ha usate), scarta la carta e torna al turno.
+func _finish_advance() -> void:
+	var card_idx := state.selected_card_index
+	for id in state.ordered_group:
+		var v := state.unit_by_id(id)
+		if v != null:
+			v.activated = true
+	if card_idx >= 0:
+		_discard_card(card_idx)
+	_clear_order_selection()
+	_check_end_conditions()
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
 

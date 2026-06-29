@@ -1,3 +1,23 @@
+[b]v0.41.0[/b]
+
+[b]Effetti visivi (vista 3D)[/b]
+- [b]Bombe a mano[/b]: la granata arcua dal lanciatore al bersaglio e poi esplode.
+- [b]Artiglieria[/b]: quando cade il bombardamento, esplosione grande sul centro e onda d'urto sui 6 esagoni adiacenti.
+- [b]Rottura / eliminazione[/b]: le unità appena rotte lampeggiano di rosso; quelle eliminate sprofondano e svaniscono con un'esplosione.
+- [b]Fuoco potenziato[/b]: sbuffo di fumo alla bocca dello sparo, oltre a tracciante e lampi già presenti.
+- [b]Movimento[/b]: lo scivolamento ora ha un leggero dondolio (passo) per un effetto «camminata».
+
+[b]v0.40.0[/b]
+
+[b]Selettore di stack (scegli una pedina impilata)[/b]
+- Cliccando un esagono con più unità tue compare un piccolo pannello che le elenca: clicca quella che vuoi per selezionarla. Così è facile prendere anche un [b]leader «sotto» lo stack[/b], che prima in 3D era scomodo da centrare. I leader sono elencati per primi. (In 2D resta anche lo scorrimento a clic ripetuti.)
+
+[b]v0.39.0[/b]
+
+[b]Avanzata di gruppo (ordine dato al leader)[/b]
+- Come la Mossa, ora anche l'[b]Avanzata[/b] data «tramite» un leader attiva il leader [b]e[/b] tutte le squadre/team entro il suo raggio di Comando: ciascun membro avanza di un esagono (con eventuale corpo a corpo), poi si passa al successivo (membro arancio) e l'ordine si conclude da solo. Prima l'Avanzata muoveva una sola unità. (Regole O7/O14.1 + 3.3.1.1, confermate sul regolamento ufficiale.)
+- Nota: Recupero e Rotta restano correttamente «a livello di giocatore» (agiscono su tutte le unità rotte, non sul gruppo di un leader), come da regolamento (O22/O23).
+
 [b]v0.38.0[/b]
 
 [b]Correzioni — badge azioni/ordini e movimento dell'IA[/b]
