@@ -1,3 +1,9 @@
+[b]v0.43.1[/b]
+
+[b]Fuoco: ora si vede chi cliccare (vista 3D)[/b]
+- Dopo aver giocato la carta di [b]Fuoco[/b], nella vista 3D non si illuminava nulla: non si capiva cosa selezionare. Ora si accendono subito i [b]tiratori pronti[/b] (anello ciano) e i [b]leader che possono dirigere un gruppo[/b] di fuoco (anello oro), come già accadeva nella mappa 2D.
+- Cliccando un leader-direttore si illuminano i tiratori che comanda; cliccando un tiratore si assembla il gruppo e si mostrano i bersagli. Il flusso «seleziona leader → si accendono le unità che possono sparare → scegli» ora è visibile.
+
 [b]v0.43.0[/b]
 
 [b]Vista 3D — pendii dei dislivelli più ripidi[/b]

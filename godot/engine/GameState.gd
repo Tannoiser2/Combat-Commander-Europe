@@ -201,6 +201,10 @@ var fire_group_ids: Array[String] = []
 # Unità del giocatore che possono sparare ora (≥1 bersaglio valido): evidenziate
 # sulla mappa appena si dà un ordine di Fuoco, così si vede chi può sparare.
 var fire_ready_ids: Array[String] = []
+# Leader del giocatore che possono DIRIGERE un gruppo di fuoco (≥1 tiratore pronto
+# entro il loro Comando) pur non sparando da soli: evidenziati come punto di
+# partenza «seleziona il leader» dell'ordine di Fuoco.
+var fire_leader_ids: Array[String] = []
 # Modificatori di fuoco (carte Azione) applicati all'attacco in assemblaggio:
 # `fire_modifiers` = nomi azione, `fire_modifier_cards` = riferimenti alle carte
 # (consumate alla conferma, restituite all'annullamento).

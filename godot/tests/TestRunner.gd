@@ -121,6 +121,7 @@ func _ready() -> void:
 	_test_stacking()
 	_test_overstacking_resolution()
 	_test_setup_no_overstack()
+	_test_fire_ready_highlight()
 	_test_fire_suppress()
 	_test_fire_moving_break()
 	_test_maps_load()
@@ -2863,6 +2864,22 @@ func _test_overstacking_resolution() -> void:
 	Game._resolve_overstacking(GER)  # 8 figure, sforo 1 → elimina la squadra rotta
 	_check(not s3.units.has("brk"), "eliminata la squadra ROTTA (meno preziosa)")
 	_check(s3.units.has("eff"), "conservata la squadra efficiente")
+
+
+func _test_fire_ready_highlight() -> void:
+	print("· Fuoco: dopo la carta si illuminano i tiratori pronti e i leader-direttori")
+	var s := _new_state(9, 1)
+	s.human_faction = GER
+	# Leader gittata 1 (non spara) ma comanda; squadra gittata 6 col bersaglio.
+	s.units["L"] = _mk("L", GER, LEADER, ELITE, 3, 0, 0, 8, 1, 2)
+	s.units["A"] = _mk("A", GER, SQUAD, RIFLE, 5, 0, 6, 7, 6)
+	s.units["E"] = _mk("E", RUS, SQUAD, RIFLE, 7, 0, 5, 7)
+	Game.state = s
+	Game._compute_fire_ready()
+	_check(s.fire_ready_ids.has("A"), "la squadra con bersaglio è un tiratore pronto")
+	_check(not s.fire_ready_ids.has("L"), "il leader senza gittata non è un tiratore pronto")
+	_check(s.fire_leader_ids.has("L"),
+		"il leader che comanda un tiratore pronto è evidenziato come direttore")
 
 
 func _test_setup_no_overstack() -> void:

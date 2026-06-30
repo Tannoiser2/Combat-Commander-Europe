@@ -667,6 +667,23 @@ func _add_highlights(s: GameState) -> void:
 			var pv := s.unit_by_id(pid)
 			if pv != null:
 				_hex_disc(pv.q, pv.r, s, Color(1.0, 0.55, 0.0, 0.35))
+	# Fuoco: PRIMA di scegliere il bersaglio illumina cosa cliccare per iniziare —
+	# i tiratori pronti (ciano) e i leader che possono dirigere un gruppo (oro).
+	# Salta il pezzo base e i membri già nel gruppo (evidenziati arancio/grigio sotto).
+	if s.current_order == Domain.OrderType.FIRE and s.fire_target_q < 0:
+		var fr_assembling: bool = s.selected_unit_id != "" and not s.fire_eligible_ids.is_empty()
+		for fid in s.fire_ready_ids:
+			if fid == s.selected_unit_id or (fr_assembling and s.fire_eligible_ids.has(fid)):
+				continue
+			var fv := s.unit_by_id(fid)
+			if fv != null:
+				_hex_disc(fv.q, fv.r, s, Color(0.2, 0.8, 0.95, 0.4))
+		for lid in s.fire_leader_ids:
+			if lid == s.selected_unit_id:
+				continue
+			var lv := s.unit_by_id(lid)
+			if lv != null:
+				_hex_disc(lv.q, lv.r, s, Color(1.0, 0.85, 0.2, 0.4))
 	# Fuoco PRIMA del bersaglio (gruppo-prima): pezzi inclusi (arancio) / esclusi
 	# (grigio) e linee di mira da ogni tiratore verso OGNI bersaglio candidato.
 	var fire_assembling: bool = s.current_order == Domain.OrderType.FIRE \
