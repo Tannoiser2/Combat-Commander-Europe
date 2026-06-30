@@ -1,5 +1,8 @@
 [b]v0.43.0[/b]
 
+[b]Vista 3D — pendii dei dislivelli più ripidi[/b]
+- I fianchi dei rilievi ora sono [b]più ripidi e morbidi[/b]: il piede del pendio non invade più l'esagono sottostante (prima un rilievo di quota 2 sbordava di un intero raggio d'esagono). L'allargamento cresce con la radice della quota, così anche le colline alte restano ripide senza coprire gli esagoni vicini.
+
 [b]Impilamento: il bot rispetta il limite (regola 8.2)[/b]
 - Lo [b]schieramento[/b] non accatasta più le unità: ogni unità-uomo riceve un esagano distinto (2 squadre = 8 figure = oltre il limite di 7), e se la zona della scheda è troppo piccola per la forza viene [b]allargata[/b] quanto basta. Prima il bot poteva partire con torri di 7+ pedine in un solo esagono (es. scenari 3, 4, 12).
 - Aggiunta la [b]risoluzione di fine turno[/b] (8.2): durante il turno si può sovrastare, ma a fine turno ogni esagono oltre le 7 figure perde le unità in eccesso (prima le rotte, poi le meno preziose), per entrambi gli schieramenti. È il punto in cui le regole d'impilamento valgono davvero.
