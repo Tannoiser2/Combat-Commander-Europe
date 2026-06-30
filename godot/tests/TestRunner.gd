@@ -109,6 +109,7 @@ func _ready() -> void:
 	_test_action_feasible()
 	_test_fire_modifier_assembly()
 	_test_advance_group()
+	_test_advance_excludes_overstack()
 	_test_stack_picker()
 	_test_move_onto_occupied()
 	_test_move_group_conclude_one()
@@ -2512,6 +2513,30 @@ func _test_advance_group() -> void:
 	_check(s.current_order == -1, "dopo l'avanzata di tutti i membri l'ordine conclude")
 	_check(s.units["L"].activated and s.units["A"].activated and s.units["B"].activated,
 		"tutte le unità del gruppo risultano attivate")
+
+
+func _test_advance_excludes_overstack() -> void:
+	print("· Avanzata: gli esagoni sovraccarichi non si evidenziano (niente blocco dell'ordine)")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	# (2,1) già pieno (due squadre = 8 figure); un nemico adiacente a (1,2).
+	s.units["f1"] = _mk("f1", GER, SQUAD, RIFLE, 2, 1, 6, 7)
+	s.units["f2"] = _mk("f2", GER, SQUAD, RIFLE, 2, 1, 6, 7)
+	var m := _mk("m", GER, SQUAD, RIFLE, 1, 1, 6, 7)
+	s.units["m"] = m
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 1, 2, 5, 7)
+	Game.state = s
+	_check(not Game._can_advance_into(m, 2, 1), "non si avanza in un esagano amico sovraccarico")
+	_check(Game._can_advance_into(m, 1, 2), "si avanza su un nemico (corpo a corpo) a prescindere dall'impilamento")
+	_check(Game._can_advance_into(m, 0, 1), "si avanza in un esagano vuoto")
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.ADVANCE
+	s.selected_card_index = 0
+	s.german_hand = [_card(Domain.OrderType.ADVANCE)]
+	Game.select_unit("m")
+	_check(not s.highlighted_hexes.has("2,1"),
+		"l'esagano sovraccarico NON è tra le avanzate proposte (non si resta bloccati)")
+	_check(s.highlighted_hexes.has("1,2"), "il nemico adiacente resta un'avanzata valida (corpo a corpo)")
 
 
 func _test_stack_picker() -> void:

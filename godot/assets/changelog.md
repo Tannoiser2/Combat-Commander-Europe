@@ -1,3 +1,9 @@
+[b]v0.43.3[/b]
+
+[b]Correzione blocco del turno — Avanzata su esagono pieno[/b]
+- Durante un'[b]Avanzata[/b], cliccare un esagano amico già [b]sovraccarico[/b] (max 7 figure) non faceva nulla ma l'ordine restava aperto: si rimaneva [b]bloccati[/b] (il caso del «gioco fermo al turno 7»). Ora gli esagoni dove non si può entrare [b]non vengono più proposti[/b], e l'ordine si conclude da solo quando non resta nessuna avanzata possibile. L'avanzata su un nemico (corpo a corpo) resta sempre valida.
+- Verificato che il flag «unità ha già agito» viene [b]correttamente azzerato a ogni turno[/b] del giocatore (non era quello il problema).
+
 [b]v0.43.2[/b]
 
 [b]Vista 3D — clic allineato alla griglia (niente parallasse)[/b]

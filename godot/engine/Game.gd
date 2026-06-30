@@ -331,14 +331,31 @@ func _form_advance_group(u: Unit) -> void:
 		_log("Comando: %s fa avanzare %d unità entro raggio %d." % [leader.unit_name, ids.size(), leader.command])
 
 
-## Evidenzia gli esagoni adiacenti dove l'unità può avanzare (se non l'ha già fatto).
+## Evidenzia gli esagoni adiacenti dove l'unità può avanzare (se non l'ha già
+## fatto): solo avanzate LEGALI, così non si resta bloccati cliccando un esagono
+## dove non si può entrare (vedi _can_advance_into).
 func _highlight_advance(u: Unit) -> void:
 	state.highlighted_hexes.clear()
 	if int(state.group_mp.get(u.id, 0)) <= 0:
 		return  # ha già avanzato in questo ordine
 	for h in HexGrid.neighbors(u.q, u.r):
-		if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
+		if h.x < 0 or h.x >= state.map_cols or h.y < 0 or h.y >= state.map_rows:
+			continue
+		if _can_advance_into(u, h.x, h.y):
 			state.highlighted_hexes.append("%d,%d" % [h.x, h.y])
+
+
+## L'unità può avanzare in (q,r)? Sì se vi è un nemico (si entra per il corpo a
+## corpo: l'impilamento non vincola, O16) oppure se entrando in un esagono
+## amico/vuoto non si supera il limite di impilamento (8.2). Evita di proporre (ed
+## eseguire) avanzate impossibili, che bloccherebbero l'ordine.
+func _can_advance_into(u: Unit, q: int, r: int) -> bool:
+	for m in state.men_at(q, r):
+		if m.faction != u.faction:
+			return true  # nemico presente → corpo a corpo
+	if u.is_man() and state.soldier_icons_at(q, r) + u.soldier_icons() > 7:
+		return false
+	return true
 
 
 ## Id delle unità che un ordine dato "tramite" `u` attiverebbe: il leader che la
@@ -1888,7 +1905,8 @@ func _any_group_advancer_left() -> bool:
 		if int(state.group_mp.get(id, 0)) <= 0:
 			continue  # ha già avanzato
 		for h in HexGrid.neighbors(v.q, v.r):
-			if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
+			if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows \
+					and _can_advance_into(v, h.x, h.y):
 				return true
 	return false
 
