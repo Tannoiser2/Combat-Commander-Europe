@@ -378,11 +378,21 @@ func _command_group_ids(u: Unit) -> Array[String]:
 ## (uomini idonei, non già attivati): dopo aver giocato Mossa/Avanzata mostra a
 ## colpo d'occhio chi si può cliccare (flusso carta-first).
 func _compute_orderable_preview() -> void:
+	state.command_preview_ids = actable_unit_ids()
+
+
+## Id delle unità del giocatore che possono ancora ricevere un ordine ADESSO
+## (uomini idonei e non già attivati). Serve a evidenziare "chi può ancora agire"
+## a inizio turno e a capire quando il turno è di fatto finito (lista vuota →
+## nessuna unità può più agire, conviene premere «Fine Turno»).
+func actable_unit_ids() -> Array[String]:
 	var ids: Array[String] = []
+	if state == null:
+		return ids
 	for v in state.units_of(state.human_faction):
 		if v.is_man() and Rules.can_be_ordered(v):
 			ids.append(v.id)
-	state.command_preview_ids = ids
+	return ids
 
 
 ## Evidenzia gli esagoni raggiungibili dal mover coi suoi PM rimasti nel gruppo.

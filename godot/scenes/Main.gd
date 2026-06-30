@@ -745,11 +745,14 @@ func _guidance_text(s: GameState) -> String:
 		Domain.Phase.PLAYER_TURN:
 			var ord := "  (ordini %d/%d)" % [s.order_count, s.max_orders]
 			var arty := "  · Artiglieria pronta" if Game.has_artillery_available() else ""
+			var actable := Game.actable_unit_ids().size()
+			if actable == 0:
+				return "[color=#ffd24a]Nessuna unità può più agire[/color]%s — premi «Fine Turno» (T) o «Passa» (P)" % ord
 			if s.order_count >= s.max_orders:
 				return "Ordini esauriti%s — gioca un'Azione (dx), «Passa» o «Fine Turno»" % ord
 			if s.selected_unit_id != "":
 				return "Unità scelta%s — gioca una carta:  Sx = ordine · Dx = azione%s" % [ord, arty]
-			return "Il tuo turno%s — clicca un'unità e gioca un ordine, oppure «Passa» (P)%s" % [ord, arty]
+			return "Il tuo turno%s — [color=#9fe0a0]%d unità possono agire[/color] (cerchiate): clicca e gioca un ordine, oppure «Passa» (P)%s" % [ord, actable, arty]
 		Domain.Phase.PLAYER_MOVING:
 			var has_unit := s.selected_unit_id != ""
 			if Game.can_exit_selected():
@@ -1201,9 +1204,12 @@ func _update_reaction_banner(phase: int) -> void:
 			+ "mimetizzarti (la Copertura ridurrà il colpo), oppure prosegui."
 		_reaction_btn.text = "Non mimetizzarmi  (SPAZIO)"
 	else:
+		var mv := s.unit_by_id(s.opfire_mover_id)
+		var who: String = mv.unit_name if mv != null else "Un'unità nemica"
+		var whereh: String = Domain.qr_to_label(mv.q, mv.r) if mv != null else "?"
 		_reaction_label.text = "[b][color=#ffcf66]FUOCO DI OPPORTUNITÀ[/color][/b]  —  reazione\n" \
-			+ "Un'unità nemica si muove allo scoperto. Clicca un tuo tiratore [color=#ffd24a]giallo[/color] " \
-			+ "sulla mappa per sparargli, oppure prosegui senza sparare."
+			+ "[b]%s[/b] (nemico) si è mosso allo scoperto in [b]%s[/b].\n" % [who, whereh] \
+			+ "Clicca un tuo tiratore [color=#ffd24a]giallo[/color] per [b]sparargli subito[/b] (nessuna carta da giocare), oppure prosegui."
 		_reaction_btn.text = "Non sparare  (SPAZIO)"
 	_reaction_banner.visible = true
 

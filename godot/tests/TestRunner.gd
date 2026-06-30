@@ -120,6 +120,7 @@ func _ready() -> void:
 	_test_grenade()
 	_test_melee_tie()
 	_test_stacking()
+	_test_marker_art()
 	_test_overstacking_resolution()
 	_test_setup_no_overstack()
 	_test_fire_ready_highlight()
@@ -2848,6 +2849,18 @@ func _test_stacking() -> void:
 	var w := _mk("w", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 1, 1, 4, 7)
 	s.units[w.id] = w
 	_check(s.soldier_icons_at(1, 1) == 5, "le armi non contano come figure")
+
+
+func _test_marker_art() -> void:
+	print("· Marcatori: le pedine VASSAL (fortificazioni/fumo/incendio/buche) si caricano")
+	_check(MarkerArt.fort_texture(Domain.Fort.TRENCH) != null, "texture Trincea presente")
+	_check(MarkerArt.fort_texture(Domain.Fort.BUNKER) != null, "texture Bunker presente")
+	_check(MarkerArt.fort_texture(Domain.Fort.WIRE) != null, "texture Filo presente")
+	_check(MarkerArt.fort_texture(Domain.Fort.PILLBOX) != null, "texture Casamatta presente")
+	_check(MarkerArt.fort_texture(Domain.Fort.MINES) == null, "Mine: nessuna texture (ripiego disegnato)")
+	_check(MarkerArt.smoke_texture() != null, "texture Fumo presente")
+	_check(MarkerArt.blaze_texture() != null, "texture Incendio presente")
+	_check(MarkerArt.foxhole_texture() != null, "texture Buche presente")
 
 
 func _test_overstacking_resolution() -> void:
