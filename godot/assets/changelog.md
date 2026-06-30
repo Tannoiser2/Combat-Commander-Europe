@@ -1,3 +1,10 @@
+[b]v0.43.2[/b]
+
+[b]Vista 3D — clic allineato alla griglia (niente parallasse)[/b]
+- Cliccare l'esagono giusto era difficile: il clic veniva proiettato sul piano del terreno, quindi sui [b]rilievi[/b] e sulle pedine rialzate cadeva sull'esagono sbagliato. Ora il clic interseca ogni esagono alla [b]sua quota[/b] e sceglie quello davvero sotto il cursore (il rilievo davanti vince su ciò che sta dietro).
+- Nell'ordine di [b]Fuoco[/b], cliccare una pedina seleziona ora sempre la sua unità (si usa l'esagono della pedina, non la proiezione a terra): scegliere il tiratore o il leader è preciso.
+- Anche nella vista [b]2D[/b] i leader che possono dirigere un gruppo di fuoco sono evidenziati (anello oro), come in 3D.
+
 [b]v0.43.1[/b]
 
 [b]Fuoco: ora si vede chi cliccare (vista 3D)[/b]
