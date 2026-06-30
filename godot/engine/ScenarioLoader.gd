@@ -145,9 +145,6 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 	var hexes := _setup_hexes(state, e, side)
 	if hexes.is_empty():
 		hexes.append(Vector2i(0, 0))
-	# Zona di schieramento del giocatore umano (per lo Schieramento manuale).
-	if faction == state.human_faction:
-		state.setup_zone = hexes.duplicate()
 	# Nazione reale del lato → statistiche esatte (l'arte resta stand-in).
 	var nat := UnitChart.nation_code(String(e.get("fazione_%s" % side, "")))
 	# Sottrai i rinforzi (Tabella del Tempo) dalle forze iniziali: entrano dopo.
@@ -174,6 +171,22 @@ static func _place_side(state: GameState, e: Dictionary, side: String, faction: 
 				for k in count: weapons.append(label)
 			_:
 				for k in count: squads.append(label)
+
+	# Ogni unità-uomo richiede un esagano distinto (2 squadre = 8 figure = oltre il
+	# limite): se la zona della scheda è troppo piccola per la forza iniziale,
+	# allargala (più profondità/raggio) finché ci sta, così lo schieramento non
+	# nasce già sovraccarico. Cap di sicurezza alla dimensione della mappa.
+	var n_men := leaders.size() + squads.size()
+	var cap := maxi(state.map_cols, state.map_rows)
+	var depth_try := 1
+	while hexes.size() < n_men and depth_try <= cap:
+		var grown := _setup_hexes(state, e, side, depth_try)
+		if grown.size() > hexes.size():  # adotta solo se più ampia (mai restringe)
+			hexes = grown
+		depth_try += 1
+	# Zona di schieramento del giocatore umano (per lo Schieramento manuale).
+	if faction == state.human_faction:
+		state.setup_zone = hexes.duplicate()
 
 	# Schieramento intelligente: squadre raggruppate attorno ai leader (entro il
 	# Comando), gruppi distanziati tra loro e su esagoni con copertura/altura.
@@ -228,6 +241,31 @@ static func _area_around(state: GameState, hexes: Array, center: Vector2i, radiu
 	return out
 
 
+## Sceglie l'esagono migliore dove piazzare un'unità di `need` figure SENZA
+## superare il limite di impilamento (8.2: max 7 figure/esagono). Cerca prima
+## nell'area di comando (già ordinata per qualità), poi nell'intera zona se
+## l'area è satura. Solo come ultima risorsa (zona davvero piena) restituisce
+## `fallback`: in tal caso il sovraccarico verrà risolto a fine turno.
+static func _free_hex_for(area: Array, zone_sorted: Array, figs: Dictionary, need: int, fallback: Vector2i) -> Vector2i:
+	for h in area:
+		if int(figs.get(_k(h), 0)) + need <= 7:
+			return h
+	for h in zone_sorted:
+		if int(figs.get(_k(h), 0)) + need <= 7:
+			return h
+	# Zona davvero satura (forza più grande della zona): non accatastare tutto su
+	# un esagono solo: scegli quello MENO carico, così l'eccesso si distribuisce.
+	# L'eventuale sforamento residuo verrà risolto a fine turno (8.2).
+	var best := fallback
+	var best_fig := 1 << 30
+	for h in zone_sorted:
+		var fg := int(figs.get(_k(h), 0))
+		if fg < best_fig:
+			best_fig = fg
+			best = h
+	return best
+
+
 ## Sceglie `n` centri di gruppo su esagoni di alta qualità, distanziati di almeno
 ## `spread`; se la zona è troppo piccola riempie coi migliori rimanenti.
 static func _pick_centers(state: GameState, hexes: Array, n: int, spread: int) -> Array:
@@ -262,7 +300,7 @@ static func _deploy_combat_groups(state: GameState, hexes: Array, squads: Array,
 		return man_hexes
 	var pfx := String(Domain.FACTION_SHORT.get(faction, "U"))
 	var seq := 0
-	var used := {}
+	var figs := {}   # figure (soldier icons) già piazzate per esagono: limite 7 (8.2)
 	var n_groups := maxi(1, leaders.size())
 	# Distribuisci le squadre tra i gruppi (una per leader, a giro).
 	var group_sq: Array = []
@@ -272,6 +310,11 @@ static func _deploy_combat_groups(state: GameState, hexes: Array, squads: Array,
 		group_sq[i % n_groups].append(squads[i])
 	var spread := clampi(int(round(sqrt(float(hexes.size())))), 2, 5)
 	var centers := _pick_centers(state, hexes, n_groups, spread)
+	# Intera zona ordinata per qualità: riserva quando l'area di comando è satura,
+	# così le squadre si distribuiscono invece di accatastarsi sul centro.
+	var zone_sorted: Array = hexes.duplicate()
+	zone_sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
 	for gi in n_groups:
 		var center: Vector2i = centers[gi] if gi < centers.size() else hexes[gi % hexes.size()]
 		var cmd := 2
@@ -279,27 +322,30 @@ static func _deploy_combat_groups(state: GameState, hexes: Array, squads: Array,
 			var lid := "%s-%d" % [pfx, seq]
 			seq += 1
 			var lu := UnitChart.build_unit(lid, faction, leaders[gi], center.x, center.y, nat)
-			state.units[lid] = lu
 			cmd = maxi(1, lu.command)
-			man_hexes.append(center)
-			used[_k(center)] = int(used.get(_k(center), 0)) + 1
+			var larea := _area_around(state, hexes, center, cmd)
+			larea.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+				return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
+			var lpos := _free_hex_for(larea, zone_sorted, figs, lu.soldier_icons(), center)
+			lu.q = lpos.x
+			lu.r = lpos.y
+			state.units[lid] = lu
+			man_hexes.append(lpos)
+			figs[_k(lpos)] = int(figs.get(_k(lpos), 0)) + lu.soldier_icons()
 		# Esagoni del gruppo entro il Comando, dal migliore al peggiore.
 		var area := _area_around(state, hexes, center, cmd)
 		area.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
 			return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
-		var ai := 0
 		for label in group_sq[gi]:
-			var pos: Vector2i = center
-			while ai < area.size() and int(used.get(_k(area[ai]), 0)) >= 2:
-				ai += 1
-			if ai < area.size():
-				pos = area[ai]
-				ai += 1
 			var sid := "%s-%d" % [pfx, seq]
 			seq += 1
-			state.units[sid] = UnitChart.build_unit(sid, faction, label, pos.x, pos.y, nat)
+			var su := UnitChart.build_unit(sid, faction, label, center.x, center.y, nat)
+			var pos := _free_hex_for(area, zone_sorted, figs, su.soldier_icons(), center)
+			su.q = pos.x
+			su.r = pos.y
+			state.units[sid] = su
 			man_hexes.append(pos)
-			used[_k(pos)] = int(used.get(_k(pos), 0)) + 1
+			figs[_k(pos)] = int(figs.get(_k(pos), 0)) + su.soldier_icons()
 	return man_hexes
 
 
@@ -322,7 +368,7 @@ static func auto_deploy_human(state: GameState) -> void:
 			squads.append(u)
 	if leaders.is_empty() and squads.is_empty():
 		return
-	var used := {}
+	var figs := {}   # figure (soldier icons) già piazzate per esagono: limite 7 (8.2)
 	var n_groups := maxi(1, leaders.size())
 	var group_sq: Array = []
 	for g in n_groups:
@@ -331,27 +377,28 @@ static func auto_deploy_human(state: GameState) -> void:
 		group_sq[i % n_groups].append(squads[i])
 	var spread := clampi(int(round(sqrt(float(hexes.size())))), 2, 5)
 	var centers := _pick_centers(state, hexes, n_groups, spread)
+	var zone_sorted: Array = hexes.duplicate()
+	zone_sorted.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
 	for gi in n_groups:
 		var center: Vector2i = centers[gi] if gi < centers.size() else hexes[gi % hexes.size()]
 		var cmd := 2
 		if gi < leaders.size():
 			var lu: Unit = leaders[gi]
-			state.set_unit_pos(lu, center.x, center.y)
 			cmd = maxi(1, lu.command)
-			used[_k(center)] = int(used.get(_k(center), 0)) + 1
+			var larea := _area_around(state, hexes, center, cmd)
+			larea.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+				return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
+			var lpos := _free_hex_for(larea, zone_sorted, figs, lu.soldier_icons(), center)
+			state.set_unit_pos(lu, lpos.x, lpos.y)
+			figs[_k(lpos)] = int(figs.get(_k(lpos), 0)) + lu.soldier_icons()
 		var area := _area_around(state, hexes, center, cmd)
 		area.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
 			return ScenarioLoader._hex_score(state, a) > ScenarioLoader._hex_score(state, b))
-		var ai := 0
 		for su in group_sq[gi]:
-			var pos: Vector2i = center
-			while ai < area.size() and int(used.get(_k(area[ai]), 0)) >= 2:
-				ai += 1
-			if ai < area.size():
-				pos = area[ai]
-				ai += 1
+			var pos := _free_hex_for(area, zone_sorted, figs, su.soldier_icons(), center)
 			state.set_unit_pos(su, pos.x, pos.y)
-			used[_k(pos)] = int(used.get(_k(pos), 0)) + 1
+			figs[_k(pos)] = int(figs.get(_k(pos), 0)) + su.soldier_icons()
 
 
 ## Piazza `fox` buche: prima sugli esagoni occupati più scoperti (per dare loro
@@ -439,13 +486,25 @@ static func _split_reinforcements(state: GameState, e: Dictionary, side: String,
 
 ## Caselle di setup di un lato: ancore (in/adiacenti) o bordo+profondità. Le zone
 ## fedeli alle schede (setup_zones.json) hanno priorità sui campi del catalogo.
-static func _setup_hexes(state: GameState, e: Dictionary, side: String) -> Array:
+static func _setup_hexes(state: GameState, e: Dictionary, side: String, depth_override: int = -1) -> Array:
 	var num := int(e.get("numero", 0))
 	var spec := _zone_spec(num, side)
 	var anchors: Array = spec.get("anchors", e.get("setup_%s_anchors" % side, []))
 	var out: Array = []
 	var seen := {}
 	if not anchors.is_empty():
+		# Zona àncora: di norma l'àncora e i suoi vicini immediati (fedele alle
+		# schede). Se la forza non ci sta, il chiamante passa `depth_override` > 0
+		# per allargare il raggio attorno all'àncora quanto basta a non accatastare
+		# le unità (8.2: 1 esagano per unità-uomo).
+		if depth_override > 0:
+			for lbl in anchors:
+				var qr := Domain.label_to_qr(String(lbl))
+				for q in state.map_cols:
+					for r in state.map_rows:
+						if HexGrid.distance(qr.x, qr.y, q, r) <= depth_override:
+							_add_hex(state, out, seen, q, r)
+			return out
 		for lbl in anchors:
 			var qr := Domain.label_to_qr(String(lbl))
 			_add_hex(state, out, seen, qr.x, qr.y)
@@ -454,7 +513,7 @@ static func _setup_hexes(state: GameState, e: Dictionary, side: String) -> Array
 		return out
 	# Bordo: Axis a Est (colonne destre), Allied a Ovest (colonne sinistre).
 	# Profondità della zona di schieramento per lato (dalle schede scenario).
-	var depth := maxi(1, int(spec.get("depth", e.get("setup_%s_depth" % side, 3))))
+	var depth := depth_override if depth_override > 0 else maxi(1, int(spec.get("depth", e.get("setup_%s_depth" % side, 3))))
 	if side == "axis":
 		for q in range(maxi(0, state.map_cols - depth), state.map_cols):
 			for r in state.map_rows:
