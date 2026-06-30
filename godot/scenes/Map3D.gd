@@ -8,7 +8,7 @@ extends Node3D
 
 const ELEV_STEP := 0.55
 const BASE_H := 0.25
-const SKIRT_FRAC := 0.5  ## allargamento della base dei rilievi per livello (pendio)
+const SKIRT_FRAC := 0.18  ## allargamento della base dei rilievi (pendio): più ripido ma morbido, senza invadere l'esagono sotto
 
 # Modelli 3D reali (Kenney «City Builder», CC0) per i decori del terreno; se non
 # disponibili si ripiega sulle mesh procedurali. Vedi assets/models3d/CREDITS.md.
@@ -561,10 +561,12 @@ func _build_static(s: GameState) -> void:
 				tex_st.set_uv(center_uv); tex_st.add_vertex(center_w)
 				tex_st.set_uv(corners_uv[i]); tex_st.add_vertex(corners_w[i])
 				tex_st.set_uv(corners_uv[j]); tex_st.add_vertex(corners_w[j])
-			# Fianchi del rilievo INCLINATI: la base (a BASE_H) è più larga della
-			# cima, così l'elevazione sembra una collina e non un gradino verticale.
-			# La "gonna" si allarga con l'elevazione → pendenza costante.
-			var skirt := _hx * SKIRT_FRAC * float(hd.elevation)
+			# Fianchi del rilievo INCLINATI: la base (a BASE_H) è un po' più larga
+			# della cima, così l'elevazione sembra una collina e non un gradino
+			# verticale. L'allargamento cresce con radice dell'elevazione (non
+			# lineare): i rilievi alti restano ripidi e il piede del pendio non
+			# arriva a coprire l'esagono sottostante.
+			var skirt := _hx * SKIRT_FRAC * sqrt(float(hd.elevation))
 			var base_w: Array[Vector3] = []
 			for i in range(6):
 				var a := deg_to_rad(60.0 * i)

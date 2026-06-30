@@ -2407,7 +2407,80 @@ func _free_edge_hex(q: int, rows: Array) -> Vector2i:
 	return Vector2i(q, int(rows[0]) if not rows.is_empty() else 0)
 
 
+## Risoluzione del sovraccarico a fine turno (8.2): in ogni esagono con più di 7
+## figure amiche il proprietario elimina unità finché rientra nel limite. Le armi
+## (0 figure) non contano. Si sceglie di volta in volta la vittima che copre lo
+## sforamento sprecando meno figure (a parità, prima le rotte), così si conserva
+## la forza efficiente. È il vero punto in cui valgono le regole di impilamento:
+## durante il turno si può sovrastare, a fine turno si rientra (o si perde gente).
+func _resolve_overstacking(faction: int) -> void:
+	var by_hex: Dictionary = {}
+	for u in state.units.values():
+		if u.faction != faction or not u.is_man():
+			continue
+		var k := "%d,%d" % [u.q, u.r]
+		if not by_hex.has(k):
+			by_hex[k] = []
+		by_hex[k].append(u)
+	var eliminated_any := false
+	for k in by_hex:
+		var stack: Array = by_hex[k]
+		var total := 0
+		for u in stack:
+			total += u.soldier_icons()
+		if total <= 7:
+			continue
+		var victims: Array = []
+		while total > 7 and not stack.is_empty():
+			var v := _overstack_victim(stack, total - 7)
+			if v == null:
+				break
+			stack.erase(v)
+			total -= v.soldier_icons()
+			victims.append(v)
+		if victims.is_empty():
+			continue
+		var ids: Array = victims.map(func(x: Unit) -> String: return x.id)
+		var names := Combat._names(state, ids)
+		var kind := "ai" if faction == _ai_faction() else ""
+		_log("[b]Sovraccarico[/b] in (%s): eliminate %d unità in eccesso — %s (8.2)." % [
+			k, victims.size(), names],
+			"Limite 7 figure/esagono: durante il turno si può sovrastare, a fine turno l'eccesso va eliminato.",
+			kind)
+		for u in victims:
+			state.eliminate_unit(u.id)
+			emit_signal("unit_eliminated", u.id)
+		eliminated_any = true
+	# Solo se si è davvero eliminato qualcosa: aggiorna VP/obiettivi/resa (così un
+	# turno senza sovraccarico non tocca lo stato di fine partita).
+	if eliminated_any:
+		_check_end_conditions()
+
+
+## Sceglie quale unità eliminare da uno stack sovraccarico dato lo sforamento
+## `deficit` (figure di troppo): la più piccola unità che da sola lo copre (meno
+## spreco); a parità di figure, prima le rotte; se nessuna lo copre, la più grande
+## (per fare progresso). Restituisce null se lo stack è vuoto.
+func _overstack_victim(stack: Array, deficit: int) -> Unit:
+	var cover: Unit = null
+	var biggest: Unit = null
+	for u: Unit in stack:
+		var f: int = u.soldier_icons()
+		if f >= deficit:
+			if cover == null or f < cover.soldier_icons() \
+					or (f == cover.soldier_icons() and not u.efficient and cover.efficient):
+				cover = u
+		if biggest == null or f > biggest.soldier_icons() \
+				or (f == biggest.soldier_icons() and not u.efficient and biggest.efficient):
+			biggest = u
+	return cover if cover != null else biggest
+
+
 func _end_player_turn() -> void:
+	# Fine turno (8.2): risolvi il sovraccarico delle TUE unità prima di passare.
+	_resolve_overstacking(state.human_faction)
+	if state.phase == Domain.Phase.GAME_OVER:
+		return
 	# Azzera attivazioni, PM residui e il conteggio Ordini del turno (5.1).
 	state.order_count = 0
 	state.moving_unit_id = ""
@@ -2446,6 +2519,7 @@ func _run_ai_turn() -> void:
 	# FlipBot: se più di metà della mano è fatta di carte "dud", passa e scarta.
 	if FlipBot.should_pass_and_discard(state, faction):
 		_ai_pass_discard(faction)
+		_resolve_overstacking(faction)  # fine turno IA (8.2)
 		if state.phase != Domain.Phase.GAME_OVER:
 			_change_phase(Domain.Phase.PLAYER_TURN)
 			_log("Turno %d — il tuo ordine" % state.turn_number, "", "turn")
@@ -2465,8 +2539,10 @@ func _run_ai_turn() -> void:
 		# Nessun ordine giocabile: passa e scarta le dud (o cicla una carta).
 		_log("IA: nessun ordine giocabile.")
 		_ai_pass_discard(faction)
-	# Fine del turno IA → al giocatore (qui, non in _end_player_turn, perché questa
-	# coroutine può essersi sospesa sulla finestra di reazione).
+	# Fine del turno IA (8.2): risolvi il sovraccarico delle unità del bot, poi →
+	# al giocatore (qui, non in _end_player_turn, perché questa coroutine può
+	# essersi sospesa sulla finestra di reazione).
+	_resolve_overstacking(faction)
 	if state.phase != Domain.Phase.GAME_OVER:
 		_change_phase(Domain.Phase.PLAYER_TURN)
 		_log("Turno %d — il tuo ordine" % state.turn_number, "", "turn")

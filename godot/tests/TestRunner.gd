@@ -12,6 +12,7 @@ var _rng := RandomNumberGenerator.new()
 var GER: int
 var RUS: int
 var SQUAD: int
+var TEAM: int
 var LEADER: int
 var RIFLE: int
 var ELITE: int
@@ -22,6 +23,7 @@ func _ready() -> void:
 	GER = Domain.Faction.GERMAN
 	RUS = Domain.Faction.RUSSIAN
 	SQUAD = Domain.UnitType.SQUAD
+	TEAM = Domain.UnitType.TEAM
 	LEADER = Domain.UnitType.LEADER
 	RIFLE = Domain.UnitClass.RIFLE
 	ELITE = Domain.UnitClass.ELITE
@@ -117,6 +119,8 @@ func _ready() -> void:
 	_test_grenade()
 	_test_melee_tie()
 	_test_stacking()
+	_test_overstacking_resolution()
+	_test_setup_no_overstack()
 	_test_fire_suppress()
 	_test_fire_moving_break()
 	_test_maps_load()
@@ -2260,23 +2264,31 @@ func _test_manual_setup() -> void:
 
 
 func _test_setup_zones() -> void:
-	print("· Setup: zone fedeli dalle schede (setup_zones.json) hanno priorità")
-	# Scenario 3: gli Alleati sono ancorati a N5 (assente nel catalogo, presente in
-	# setup_zones) → tutte le loro unità devono stare in/adiacenti a N5.
+	print("· Setup: zone àncora (setup_zones.json) — raggruppate e senza sovraccarico")
+	# Scenario 3: gli Alleati sono ancorati a N5. La zona si allarga quanto basta a
+	# schierare la forza senza accatastarla (8.2), ma le unità restano raggruppate
+	# attorno all'àncora e nessun esagano supera le 7 figure.
 	var s := GameState.new()
 	if not ScenarioLoader.setup(s, 3):
 		_check(false, "setup scenario 3 riuscito")
 		return
 	var anchor := Domain.label_to_qr("N5")
 	var n := 0
-	var all_near := true
+	var maxd := 0
+	var by_hex := {}
 	for u in s.units.values():
 		if u.faction == RUS and u.is_man():
 			n += 1
-			if HexGrid.distance(u.q, u.r, anchor.x, anchor.y) > 1:
-				all_near = false
+			maxd = maxi(maxd, HexGrid.distance(u.q, u.r, anchor.x, anchor.y))
+			var k := "%d,%d" % [u.q, u.r]
+			by_hex[k] = int(by_hex.get(k, 0)) + u.soldier_icons()
 	_check(n > 0, "lo scenario 3 ha unità alleate da verificare")
-	_check(all_near, "le unità alleate sono in/adiacenti all'ancora N5")
+	_check(maxd <= 4, "unità alleate raggruppate vicino all'àncora N5 (max dist %d)" % maxd)
+	var over := 0
+	for k in by_hex:
+		if int(by_hex[k]) > 7:
+			over += 1
+	_check(over == 0, "nessun esagano alleato sovraccarico allo schieramento (8.2)")
 
 
 func _test_initial_fortifications() -> void:
@@ -2810,6 +2822,67 @@ func _test_stacking() -> void:
 	var w := _mk("w", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 1, 1, 4, 7)
 	s.units[w.id] = w
 	_check(s.soldier_icons_at(1, 1) == 5, "le armi non contano come figure")
+
+
+func _test_overstacking_resolution() -> void:
+	print("· Impilamento (8.2): a fine turno l'eccesso oltre 7 figure è eliminato")
+	# Tre squadre amiche sullo stesso esagano = 12 figure → sovraccarico.
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	s.units["a"] = _mk("a", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	s.units["b"] = _mk("b", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	s.units["c"] = _mk("c", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	s.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 5, 2, 5, 7)  # nemico lontano (no fine partita)
+	Game.state = s
+	Game._resolve_overstacking(GER)
+	_check(s.soldier_icons_at(0, 0) <= 7, "l'esagano rientra nel limite (%d figure)" % s.soldier_icons_at(0, 0))
+	var left := s.units_at(0, 0).filter(func(u: Unit) -> bool: return u.is_man()).size()
+	_check(left == 1, "resta 1 squadra (eliminate le 2 in eccesso)")
+
+	# 7 figure esatte (squadra+team+leader) NON si toccano.
+	var s2 := _new_state(6, 3)
+	s2.human_faction = GER
+	s2.units["sq"] = _mk("sq", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	s2.units["tm"] = _mk("tm", GER, TEAM, RIFLE, 0, 0, 4, 7)
+	s2.units["ld"] = _mk("ld", GER, LEADER, ELITE, 0, 0, 0, 8, 0, 2)
+	s2.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 5, 2, 5, 7)
+	Game.state = s2
+	Game._resolve_overstacking(GER)
+	_check(s2.units.size() == 4 and s2.soldier_icons_at(0, 0) == 7,
+		"7 figure esatte: nessuna eliminazione (8.2)")
+
+	# A parità di figure si elimina prima la rotta (si conserva l'efficiente).
+	var s3 := _new_state(6, 3)
+	s3.human_faction = GER
+	s3.units["eff"] = _mk("eff", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	var brk := _mk("brk", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	brk.break_unit()
+	s3.units["brk"] = brk
+	s3.units["e"] = _mk("e", RUS, SQUAD, RIFLE, 5, 2, 5, 7)
+	Game.state = s3
+	Game._resolve_overstacking(GER)  # 8 figure, sforo 1 → elimina la squadra rotta
+	_check(not s3.units.has("brk"), "eliminata la squadra ROTTA (meno preziosa)")
+	_check(s3.units.has("eff"), "conservata la squadra efficiente")
+
+
+func _test_setup_no_overstack() -> void:
+	print("· Setup: nessuno scenario schiera oltre il limite di 7 figure/esagono (8.2)")
+	var bad := 0
+	for num in range(1, 25):
+		var s := GameState.new()
+		s.human_faction = GER
+		if not ScenarioLoader.setup(s, num):
+			continue
+		var by_hex := {}
+		for u in s.units.values():
+			if not u.is_man():
+				continue
+			var k := "%d,%d,%d" % [u.faction, u.q, u.r]
+			by_hex[k] = int(by_hex.get(k, 0)) + u.soldier_icons()
+		for k in by_hex:
+			if int(by_hex[k]) > 7:
+				bad += 1
+	_check(bad == 0, "tutti e 24 gli scenari schierano entro il limite (%d esagoni oltre)" % bad)
 
 
 func _test_fire_suppress() -> void:
