@@ -310,6 +310,13 @@ func _draw() -> void:
 			var fv := s.unit_by_id(fid)
 			if fv:
 				_draw_hex_outline(fv.q, fv.r, COL_FIRE_READY, 2.5)
+		# Leader che possono dirigere un gruppo di fuoco (oro): punto di partenza.
+		for lid in s.fire_leader_ids:
+			if lid == s.selected_unit_id:
+				continue
+			var lv := s.unit_by_id(lid)
+			if lv:
+				_draw_hex_outline(lv.q, lv.r, Color(1.0, 0.85, 0.2), 2.5)
 		if assembling:
 			# Pezzi del gruppo: inclusi (arancio pieno) / esclusi (grigio).
 			for eid in s.fire_eligible_ids:

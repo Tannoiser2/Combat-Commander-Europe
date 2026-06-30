@@ -667,6 +667,23 @@ func _add_highlights(s: GameState) -> void:
 			var pv := s.unit_by_id(pid)
 			if pv != null:
 				_hex_disc(pv.q, pv.r, s, Color(1.0, 0.55, 0.0, 0.35))
+	# Fuoco: PRIMA di scegliere il bersaglio illumina cosa cliccare per iniziare —
+	# i tiratori pronti (ciano) e i leader che possono dirigere un gruppo (oro).
+	# Salta il pezzo base e i membri già nel gruppo (evidenziati arancio/grigio sotto).
+	if s.current_order == Domain.OrderType.FIRE and s.fire_target_q < 0:
+		var fr_assembling: bool = s.selected_unit_id != "" and not s.fire_eligible_ids.is_empty()
+		for fid in s.fire_ready_ids:
+			if fid == s.selected_unit_id or (fr_assembling and s.fire_eligible_ids.has(fid)):
+				continue
+			var fv := s.unit_by_id(fid)
+			if fv != null:
+				_hex_disc(fv.q, fv.r, s, Color(0.2, 0.8, 0.95, 0.4))
+		for lid in s.fire_leader_ids:
+			if lid == s.selected_unit_id:
+				continue
+			var lv := s.unit_by_id(lid)
+			if lv != null:
+				_hex_disc(lv.q, lv.r, s, Color(1.0, 0.85, 0.2, 0.4))
 	# Fuoco PRIMA del bersaglio (gruppo-prima): pezzi inclusi (arancio) / esclusi
 	# (grigio) e linee di mira da ogni tiratore verso OGNI bersaglio candidato.
 	var fire_assembling: bool = s.current_order == Domain.OrderType.FIRE \
@@ -1865,7 +1882,41 @@ func _pick_hex(vpos: Vector2) -> Vector2i:
 	var dir := _camera.project_ray_normal(vpos)
 	if absf(dir.y) < 1e-5:
 		return Vector2i(-1, -1)
-	var t := (BASE_H - origin.y) / dir.y
+	# Per ogni esagono interseca il raggio col SUO piano superiore (secondo la quota)
+	# e tiene quelli la cui intersezione cade dentro l'esagono; a parità vince il più
+	# vicino alla camera (un rilievo occlude il terreno dietro). Così il cursore resta
+	# allineato alla griglia anche sulle colline — niente parallasse del piano di terra.
+	var best := Vector2i(-1, -1)
+	var best_t := INF
+	var best_d := INF
+	for key in Game.state.hexes:
+		var hd: GameState.HexData = Game.state.hexes[key]
+		var top := BASE_H + (hd.elevation if hd != null else 0) * ELEV_STEP
+		var t := (top - origin.y) / dir.y
+		if t < 0.0:
+			continue
+		var hit := origin + dir * t
+		var pim := Vector2(hit.x / _world, hit.z / _world)
+		var p := String(key).split(",")
+		var c := _hex_img(int(p[0]), int(p[1]))
+		var d := pim.distance_to(c)
+		if d > _hx:
+			continue
+		if t < best_t - 0.001 or (absf(t - best_t) <= 0.001 and d < best_d):
+			best_t = t
+			best_d = d
+			best = Vector2i(int(p[0]), int(p[1]))
+	if best.x >= 0:
+		return best
+	# Ripiego: nessun esagono colpito direttamente → centro più vicino sul piano base.
+	return _nearest_hex_on_plane(origin, dir, BASE_H)
+
+
+## Esagono il cui centro è più vicino al punto in cui il raggio (origin,dir) buca
+## il piano orizzontale y = `plane_y`. (-1,-1) se il raggio è dietro o troppo
+## lontano da qualsiasi esagono.
+func _nearest_hex_on_plane(origin: Vector3, dir: Vector3, plane_y: float) -> Vector2i:
+	var t := (plane_y - origin.y) / dir.y
 	if t < 0.0:
 		return Vector2i(-1, -1)
 	var hit := origin + dir * t
@@ -2011,7 +2062,17 @@ func _unhandled_input(event: InputEvent) -> void:
 				# Prima prova il click preciso sulla pedina; altrimenti l'esagono.
 				var pid := _pick_piece(mb.position)
 				if pid == "" or not _try_direct_select(pid):
-					var hx := _pick_hex(mb.position)
+					var s := Game.state
+					var hx := Vector2i(-1, -1)
+					# Nel Fuoco (scelta tiratore/leader) usa l'esagano della pedina
+					# cliccata: niente parallasse, si seleziona sempre l'unità giusta.
+					if pid != "" and s != null \
+							and s.current_order == Domain.OrderType.FIRE and s.fire_target_q < 0:
+						var pu := s.unit_by_id(pid)
+						if pu != null:
+							hx = Vector2i(pu.q, pu.r)
+					if hx.x < 0:
+						hx = _pick_hex(mb.position)
 					if hx.x >= 0:
 						Game.click_hex(hx.x, hx.y)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:

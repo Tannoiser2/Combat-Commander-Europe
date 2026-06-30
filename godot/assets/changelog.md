@@ -1,3 +1,16 @@
+[b]v0.43.2[/b]
+
+[b]Vista 3D — clic allineato alla griglia (niente parallasse)[/b]
+- Cliccare l'esagono giusto era difficile: il clic veniva proiettato sul piano del terreno, quindi sui [b]rilievi[/b] e sulle pedine rialzate cadeva sull'esagono sbagliato. Ora il clic interseca ogni esagono alla [b]sua quota[/b] e sceglie quello davvero sotto il cursore (il rilievo davanti vince su ciò che sta dietro).
+- Nell'ordine di [b]Fuoco[/b], cliccare una pedina seleziona ora sempre la sua unità (si usa l'esagono della pedina, non la proiezione a terra): scegliere il tiratore o il leader è preciso.
+- Anche nella vista [b]2D[/b] i leader che possono dirigere un gruppo di fuoco sono evidenziati (anello oro), come in 3D.
+
+[b]v0.43.1[/b]
+
+[b]Fuoco: ora si vede chi cliccare (vista 3D)[/b]
+- Dopo aver giocato la carta di [b]Fuoco[/b], nella vista 3D non si illuminava nulla: non si capiva cosa selezionare. Ora si accendono subito i [b]tiratori pronti[/b] (anello ciano) e i [b]leader che possono dirigere un gruppo[/b] di fuoco (anello oro), come già accadeva nella mappa 2D.
+- Cliccando un leader-direttore si illuminano i tiratori che comanda; cliccando un tiratore si assembla il gruppo e si mostrano i bersagli. Il flusso «seleziona leader → si accendono le unità che possono sparare → scegli» ora è visibile.
+
 [b]v0.43.0[/b]
 
 [b]Vista 3D — pendii dei dislivelli più ripidi[/b]

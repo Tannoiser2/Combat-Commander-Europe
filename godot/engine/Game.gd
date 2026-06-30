@@ -401,6 +401,15 @@ func _compute_fire_ready() -> void:
 			continue
 		if not _fire_targets(u).is_empty():
 			state.fire_ready_ids.append(u.id)
+	# Leader-direttori: leader che, pur non sparando da soli, hanno ≥1 tiratore
+	# pronto nel raggio di Comando → si possono cliccare per avviare un gruppo.
+	state.fire_leader_ids.clear()
+	for u in state.units_of(state.human_faction):
+		if not u.is_leader() or state.fire_ready_ids.has(u.id) \
+				or not Rules.can_be_ordered(u):
+			continue
+		if not _fire_command_preview(u).is_empty():
+			state.fire_leader_ids.append(u.id)
 
 
 ## C'è almeno un'unità del giocatore che può sparare ora (≥1 bersaglio valido)?
@@ -1970,6 +1979,7 @@ func _clear_fire_assembly() -> void:
 	state.fire_modifiers.clear()
 	state.fire_modifier_cards.clear()
 	state.fire_ready_ids.clear()
+	state.fire_leader_ids.clear()
 	state.spray_active = false
 
 
