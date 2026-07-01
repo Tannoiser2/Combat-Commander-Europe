@@ -124,6 +124,7 @@ func _ready() -> void:
 	_test_overstacking_resolution()
 	_test_setup_no_overstack()
 	_test_fire_ready_highlight()
+	_test_fire_indicator()
 	_test_fire_order_exit()
 	_test_fire_suppress()
 	_test_fire_moving_break()
@@ -2919,6 +2920,20 @@ func _test_fire_ready_highlight() -> void:
 	_check(not s.fire_ready_ids.has("L"), "il leader senza gittata non è un tiratore pronto")
 	_check(s.fire_leader_ids.has("L"),
 		"il leader che comanda un tiratore pronto è evidenziato come direttore")
+
+
+func _test_fire_indicator() -> void:
+	print("· Indicatore fuoco: dopo un fuoco resta memorizzato chi ha sparato a chi")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	var atk := _mk("b", GER, SQUAD, RIFLE, 0, 1, 40, 7)  # FP enorme: colpisce
+	s.units["b"] = atk
+	s.units["t"] = _mk("t", RUS, SQUAD, RIFLE, 3, 1, 5, 7)
+	Game.state = s
+	Game._record_fire(atk, 3, 1)
+	_check(s.last_fire_from == Vector2i(0, 1), "registrato l'esagono del tiratore")
+	_check(s.last_fire_to == Vector2i(3, 1), "registrato l'esagono del bersaglio")
+	_check(s.last_fire_text.find("→") >= 0, "il testo indica tiratore → bersaglio (%s)" % s.last_fire_text)
 
 
 func _test_fire_order_exit() -> void:

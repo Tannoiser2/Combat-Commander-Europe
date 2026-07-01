@@ -217,6 +217,23 @@ func _draw() -> void:
 		var ic := _hex_center(int(ih.x), int(ih.y))
 		draw_arc(ic, _hsize() * 0.62, 0, TAU, 24, Color(0.95, 0.15, 0.1, 0.9), 2.5)
 
+	# "Chi ha sparato a chi" (ultimo fuoco): linea rossa tiratore→bersaglio +
+	# testo, finché non parte l'ordine dopo. Utile per capire il fuoco dell'IA.
+	if s.last_fire_from.x >= 0 and s.last_fire_to.x >= 0:
+		var fa := _hex_center(s.last_fire_from.x, s.last_fire_from.y)
+		var fb := _hex_center(s.last_fire_to.x, s.last_fire_to.y)
+		draw_line(fa, fb, Color(0.95, 0.2, 0.15, 0.9), 3.0)
+		draw_circle(fb, 6.0, Color(0.95, 0.2, 0.15, 0.95))
+		if s.last_fire_text != "":
+			_draw_text(s.last_fire_text, fa.lerp(fb, 0.5) + Vector2(0, -12), 12.0, Color(1, 0.92, 0.86), true)
+
+	# Ultima granata (Bombe a Mano): marker d'impatto arancio.
+	if s.last_grenade.x >= 0:
+		var gc := _hex_center(s.last_grenade.x, s.last_grenade.y)
+		draw_circle(gc, 10.0, Color(1.0, 0.5, 0.1, 0.9))
+		draw_arc(gc, 10.0, 0, TAU, 16, Color(1.0, 0.85, 0.4), 2.0)
+		_draw_text("granata", gc + Vector2(0, -15), 11.0, Color(1, 0.9, 0.5), true)
+
 	# Incendio (E46): esagono in fiamme (riempimento arancio + simbolo)
 	for key in s.hexes:
 		var bhd: GameState.HexData = s.hexes[key]

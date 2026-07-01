@@ -220,6 +220,13 @@ var artillery_spotter_id: String = ""
 var artillery_smoke: bool = false  # barrage fumogeno invece che esplosivo (O18.2.1.1)
 # Ultimo impatto d'artiglieria (per il marker visivo sulla mappa): esagoni colpiti.
 var last_impact_hexes: Array = []
+# Ultimo attacco di fuoco (per mostrare "chi ha sparato a chi" sulla mappa finché
+# non parte l'ordine successivo): esagono del tiratore, del bersaglio, e testo.
+var last_fire_from: Vector2i = Vector2i(-1, -1)
+var last_fire_to: Vector2i = Vector2i(-1, -1)
+var last_fire_text: String = ""
+# Ultimo esagono dove è caduta una granata (Bombe a Mano): marker d'impatto.
+var last_grenade: Vector2i = Vector2i(-1, -1)
 
 # ─── Finestra di reazione: Fuoco di Opportunità del giocatore (A33) ───────────
 # Mentre l'IA muove, se il giocatore umano ha tiratori idonei si apre una finestra

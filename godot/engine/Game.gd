@@ -621,7 +621,13 @@ func play_card(hand_index: int) -> void:
 	var hand := state.hand_of(state.human_faction)
 	if hand_index < 0 or hand_index >= hand.size():
 		return
-	state.last_impact_hexes.clear()  # un nuovo ordine rimuove il marker d'impatto
+	# Un nuovo ordine rimuove gli indicatori dell'azione precedente (impatto
+	# artiglieria, "chi ha sparato a chi", ultima granata).
+	state.last_impact_hexes.clear()
+	state.last_fire_from = Vector2i(-1, -1)
+	state.last_fire_to = Vector2i(-1, -1)
+	state.last_fire_text = ""
+	state.last_grenade = Vector2i(-1, -1)
 	var card: Card = hand[hand_index]
 
 	# Limite di Ordini per turno (5.1): MOVE/FIRE/ADVANCE/RECOVER/ROUT contano come
@@ -1299,6 +1305,7 @@ func confirm_fire() -> void:
 	var def_fate := _draw_fate(_ai_faction())
 	var atk_dice := _dice_of(atk_fate)
 	_maybe_react_concealment(tq, tr)
+	_record_fire(u, tq, tr)  # indicatore "chi spara a chi" sulla mappa
 	var result := Combat.resolve_fire(
 		u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus, spray_q, spray_r)
 	_log(result.log_line, result.detail, "fire")
@@ -1323,6 +1330,7 @@ func confirm_fire() -> void:
 			if HexGrid.distance(g.q, g.r, tq, tr) == 1:
 				thrower = g
 				break
+		state.last_grenade = Vector2i(tq, tr)  # marker "qui è caduta la granata"
 		emit_signal("grenade_thrown", thrower.q, thrower.r, tq, tr)
 	_apply_fate(atk_fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
 	_apply_fate(def_fate, _ai_faction())
@@ -1351,6 +1359,23 @@ const AUTONOMOUS_ACTIONS := [
 	"MIMETIZZAZIONE", "TRINCERARSI", "FERITE LEGGERE", "GRANATE FUMOGENE",
 	"TRINCERAMENTI NASCOSTI", "MINE NASCOSTE", "CASAMATTA NASCOSTA", "FILO SPINATO NASCOSTO",
 ]
+
+
+## Registra l'ultimo attacco di fuoco per l'indicatore "chi spara a chi" sulla
+## mappa (linea tiratore→bersaglio + etichetta), utile soprattutto per capire il
+## fuoco dell'IA. Va chiamato PRIMA della risoluzione, così i nomi dei bersagli
+## si leggono ancora. L'indicatore resta finché non parte l'ordine successivo.
+func _record_fire(attacker: Unit, tq: int, tr: int) -> void:
+	if attacker == null:
+		return
+	state.last_fire_from = Vector2i(attacker.q, attacker.r)
+	state.last_fire_to = Vector2i(tq, tr)
+	var tgt_ids: Array = []
+	for m in state.men_at(tq, tr):
+		if m.faction != attacker.faction:
+			tgt_ids.append(m.id)
+	var tgt := Combat._names(state, tgt_ids) if not tgt_ids.is_empty() else Domain.qr_to_label(tq, tr)
+	state.last_fire_text = "%s → %s" % [attacker.unit_name, tgt]
 
 
 ## Pezzi attualmente nel gruppo di fuoco (oggetti Unit).
@@ -2297,6 +2322,7 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	var atk_fate := _draw_fate(defender)
 	var def_fate := _draw_fate(mover.faction)
 	_maybe_react_concealment(mover.q, mover.r)  # il mover (se IA) può mimetizzarsi
+	_record_fire(shooter, mover.q, mover.r)  # indicatore "chi spara a chi"
 	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
 	_log("Opportunità — " + res.log_line, res.detail, "fire")
 	for id in res.eliminated:
@@ -2622,6 +2648,7 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 				var ffate := _draw_fate(faction)
 				var dfate := _draw_fate(_opponent(faction))
 				await _reactive_concealment_human(fq, fr)  # il difensore umano può mimetizzarsi
+				_record_fire(atk, fq, fr)  # indicatore "l'IA spara a chi" sulla mappa
 				var fres := Combat.resolve_fire(atk, fq, fr, state, _dice_of(ffate), _dice_of(dfate))
 				_log("IA — " + fres.log_line, fres.detail, "ai")
 				for fid in fres.eliminated:
