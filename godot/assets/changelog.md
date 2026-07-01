@@ -1,3 +1,11 @@
+[b]v0.44.0[/b]
+
+[b]Chiarezza dell'interfaccia — primo blocco[/b]
+- [b]Turno più chiaro[/b]: a inizio turno le unità che [b]possono ancora agire[/b] sono cerchiate di verde (2D e 3D), e la barra di stato dice quante sono. Quando [b]nessuna[/b] può più agire compare «Nessuna unità può più agire — premi Fine Turno».
+- [b]Pedine vere del gioco (VASSAL)[/b] per i marcatori: [b]Trincea, Casamatta, Bunker, Filo spinato, Buche, Fumo, Incendio[/b] ora sono le vere pedine (prima erano letterine). Sia in 2D sia in 3D (counter distesi sul tabellone). Le Mine restano un'etichetta (manca la pedina nel modulo).
+- [b]Fuoco dell'IA più leggibile[/b]: nel registro ora si legge [b]chi spara e a chi[/b] (nome del bersaglio + etichetta dell'esagono, es. «su M12 [Line Squad]») invece delle sole coordinate.
+- [b]Fuoco di Opportunità più chiaro[/b]: il riquadro di reazione dice [b]quale unità nemica[/b] si è mossa e [b]dove[/b], e spiega che basta cliccare un tuo tiratore giallo per sparargli subito (nessuna carta da giocare).
+
 [b]v0.43.3[/b]
 
 [b]Correzione blocco del turno — Avanzata su esagono pieno[/b]

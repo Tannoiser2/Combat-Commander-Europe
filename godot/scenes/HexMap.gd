@@ -210,7 +210,7 @@ func _draw() -> void:
 		var shd: GameState.HexData = s.hexes[key]
 		if shd.has_smoke:
 			var sp := String(key).split(",")
-			_draw_hex_fill(int(sp[0]), int(sp[1]), Color(0.82, 0.82, 0.86, 0.62))
+			_draw_marker(int(sp[0]), int(sp[1]), MarkerArt.smoke_texture(), 1.0, Color(1, 1, 1, 0.82))
 
 	# Ultimo impatto d'artiglieria: anello rosso sui 7 esagoni colpiti (O18)
 	for ih in s.last_impact_hexes:
@@ -222,18 +222,28 @@ func _draw() -> void:
 		var bhd: GameState.HexData = s.hexes[key]
 		if bhd.has_blaze:
 			var bp := String(key).split(",")
-			_draw_hex_fill(int(bp[0]), int(bp[1]), Color(0.95, 0.45, 0.1, 0.45))
-			_draw_text("*", _hex_center(int(bp[0]), int(bp[1])), 16.0, Color(1, 0.85, 0.2), true)
+			_draw_marker(int(bp[0]), int(bp[1]), MarkerArt.blaze_texture(), 0.95, Color.WHITE)
 
-	# Fortificazioni: piccola etichetta in alto nell'esagono
+	# Buche (Foxholes): pedina VASSAL.
+	for key in s.hexes:
+		var xhd: GameState.HexData = s.hexes[key]
+		if xhd.has_foxhole:
+			var xp := String(key).split(",")
+			_draw_marker(int(xp[0]), int(xp[1]), MarkerArt.foxhole_texture(), 0.95, Color.WHITE)
+
+	# Fortificazioni: pedina VASSAL (Trincea/Casamatta/Bunker/Filo); Mine = etichetta.
 	for key in s.hexes:
 		var hd: GameState.HexData = s.hexes[key]
 		if hd.fortification != Domain.Fort.NONE:
 			var fp := String(key).split(",")
-			var fc := _hex_center(int(fp[0]), int(fp[1])) - Vector2(0, _hsize() * 0.55)
-			var col: Color = FORT_COLORS.get(hd.fortification, Color.WHITE)
-			draw_circle(fc, 8.0, Color(0.08, 0.08, 0.08, 0.9))
-			_draw_text(FORT_LETTERS.get(hd.fortification, "?"), fc, 11.0, col, true)
+			var ft := MarkerArt.fort_texture(hd.fortification)
+			if ft != null:
+				_draw_marker(int(fp[0]), int(fp[1]), ft, 0.95, Color.WHITE)
+			else:
+				var fc := _hex_center(int(fp[0]), int(fp[1])) - Vector2(0, _hsize() * 0.55)
+				var col: Color = FORT_COLORS.get(hd.fortification, Color.WHITE)
+				draw_circle(fc, 8.0, Color(0.08, 0.08, 0.08, 0.9))
+				_draw_text(FORT_LETTERS.get(hd.fortification, "?"), fc, 11.0, col, true)
 
 	# Schieramento manuale: evidenzia la zona di setup del giocatore (dove può
 	# disporre le sue unità). Riempimento e contorno azzurri.
@@ -269,6 +279,13 @@ func _draw() -> void:
 		if gv:
 			_draw_hex_outline(gv.q, gv.r, COL_GROUP, 3.0)
 
+	# A inizio turno cerchia chi PUÒ ancora agire (verde tenue): chiaro cosa
+	# cliccare e quando il turno è finito (nessun cerchio = premi Fine Turno).
+	if s.phase == Domain.Phase.PLAYER_TURN and s.selected_unit_id == "":
+		for aid in Game.actable_unit_ids():
+			var av := s.unit_by_id(aid)
+			if av:
+				_draw_hex_outline(av.q, av.r, Color(0.4, 0.9, 0.45), 2.0)
 	# Anteprima del gruppo di comando: selezionando un leader PRIMA dell'ordine,
 	# si evidenziano le unità che potrebbe attivare nel turno.
 	if s.ordered_group.is_empty():
@@ -441,6 +458,18 @@ func _draw_side_features(s: GameState) -> void:
 func _draw_hex_fill(q: int, r: int, color: Color) -> void:
 	var pts := _hex_corners(q, r)
 	draw_colored_polygon(PackedVector2Array(pts), color)
+
+
+## Disegna la pedina/marcatore VASSAL centrata sull'esagono. `frac` = 1.0 riempie
+## l'esagono (la pedina è già a forma di esagono flat-top, 192×166). `mod` colora/
+## rende translucido (es. fumo). Niente se la texture manca.
+func _draw_marker(q: int, r: int, tex: Texture2D, frac: float, mod: Color) -> void:
+	if tex == null:
+		return
+	var w := 2.0 * _hsize() * frac
+	var h := w * float(tex.get_height()) / float(tex.get_width())
+	var c := _hex_center(q, r)
+	draw_texture_rect(tex, Rect2(c - Vector2(w, h) * 0.5, Vector2(w, h)), false, mod)
 
 
 func _draw_hex_outline(q: int, r: int, color: Color, width: float) -> void:

@@ -195,8 +195,17 @@ static func resolve_fire(
 	if res.suppressed.size() > 0:
 		effects.append("[b]SOPPRESSE[/b] %s" % _names(state, res.suppressed))
 	var outcome := " · ".join(effects) if not effects.is_empty() else "nessun effetto"
-	res.log_line = "%s (×%d) [b]spara[/b] su (%d,%d) — %s" % [
-		attacker.unit_name, group.size(), tq, tr, outcome]
+	# Bersaglio: etichetta dell'esagono + nomi delle unità nemiche colpite, così è
+	# chiaro CHI spara e A CHI (non solo le coordinate).
+	var tgt_ids: Array = []
+	for m in state.men_at(tq, tr):
+		if m.faction != attacker.faction:
+			tgt_ids.append(m.id)
+	var tgt_desc := Domain.qr_to_label(tq, tr)
+	if not tgt_ids.is_empty():
+		tgt_desc += " [%s]" % _names(state, tgt_ids)
+	res.log_line = "%s (×%d) [b]spara[/b] su %s — %s" % [
+		attacker.unit_name, group.size(), tgt_desc, outcome]
 	res.detail = "[b]Attacco[/b] = FP %d − ostacolo %d + dadi(%d+%d) = [b]%d[/b]\n" % [
 			fp, hind, atk_dice.x, atk_dice.y, attack_total] \
 		+ "[b]Difesa[/b] (per unità) = Morale + copertura %d + dadi(%d+%d) [+ comando − filo]\n" % [

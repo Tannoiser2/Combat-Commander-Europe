@@ -640,6 +640,13 @@ func _add_highlights(s: GameState) -> void:
 	# raggio di Comando del leader del gruppo. Gli altri ordini restano gialli.
 	var cost_map := _move_cost_map(s)
 	_add_command_aura(s, cost_map)
+	# A inizio turno evidenzia chi PUÒ ancora agire (cerchio verde tenue): chiaro
+	# cosa cliccare e quando il turno è finito (nessun cerchio = premi Fine Turno).
+	if s.phase == Domain.Phase.PLAYER_TURN and s.selected_unit_id == "":
+		for aid in Game.actable_unit_ids():
+			var au := s.unit_by_id(aid)
+			if au != null:
+				_hex_disc(au.q, au.r, s, Color(0.35, 0.85, 0.4, 0.30))
 	for key in s.highlighted_hexes:
 		var p := String(key).split(",")
 		var hq := int(p[0])
@@ -1468,11 +1475,15 @@ func _add_status_markers(s: GameState) -> void:
 		var ci := _hex_img(q, r)
 		var cw := Vector3(ci.x * _world, top_y, ci.y * _world)
 		if hd.has_foxhole:
-			_ground_disc(q, r, s, 0.42, Color(0.12, 0.10, 0.07, 0.7))
+			_flat_marker(q, r, s, MarkerArt.foxhole_texture(), 0.95, 0.06)
 		if hd.fortification != Domain.Fort.NONE:
-			_badge(cw + Vector3(0.0, 1.35, 0.0),
-				String(fort_letters.get(hd.fortification, "?")),
-				fort_colors.get(hd.fortification, Color.WHITE))
+			var ft := MarkerArt.fort_texture(hd.fortification)
+			if ft != null:
+				_flat_marker(q, r, s, ft, 0.95, 0.08)
+			else:
+				_badge(cw + Vector3(0.0, 1.35, 0.0),
+					String(fort_letters.get(hd.fortification, "?")),
+					fort_colors.get(hd.fortification, Color.WHITE))
 		if hd.has_blaze:
 			_hex_disc(q, r, s, Color(0.95, 0.45, 0.1, 0.5))
 			_flame(cw)
@@ -1512,6 +1523,23 @@ func _ground_disc(q: int, r: int, s: GameState, radius_frac: float, col: Color) 
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mi.material_override = m
 	_dynamic.add_child(mi)
+
+
+## Pedina/marcatore VASSAL distesa sulla cima dell'esagono (come un counter sul
+## tabellone). `frac` = 1.0 copre l'esagono (la pedina è già esagonale).
+func _flat_marker(q: int, r: int, s: GameState, tex: Texture2D, frac: float, y_off: float) -> void:
+	if tex == null:
+		return
+	var sp := Sprite3D.new()
+	sp.texture = tex
+	sp.pixel_size = (2.0 * _hx * _world * frac) / float(tex.get_width())
+	sp.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	sp.shaded = false
+	sp.double_sided = true
+	sp.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	var ci := _hex_img(q, r)
+	sp.position = Vector3(ci.x * _world, _top_y(s, q, r) + y_off, ci.y * _world)
+	_dynamic.add_child(sp)
 
 
 ## Etichetta a cartello (lettera fortificazione) sospesa sopra l'esagono.
