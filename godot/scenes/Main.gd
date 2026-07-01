@@ -701,11 +701,31 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 # ─── Aggiornamento UI ─────────────────────────────────────────────────────────
 
+## Etichetta della barra in alto: durante un ordine dice QUALE ordine è in
+## corso (Fuoco/Mossa/Avanzata/Artiglieria) e come uscirne, così non mostra
+## più "clicca esagono adiacente" anche quando stai sparando.
+func _phase_label(s: GameState) -> String:
+	if s != null and s.phase == Domain.Phase.PLAYER_MOVING:
+		match s.current_order:
+			Domain.OrderType.FIRE:
+				return "FUOCO in corso — scegli il bersaglio, o il tiratore / «Fine Turno» per uscire"
+			Domain.OrderType.MOVE:
+				return "MOSSA in corso — esagono evidenziato, o l'unità per concludere"
+			Domain.OrderType.ADVANCE:
+				return "AVANZATA in corso — esagono adiacente, o l'unità per concludere"
+			Domain.OrderType.ARTY:
+				return "ARTIGLIERIA — scegli il bersaglio nella linea di vista"
+			_:
+				return "Ordine in corso"
+	var ph := s.phase if s != null else -1
+	return Domain.PHASE_LABELS.get(ph, "—")
+
+
 func _refresh_ui() -> void:
 	if Game.state == null:
 		return
 	var s := Game.state
-	phase_label.text = Domain.PHASE_LABELS.get(s.phase, "—")
+	phase_label.text = _phase_label(s)
 	turn_label.text = "Turno %d" % s.turn_number
 	init_label.text = "Iniz: %s" % Domain.FACTION_SHORT.get(s.initiative_holder, "—")
 	# Traccia del Tempo verso la Morte Subitanea (blocchi pieni/vuoti)
@@ -791,7 +811,9 @@ func _guidance_text(s: GameState) -> String:
 						return "FUOCO — clicca un tiratore (anello ciano) o un leader per vederne i tiratori (%d possono sparare)" % n
 					if s.fire_eligible_ids.is_empty() and not s.command_preview_ids.is_empty():
 						return "FUOCO — leader: clicca uno dei tiratori comandati (arancio) per assemblare il gruppo"
-					return "FUOCO — gruppo assemblato: clic su un pezzo = aggiungi/togli · mouse su un BERSAGLIO per le statistiche · clic per sparare · il tiratore per annullare"
+					if s.highlighted_hexes.is_empty():
+						return "FUOCO — nessun bersaglio a tiro con questo gruppo: clicca il [b]tiratore[/b] per annullare, o «[b]Fine Turno[/b]»"
+					return "FUOCO — gruppo pronto: clic sul [b]bersaglio[/b] evidenziato per sparare · clic su un pezzo = aggiungi/togli · il [b]tiratore[/b] per annullare · «Fine Turno» esce"
 				Domain.OrderType.ADVANCE:
 					if not has_unit:
 						return "AVANZATA — clicca l'unità (o un leader: avanza tutto il gruppo entro il Comando)"
@@ -1123,7 +1145,7 @@ func _scroll_log_bottom() -> void:
 
 
 func _on_phase_changed(phase: int) -> void:
-	phase_label.text = Domain.PHASE_LABELS.get(phase, "—")
+	phase_label.text = _phase_label(Game.state) if Game.state != null else Domain.PHASE_LABELS.get(phase, "—")
 	end_turn_btn.disabled = not _is_player_phase(phase)
 	if _pass_btn != null:
 		_pass_btn.disabled = phase != Domain.Phase.PLAYER_TURN

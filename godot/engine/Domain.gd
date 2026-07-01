@@ -8,7 +8,7 @@ extends Node
 
 ## Versione dell'applicazione (mostrata nella schermata iniziale, vedi
 ## res://assets/changelog.md per le modifiche).
-const VERSION := "0.44.0"
+const VERSION := "0.44.2"
 
 
 # ─── Fazioni ─────────────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ enum Phase {
 
 const PHASE_LABELS := {
 	Phase.PLAYER_TURN:     "Il tuo turno — seleziona carta e unità",
-	Phase.PLAYER_MOVING:   "In movimento — clicca esagono adiacente",
+	Phase.PLAYER_MOVING:   "Ordine in corso",
 	Phase.REACTION_WINDOW: "Finestra di reazione...",
 	Phase.AI_OPP_FIRE:     "Fuoco di Opportunità IA!",
 	Phase.AI_TURN:         "Turno IA in corso...",

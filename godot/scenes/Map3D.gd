@@ -1492,6 +1492,24 @@ func _add_status_markers(s: GameState) -> void:
 	# Ultimo impatto d'artiglieria: disco rosso translucido sugli esagoni colpiti.
 	for ih in s.last_impact_hexes:
 		_ground_disc(int(ih.x), int(ih.y), s, 0.95, Color(0.95, 0.15, 0.1, 0.28))
+	# "Chi ha sparato a chi" (ultimo fuoco): linea rossa tiratore→bersaglio +
+	# etichetta, finché non parte l'ordine dopo. Chiarisce il fuoco dell'IA.
+	if s.last_fire_from.x >= 0 and s.last_fire_to.x >= 0:
+		_los_line(s.last_fire_from.x, s.last_fire_from.y, s.last_fire_to.x, s.last_fire_to.y,
+			s, Color(0.95, 0.2, 0.15, 0.95), null, 0.05)
+		if s.last_fire_text != "":
+			var fca := _hex_img(s.last_fire_from.x, s.last_fire_from.y)
+			var fcb := _hex_img(s.last_fire_to.x, s.last_fire_to.y)
+			var fmid := Vector3((fca.x + fcb.x) * 0.5 * _world,
+				(_top_y(s, s.last_fire_from.x, s.last_fire_from.y) + _top_y(s, s.last_fire_to.x, s.last_fire_to.y)) * 0.5 + 1.1,
+				(fca.y + fcb.y) * 0.5 * _world)
+			_badge(fmid, s.last_fire_text, Color(1, 0.92, 0.86))
+	# Ultima granata (Bombe a Mano): disco d'impatto + etichetta.
+	if s.last_grenade.x >= 0:
+		_ground_disc(s.last_grenade.x, s.last_grenade.y, s, 0.55, Color(1.0, 0.5, 0.1, 0.5))
+		var gci := _hex_img(s.last_grenade.x, s.last_grenade.y)
+		_badge(Vector3(gci.x * _world, _top_y(s, s.last_grenade.x, s.last_grenade.y) + 0.9, gci.y * _world),
+			"granata", Color(1, 0.85, 0.4))
 	# Armi a terra (senza portatore, 11.3): disco giallo = raccoglibili con «G».
 	for u in s.units.values():
 		if u.is_weapon() and u.carrier_id == "":

@@ -1,3 +1,15 @@
+[b]v0.44.2[/b]
+
+[b]Fuoco più leggibile sulla mappa[/b]
+- [b]«Chi spara a chi»[/b]: dopo ogni fuoco (soprattutto quello dell'IA) una [b]linea rossa[/b] collega il tiratore al bersaglio, con l'etichetta «Tiratore → Bersaglio», e resta finché non giochi l'ordine successivo. In 2D e in 3D.
+- [b]Granata[/b]: ora si vede [b]dove è caduta[/b] (Bombe a Mano) con un marcatore d'impatto arancio + «granata», finché non parte l'ordine dopo.
+
+[b]v0.44.1[/b]
+
+[b]Ordine di Fuoco: non ci si blocca più (chiarezza)[/b]
+- La barra in alto mostrava sempre «In movimento — clicca esagono adiacente» anche durante il [b]Fuoco[/b]: fuorviante, sembrava di dover avanzare. Ora dice l'[b]ordine reale[/b] in corso (Fuoco/Mossa/Avanzata/Artiglieria) e come uscirne.
+- Nell'ordine di Fuoco è ora esplicito che puoi sempre [b]uscire[/b]: clicca il tiratore per annullare (l'ordine viene [b]rimborsato[/b]) o premi «Fine Turno». Se il gruppo non ha bersagli a tiro, la guida lo dice chiaramente invece di lasciarti col dubbio.
+
 [b]v0.44.0[/b]
 
 [b]Chiarezza dell'interfaccia — primo blocco[/b]
