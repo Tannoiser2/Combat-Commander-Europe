@@ -112,7 +112,8 @@ static func resolve_fire(
 	atk_dice: Vector2i, def_dice: Vector2i,
 	group_override: Array[Unit] = [],
 	fp_bonus: int = 0,
-	spray_q: int = -1, spray_r: int = -1
+	spray_q: int = -1, spray_r: int = -1,
+	def_rolls: Array = []
 ) -> FireResult:
 	var res := FireResult.new()
 	res.attacker_id = attacker.id
@@ -165,6 +166,12 @@ static func resolve_fire(
 		fp += group.size() - 1
 	# Modificatori di fuoco (Mirato/Sostenuto/Incrociato, A37/A41/A30): +FP.
 	fp += fp_bonus
+	# Airburst (T99): un mortaio o l'artiglieria (Radio) che spara su un esagono
+	# di BOSCO aggiunge +2 al totale d'attacco (le schegge scendono dalle chiome).
+	var thd: GameState.HexData = state.hex_at(tq, tr)
+	if thd != null and thd.terrain == Domain.TerrainType.WOODS \
+			and (attacker.ordnance or attacker.unit_class == Domain.UnitClass.MORTAR):
+		fp += 2
 	# 10.3.2.1 Minimum Firepower: un attacco normale la cui FP sarebbe ridotta a
 	# 0 o meno dall'hindrance NON si può fare (le Azioni che alzano la FP contano
 	# prima del taglio). Attacco annullato, nessun effetto, nessuna rivelazione.
@@ -182,13 +189,16 @@ static func resolve_fire(
 
 	# ─── Fire Defense Roll per ogni difensore (O20.3.4) ──────────────────────
 	var def_roll := def_dice.x + def_dice.y
-	var cover := _resolve_hex_defenders(state, attacker, tq, tr, attack_total, def_roll, res)
+	var cursor: Array = [0]
+	var cover := _resolve_hex_defenders(
+		state, attacker, tq, tr, attack_total, def_roll, res, def_rolls, cursor)
 
 	# Sventagliata (A40 Spray Fire): lo stesso totale d'attacco colpisce anche un
 	# secondo esagono nemico adiacente; i suoi difensori tirano la difesa a parte.
 	var spray_cover := -1
 	if spray_q >= 0 and spray_r >= 0:
-		spray_cover = _resolve_hex_defenders(state, attacker, spray_q, spray_r, attack_total, def_roll, res)
+		spray_cover = _resolve_hex_defenders(
+			state, attacker, spray_q, spray_r, attack_total, def_roll, res, def_rolls, cursor)
 
 	# ─── Log: sommario (esito) + formula collassabile ────────────────────────
 	var effects: Array[String] = []
@@ -229,14 +239,26 @@ static func resolve_fire(
 
 ## Applica `attack_total` ai difensori nemici di un esagono (O20.3.4) e registra
 ## gli effetti in `res`. Restituisce la copertura usata (per il log).
+## O20.3.4: OGNI unità difendente fa il PROPRIO tiro di difesa (prima l'esagono
+## ne faceva uno solo, con esiti "tutto o niente" su interi stack). `rolls` sono i
+## tiri pescati dal chiamante, uno per difensore; `cursor` è un contatore
+## condiviso ([int]) per consumarli in ordine. Se finiscono si riusa l'ultimo.
 static func _resolve_hex_defenders(
 	state: GameState, attacker: Unit, hq: int, hr: int,
-	attack_total: int, def_roll: int, res: FireResult
+	attack_total: int, def_roll: int, res: FireResult,
+	rolls: Array = [], cursor: Array = []
 ) -> int:
 	var cover := Rules.cover_at(state, hq, hr, attacker.ordnance)
 	for t in state.men_at(hq, hr):
 		if t.faction == attacker.faction:
 			continue
+		# Tiro di difesa individuale (uno per unità, O20.3.4).
+		if not rolls.is_empty():
+			var idx: int = int(cursor[0]) if not cursor.is_empty() else 0
+			var d: Vector2i = rolls[mini(idx, rolls.size() - 1)]
+			def_roll = d.x + d.y
+			if not cursor.is_empty():
+				cursor[0] = idx + 1
 		# Morale del difensore + copertura + Comando del leader co-locato (3.3.1.2);
 		# il Filo spinato (F106) abbassa di 1 la Morale di chi è nell'esagono.
 		var def_cmd := Rules.unit_command_bonus(state, t)

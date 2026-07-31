@@ -8,7 +8,7 @@ extends Node
 
 ## Versione dell'applicazione (mostrata nella schermata iniziale, vedi
 ## res://assets/changelog.md per le modifiche).
-const VERSION := "0.47.0"
+const VERSION := "0.48.0"
 
 
 # ─── Fazioni ─────────────────────────────────────────────────────────────────
@@ -139,11 +139,11 @@ const TERRAIN_COVER := {
 	TerrainType.BRUSH:    1,
 	TerrainType.WOODS:    2,
 	TerrainType.BUILDING: 3,
-	TerrainType.STREAM:   1,
+	TerrainType.STREAM:   -1,
 	TerrainType.HILL1:    1,
 	TerrainType.HILL2:    2,
 	TerrainType.RUBBLE:   2,
-	TerrainType.FIELD:    1,
+	TerrainType.FIELD:    0,
 	TerrainType.ORCHARD:  1,
 	TerrainType.MARSH:    0,
 	TerrainType.WATER_BARRIER: 0,

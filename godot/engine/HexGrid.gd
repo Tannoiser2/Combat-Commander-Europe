@@ -172,6 +172,16 @@ static func los_hindrance(q1: int, r1: int, q2: int, r2: int, state: GameState) 
 			best = maxi(best, int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0)))
 			if hd.has_smoke:
 				best = maxi(best, SMOKE_HINDRANCE)
+	# Recinzione (Terrain Chart): ostacolo 1 se la LOS attraversa un lato con
+	# recinzione, MA la LOS è libera se quel lato appartiene all'esagono del
+	# tiratore o del bersaglio (nota ** della tabella).
+	for i in range(1, dist):
+		var a: Vector2i = path[i - 1]
+		var b: Vector2i = path[i]
+		if a == Vector2i(q1, r1) or b == Vector2i(q2, r2):
+			continue
+		if state.side_feature_between(a, b) == Domain.HexsideFeature.FENCE:
+			best = maxi(best, 1)
 	return best
 
 
@@ -198,8 +208,9 @@ static func step_cost(state: GameState, fq: int, fr: int, tq: int, tr: int) -> i
 	if feat == Domain.HexsideFeature.CLIFF:
 		return -1
 	if feat == Domain.HexsideFeature.WALL or feat == Domain.HexsideFeature.BOCAGE \
-			or feat == Domain.HexsideFeature.HEDGE or feat == Domain.HexsideFeature.STREAM_SIDE:
-		base += 1
+			or feat == Domain.HexsideFeature.HEDGE or feat == Domain.HexsideFeature.STREAM_SIDE \
+			or feat == Domain.HexsideFeature.FENCE:
+		base += 1  # Terrain Chart: Recinzione/Siepe/Muro costano +1 PM
 	# Salita (T88.1): +1 PM per entrare in un esagono a quota SUPERIORE. La quota è
 	# il campo `elevation`, con un minimo implicito dal terreno collina (HILL1/2).
 	var to_elev: int = maxi(hd.elevation, _terrain_elevation(hd.terrain))

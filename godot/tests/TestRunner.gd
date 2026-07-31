@@ -98,6 +98,9 @@ func _ready() -> void:
 	_test_chit_control_all()
 	_test_exit_last_unit_points()
 	_test_op_fire()
+	_test_terrain_chart_fixes()
+	_test_defense_roll_per_unit()
+	_test_mines_advance_retreat()
 	_test_arty_denied()
 	_test_recover_rout_once_per_turn()
 	_test_suppressed_weapon()
@@ -1973,6 +1976,90 @@ func _test_activation_resets_own_turn() -> void:
 	_check(not mine.activated, "all'inizio del mio turno la mia unità è di nuovo disponibile")
 	_check(theirs.activated, "le unità avversarie NON vengono azzerate dal mio inizio turno")
 	_check(s.opfire_order_ids.is_empty(), "azzerate anche le attivazioni di Op Fire")
+	Game.state = null
+
+
+func _test_terrain_chart_fixes() -> void:
+	print("· Terrain Chart: Ruscello −1, Campo 0, Recinzione, Airburst, acqua")
+	var s := _new_state(6, 3)
+	s.hex_at(1, 0).terrain = Domain.TerrainType.STREAM
+	s.hex_at(2, 0).terrain = Domain.TerrainType.FIELD
+	_check(Rules.cover_at(s, 1, 0, false) == -1, "Ruscello: copertura −1 (era +1)")
+	_check(Rules.cover_at(s, 2, 0, false) == 0, "Campo: copertura 0 (era 1)")
+	# Acqua: niente fortificazioni, niente armi che sparano da lì.
+	_check(not Actions._can_fortify(s.hex_at(1, 0)), "niente fortificazioni in un esagono d'acqua")
+	var mg := _mk("mg", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 1, 0, 8, 7)
+	var carrier := _mk("c", GER, SQUAD, RIFLE, 1, 0, 6, 7)
+	mg.carrier_id = "c"
+	s.units["c"] = carrier
+	s.units["mg"] = mg
+	_check(not Rules.weapon_usable(s, mg), "le armi non sparano da un esagono d'acqua")
+	# Filo spinato: nessun'arma spara dal filo (F106.3).
+	var s2 := _new_state(6, 3)
+	s2.hex_at(0, 0).fortification = Domain.Fort.WIRE
+	var mg2 := _mk("mg2", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 0, 0, 8, 7)
+	var c2 := _mk("c2", GER, SQUAD, RIFLE, 0, 0, 6, 7)
+	mg2.carrier_id = "c2"
+	s2.units["c2"] = c2
+	s2.units["mg2"] = mg2
+	_check(not Rules.weapon_usable(s2, mg2), "nessun'arma spara da un esagono con Filo (F106.3)")
+
+	# Airburst (T99): mortaio contro Bosco → +2 all'attacco.
+	var s3 := _new_state(6, 3)
+	s3.hex_at(3, 1).terrain = Domain.TerrainType.WOODS
+	var mortar := _mk("mo", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MORTAR, 0, 1, 6, 7)
+	mortar.range = 8
+	var tgt := _mk("t", RUS, SQUAD, RIFLE, 3, 1, 5, 7)
+	s3.units["mo"] = mortar
+	s3.units["t"] = tgt
+	var r_woods := Combat.resolve_fire(mortar, 3, 1, s3, Vector2i(3, 3), Vector2i(1, 1))
+	s3.hex_at(3, 1).terrain = Domain.TerrainType.OPEN
+	tgt.recover()
+	var r_open := Combat.resolve_fire(mortar, 3, 1, s3, Vector2i(3, 3), Vector2i(1, 1))
+	_check(r_woods.fp_total == r_open.fp_total + 2 - Domain.TERRAIN_COVER.get(Domain.TerrainType.WOODS, 0) * 0,
+		"Airburst: +2 all'attacco del mortaio contro il Bosco (T99)")
+
+
+func _test_defense_roll_per_unit() -> void:
+	print("· Fuoco (O20.3.4): un tiro di difesa per OGNI unità, non uno per esagono")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	var atk := _mk("a", GER, SQUAD, RIFLE, 0, 1, 12, 7)
+	s.units["a"] = atk
+	# Due difensori con Morale molto diverso nello stesso esagono.
+	var weak := _mk("w", RUS, SQUAD, RIFLE, 2, 1, 5, 2)    # morale bassissimo
+	var tough := _mk("h", RUS, SQUAD, RIFLE, 2, 1, 5, 20)  # morale altissimo
+	s.units["w"] = weak
+	s.units["h"] = tough
+	# Tiri di difesa distinti: il primo pessimo, il secondo ottimo.
+	var res := Combat.resolve_fire(atk, 2, 1, s, Vector2i(6, 6), Vector2i(1, 1),
+		[], 0, -1, -1, [Vector2i(1, 1), Vector2i(6, 6)])
+	_check(res.broken.has("w") or res.eliminated.has("w"), "il difensore debole viene colpito")
+	_check(not res.broken.has("h") and not res.eliminated.has("h"),
+		"il difensore tenace, col SUO tiro, resiste (esiti non più «tutto o niente»)")
+
+
+func _test_mines_advance_retreat() -> void:
+	print("· Mine (F103.1): attaccano anche in Avanzata e in Ritirata")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.ADVANCE
+	s.hex_at(2, 1).fortification = Domain.Fort.MINES
+	var u := _mk("g", GER, SQUAD, RIFLE, 1, 1, 5, 2)  # morale bassissimo: le mine colpiscono
+	s.units["g"] = u
+	s.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 5, 2, 5, 7)
+	s.selected_unit_id = "g"
+	s.group_mp["g"] = 1
+	s.ordered_group.append("g")
+	for i in 6:
+		s.german_deck.append(_fate_card(6, 6, ""))
+		s.russian_deck.append(_fate_card(1, 1, ""))
+	Game.state = s
+	Game._execute_advance(u, 2, 1)
+	_check(u.q == 2 and u.r == 1, "l'unità è avanzata nell'esagono minato")
+	_check(not u.efficient or not s.units.has("g"),
+		"le Mine hanno attaccato durante l'Avanzata (F103.1)")
 	Game.state = null
 
 
