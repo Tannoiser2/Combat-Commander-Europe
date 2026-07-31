@@ -166,6 +166,21 @@ static func resolve_fire(
 		fp += group.size() - 1
 	# Modificatori di fuoco (Mirato/Sostenuto/Incrociato, A37/A41/A30): +FP.
 	fp += fp_bonus
+	# Vantaggio d'altura (T88.2): -1 FP se il bersaglio è PIÙ IN ALTO di almeno un
+	# pezzo che spara, +1 FP se è PIÙ IN BASSO di almeno un pezzo che spara.
+	var t_elev := HexGrid.elevation_at(state, tq, tr)
+	var any_below := false
+	var any_above := false
+	for u2 in group:
+		var ue := HexGrid.elevation_at(state, u2.q, u2.r)
+		if t_elev > ue:
+			any_below = true   # il bersaglio è più in alto del tiratore
+		elif t_elev < ue:
+			any_above = true   # il tiratore domina dall'alto
+	if any_above:
+		fp += 1
+	elif any_below:
+		fp -= 1
 	# Airburst (T99): un mortaio o l'artiglieria (Radio) che spara su un esagono
 	# di BOSCO aggiunge +2 al totale d'attacco (le schegge scendono dalle chiome).
 	var thd: GameState.HexData = state.hex_at(tq, tr)

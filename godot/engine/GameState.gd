@@ -168,6 +168,15 @@ var pending_time_factions: Array = []
 ## Si azzera all'inizio del turno di ciascun giocatore.
 var rally_used: Array = []
 
+## A25: se true, quando una tua unità entra in mischia e hai una carta IMBOSCATA
+## in mano, viene giocata automaticamente (rompe l'unità nemica più pericolosa).
+## Attivabile/disattivabile dalla colonna laterale.
+var ambush_auto: bool = true
+
+## T93: unità che hanno toccato un esagono con STRADA durante l'ordine di Mossa in
+## corso: guadagnano +1 Movimento fino alla fine di quell'ordine.
+var road_bonus_ids: Array[String] = []
+
 ## Unità attivate per il Fuoco di Opportunità durante l'ordine di Mossa IN CORSO
 ## (A33.3 punto 2): restano idonee a sparare — senza spendere altre carte — a
 ## ogni esagono entrato, ma solo per QUESTO ordine di Mossa. Si azzera all'inizio
