@@ -1,5 +1,11 @@
 # Audit completo — Regole, GUI e flusso di gioco (v0.44.2)
 
+> **Stato al 31/07/2026** — Fasi **1, 2 e 3 completate** e su `main`; **Fase 4 in gran parte
+> completata** (vedi in fondo il dettaglio di cosa resta). Questo documento resta la
+> fotografia dell'audit iniziale: le voci corrette sono elencate come piano, non come
+> difetti ancora presenti.
+
+
 Audit condotto sul regolamento 20th Anniversary (`CC-20thAnniv_Rulebook_ONLINE.pdf`) +
 Playbook, confrontati riga per riga col codice. Quattro aree: (1) VP/Obiettivi/Tempo,
 (2) attivazione Ordini/Azioni, (3) movimento + Fuoco di Opportunità, (4) sweep generale
@@ -305,3 +311,43 @@ soppressione a norma (−1, vietate le armi, attivabile).
 advantage, airburst; mine in avanzata/ritirata; divieti del Filo; un tiro di difesa
 per unità; catena di adiacenza dei gruppi; eventi mancanti; Deploy/team; Fix/Elim
 delle armi rotte.
+
+
+---
+
+## Stato di avanzamento
+
+**Fase 1 — Economia di vittoria** ✅ (v0.45.0): controllo obiettivi appiccicoso + controllo
+iniziale da scheda, chit aperti/segreti col valore 0 di default, chit V, uscita dell'ultima
+unità = fine ai punti, unità uscite che rientrano, Tempo a mazzo esaurito, sequenza del
+Tempo! corretta, tempo iniziale da scheda.
+
+**Fase 2 — Op Fire & movimento** ✅ (v0.46.0): una carta attiva il tiratore per l'intero
+ordine di Mossa (tiri successivi gratuiti), attivazioni azzerate a inizio del proprio turno,
+mover colpito che si ferma, `fire_resolved` (traccianti/suono) anche per op fire e fuoco IA,
+banner col costo reale, niente rinuncia per click accidentale.
+
+**Fase 3 — Ordini/Azioni** ✅ (v0.47.0): soppressione a norma (13.2), Artiglieria Negata
+(O17), Recupero (O22) e Rotta (O23) coi tre esiti e l'attivazione per turno, Rotta
+sull'avversario, Granate Fumogene (A39) col timing giusto, badge con prerequisiti reali.
+
+**Fase 4 — Regole di contorno** 🟨 (v0.48.0), fatto:
+- Terrain Chart: Ruscello copertura **−1** (era +1), Campo **0** (era 1), Recinzione (+1 PM
+  e ostacolo 1 con la regola dei lati), Airburst T99 (+2 di mortai/artiglieria sul Bosco),
+  esagoni d'acqua (niente fortificazioni, niente armi che sparano).
+- Filo spinato: nessun'arma spara dal filo (F106.3).
+- Mine: attaccano anche in **Avanzata** e in **Ritirata** (F103.1).
+- Fuoco: **un tiro di difesa per ogni unità** (O20.3.4) — niente più esiti "tutto o niente"
+  sugli stack.
+
+**Resta aperto** (non ancora affrontato):
+- Terreno: copertura −1 della Strada (serve tracciare se l'unità è entrata lungo la strada),
+  copertura alternativa di Muro/Siepe attraversati dal tiro, vantaggio d'altura T88.2, LOS
+  collinare avanzata (Blind Hex, Crest Line), Forra visibile solo da adiacente/più in alto,
+  incendio che blocca la LOS e si propaga.
+- Gruppi di fuoco per catena di adiacenza (O20.3.1) invece del raggio di Comando.
+- Trincea: movimento trincea↔trincea a 1 PM (F105.2).
+- Armi rotte: riparazione/eliminazione col Random Hex (11.4); Battery Access (O18.1).
+- ~12 eventi del mazzo ancora "non ancora simulato" e il Deploy/split in team (E52).
+- Mimetizzazione offerta al mover umano sotto op fire dell'IA (A29); Imboscata giocabile
+  dall'umano (A25).

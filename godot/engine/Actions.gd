@@ -47,10 +47,14 @@ static func _place_fort(state: GameState, faction: int, fort: int, lines: Array[
 ## Esagono idoneo a ospitare una fortificazione/buca (F100/A32): niente acqua,
 ## niente incendio, e nessuna fortificazione o buca già presente.
 static func _can_fortify(hd: GameState.HexData) -> bool:
+	# Terrain Chart: niente fortificazioni negli esagoni d'ACQUA (Acqua, Ruscello,
+	# Palude), né dove c'è già una buca/fortificazione o un incendio.
 	return hd != null and not hd.has_foxhole \
 		and hd.fortification == Domain.Fort.NONE \
 		and not hd.has_blaze \
-		and hd.terrain != Domain.TerrainType.WATER_BARRIER
+		and hd.terrain != Domain.TerrainType.WATER_BARRIER \
+		and hd.terrain != Domain.TerrainType.STREAM \
+		and hd.terrain != Domain.TerrainType.MARSH
 
 
 ## Ferite leggere: recupera un'unità rotta amica.

@@ -440,6 +440,27 @@ func _compute_fire_ready() -> void:
 
 
 ## C'è almeno un'unità del giocatore che può sparare ora (≥1 bersaglio valido)?
+## O20.3.4: pesca un tiro di difesa per OGNI unità nemica nell'esagono bersaglio
+## (e in quello della Sventagliata). Restituisce { "rolls": Array, "cards": Array }:
+## il chiamante applica poi le conseguenze delle carte pescate.
+func _draw_defense_rolls(defender: int, tq: int, tr: int, sq: int = -1, sr: int = -1) -> Dictionary:
+	var n := 0
+	for m in state.men_at(tq, tr):
+		if m.faction == defender:
+			n += 1
+	if sq >= 0:
+		for m2 in state.men_at(sq, sr):
+			if m2.faction == defender:
+				n += 1
+	var rolls: Array = []
+	var cards: Array = []
+	for _i in maxi(1, n):
+		var c := _draw_fate(defender)
+		cards.append(c)
+		rolls.append(_dice_of(c))
+	return { "rolls": rolls, "cards": cards }
+
+
 ## Radio della fazione avversaria a quella umana, se presente in gioco (O17).
 func _enemy_radio(faction: int = -1) -> Unit:
 	var owner := _opponent(state.human_faction) if faction == -1 else faction
@@ -1342,12 +1363,16 @@ func confirm_fire() -> void:
 		else:
 			_log("%s non applicabile a questo bersaglio: carta conservata." % cnm)
 	var atk_fate := _draw_fate(state.human_faction)
-	var def_fate := _draw_fate(_ai_faction())
 	var atk_dice := _dice_of(atk_fate)
 	_maybe_react_concealment(tq, tr)
 	_record_fire(u, tq, tr)  # indicatore "chi spara a chi" sulla mappa
+	# O20.3.4: un tiro di difesa per OGNI unità bersagliata (niente più esiti
+	# "tutto o niente" su uno stack intero).
+	var dpack := _draw_defense_rolls(_ai_faction(), tq, tr, spray_q, spray_r)
+	var def_fate: Card = dpack["cards"][0]
 	var result := Combat.resolve_fire(
-		u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus, spray_q, spray_r)
+		u, tq, tr, state, atk_dice, _dice_of(def_fate), group, fp_bonus, spray_q, spray_r,
+		dpack["rolls"])
 	_log(result.log_line, result.detail, "fire")
 	# Fuoco Sostenuto (A41): su un doppio, un'arma (MG/mortaio) che spara si inceppa.
 	if atk_dice.x == atk_dice.y:
@@ -1373,7 +1398,10 @@ func confirm_fire() -> void:
 		state.last_grenade = Vector2i(tq, tr)  # marker "qui è caduta la granata"
 		emit_signal("grenade_thrown", thrower.q, thrower.r, tq, tr)
 	_apply_fate(atk_fate, state.human_faction, { "kind": "fire", "weapons": weapon_ids })
-	_apply_fate(def_fate, _ai_faction())
+	for dc in dpack["cards"]:
+		_apply_fate(dc, _ai_faction())
+		if state.phase == Domain.Phase.GAME_OVER:
+			break
 	for c in to_discard:
 		var idx := hand.find(c)
 		if idx >= 0:
@@ -1997,10 +2025,14 @@ func _execute_advance(u: Unit, tq: int, tr: int) -> void:
 		if u.is_man() and state.soldier_icons_at(tq, tr) + u.soldier_icons() > 7:
 			_log("Impilamento: max 7 figure in (%d,%d)" % [tq, tr])
 			return
+		var aq := u.q
+		var ar := u.r
 		state.set_unit_pos(u, tq, tr)  # porta con sé l'eventuale arma (11.1)
 		u.activated = true
 		_log("%s avanza in (%d,%d)" % [u.unit_name, tq, tr])
 		emit_signal("unit_moved", u.id, tq, tr)
+		# F103.1: le Mine attaccano chi Muove, AVANZA o si Ritira dentro/fuori.
+		_mine_attack_on_move(u, aq, ar)
 	else:
 		# Corpo a corpo: attaccanti = unità amiche che entrano; difensori = nemici.
 		state.set_unit_pos(u, tq, tr)  # porta con sé l'eventuale arma (11.1)
@@ -2155,6 +2187,8 @@ func _execute_rout(hand_index: int) -> void:
 			_log("Rotta %s: tiro %d vs Morale %d -> si ritira di %d esagoni" % [
 				u.unit_name, r["roll"], r["morale"], r["moved"]])
 			emit_signal("unit_moved", u.id, u.q, u.r)
+			# F103.1: le Mine attaccano anche chi si RITIRA, entrando e uscendo.
+			_mine_attack_on_retreat(u, r.get("path", []))
 		_apply_fate(fate, human)
 		if state.phase == Domain.Phase.GAME_OVER:
 			break
@@ -2438,6 +2472,23 @@ func _wire_on_move(u: Unit, from_q: int, from_r: int) -> bool:
 
 ## Attacco delle Mine (F103): se l'unità entra in (o esce da) un esagono minato,
 ## subisce un attacco da 6 FP (copertura 0). Restituisce true se rotta/eliminata.
+## F103.1: risolve gli attacchi delle Mine sugli esagoni attraversati durante una
+## RITIRATA (entrando e uscendo). Si ferma se l'unità viene eliminata.
+func _mine_attack_on_retreat(u: Unit, path: Array) -> void:
+	var seen := {}
+	for p in path:
+		var key := "%d,%d" % [int(p.x), int(p.y)]
+		if seen.has(key):
+			continue
+		seen[key] = true
+		var hd: GameState.HexData = state.hex_at(int(p.x), int(p.y))
+		if hd == null or hd.fortification != Domain.Fort.MINES:
+			continue
+		if not state.units.has(u.id):
+			return
+		_mine_attack_on_move(u, int(p.x), int(p.y))
+
+
 func _mine_attack_on_move(u: Unit, from_q: int, from_r: int) -> bool:
 	var to_hd: GameState.HexData = state.hex_at(u.q, u.r)
 	var from_hd: GameState.HexData = state.hex_at(from_q, from_r)
@@ -2516,10 +2567,12 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 			state.opfire_order_ids.append(shooter.id)
 		_log("Fuoco di Opportunità: giocata una carta Fuoco — %s resta attivata per tutto l'ordine di Mossa." % shooter.unit_name)
 	var atk_fate := _draw_fate(defender)
-	var def_fate := _draw_fate(mover.faction)
 	_maybe_react_concealment(mover.q, mover.r)  # il mover (se IA) può mimetizzarsi
 	_record_fire(shooter, mover.q, mover.r)  # indicatore "chi spara a chi"
-	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
+	var dpo := _draw_defense_rolls(mover.faction, mover.q, mover.r)
+	var def_fate: Card = dpo["cards"][0]
+	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state,
+		_dice_of(atk_fate), _dice_of(def_fate), [], 0, -1, -1, dpo["rolls"])
 	_log("Opportunità — " + res.log_line, res.detail,
 		"ai" if defender != state.human_faction else "fire")
 	for id in res.eliminated:
@@ -2528,7 +2581,10 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 	# invisibile: la pedina «si rompeva da sola»).
 	emit_signal("fire_resolved", res)
 	_apply_fate(atk_fate, defender, { "kind": "fire", "weapons": weapon_ids })
-	_apply_fate(def_fate, mover.faction)
+	for dc3 in dpo["cards"]:
+		_apply_fate(dc3, mover.faction)
+		if state.phase == Domain.Phase.GAME_OVER:
+			break
 	return res.eliminated.has(mover.id) or res.broken.has(mover.id)
 
 
@@ -2931,16 +2987,21 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 					if g.is_weapon():
 						weapon_ids.append(g.id)
 				var ffate := _draw_fate(faction)
-				var dfate := _draw_fate(_opponent(faction))
 				await _reactive_concealment_human(fq, fr)  # il difensore umano può mimetizzarsi
 				_record_fire(atk, fq, fr)  # indicatore "l'IA spara a chi" sulla mappa
-				var fres := Combat.resolve_fire(atk, fq, fr, state, _dice_of(ffate), _dice_of(dfate))
+				var dpk := _draw_defense_rolls(_opponent(faction), fq, fr)
+				var dfate: Card = dpk["cards"][0]
+				var fres := Combat.resolve_fire(atk, fq, fr, state, _dice_of(ffate), _dice_of(dfate),
+					[], 0, -1, -1, dpk["rolls"])
 				_log("IA — " + fres.log_line, fres.detail, "ai")
 				for fid in fres.eliminated:
 					emit_signal("unit_eliminated", fid)
 				emit_signal("fire_resolved", fres)  # traccianti/lampi/suono
 				_apply_fate(ffate, faction, { "kind": "fire", "weapons": weapon_ids })
-				_apply_fate(dfate, _opponent(faction))
+				for dc2 in dpk["cards"]:
+					_apply_fate(dc2, _opponent(faction))
+					if state.phase == Domain.Phase.GAME_OVER:
+						break
 		Domain.OrderType.ADVANCE:
 			var mover := state.unit_by_id(String(play["unit_id"]))
 			if mover != null:

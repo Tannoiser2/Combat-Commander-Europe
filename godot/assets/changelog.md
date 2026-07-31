@@ -1,3 +1,14 @@
+[b]v0.48.0[/b]
+
+[b]Regole di contorno: terreno, fortificazioni e tiri di difesa (Fase 4 dell'audit)[/b]
+- [b]Un tiro di difesa per OGNI unità (O20.3.4)[/b]: prima un solo tiro valeva per tutto l'esagono, quindi uno stack veniva colpito "tutto o niente". Ora ogni unità bersagliata tira per sé: una squadra può rompersi e quella accanto reggere, come nel gioco vero.
+- [b]Ruscello: copertura −1[/b] (nel codice era [b]+1[/b], segno invertito) e [b]Campo: copertura 0[/b] (era 1) — valori presi dalla Terrain Chart ufficiale.
+- [b]Esagoni d'acqua[/b] (Acqua/Ruscello/Palude): non ammettono fortificazioni e [b]nessun'arma può sparare[/b] da lì.
+- [b]Filo spinato[/b]: nessun'arma spara da un esagono con filo (F106.3).
+- [b]Mine[/b]: ora attaccano anche chi [b]avanza[/b] e chi si [b]ritira[/b] (entrando e uscendo), non solo chi muove (F103.1). Prima si aggirava un campo minato semplicemente avanzando.
+- [b]Airburst (T99)[/b]: un mortaio o l'artiglieria che spara su un esagono di [b]Bosco[/b] aggiunge +2 all'attacco (le schegge scendono dalle chiome).
+- [b]Recinzione[/b]: costa +1 PM da attraversare e dà ostacolo 1 alla linea di vista (libera se il lato è dell'esagono di chi spara o del bersaglio). Prima era ignorata del tutto.
+
 [b]v0.47.0[/b]
 
 [b]Ordini e azioni a norma di regolamento (Fase 3 dell'audit)[/b]

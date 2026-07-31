@@ -83,6 +83,17 @@ static func weapon_command_bonus(state: GameState, u: Unit) -> int:
 
 ## Penalità del Filo spinato (F106.1): -1 a FP/Gittata/Morale per un'unità che
 ## condivide l'esagono con un marker Filo (il Comando non ne è influenzato).
+## Esagono d'acqua (Terrain Chart, nota sui Water hex): Acqua/Ruscello/Palude.
+## Non ammette fortificazioni e le ARMI non possono sparare da lì.
+static func is_water_hex(state: GameState, q: int, r: int) -> bool:
+	var hd: GameState.HexData = state.hex_at(q, r)
+	if hd == null:
+		return false
+	return hd.terrain == Domain.TerrainType.WATER_BARRIER \
+		or hd.terrain == Domain.TerrainType.STREAM \
+		or hd.terrain == Domain.TerrainType.MARSH
+
+
 static func wire_penalty(state: GameState, u: Unit) -> int:
 	var hd: GameState.HexData = state.hex_at(u.q, u.r)
 	return 1 if (hd != null and hd.fortification == Domain.Fort.WIRE) else 0
@@ -216,7 +227,15 @@ static func weapon_usable(state: GameState, w: Unit) -> bool:
 	var carrier := state.unit_by_id(w.carrier_id) if w.carrier_id != "" else null
 	if carrier == null:
 		return false
-	return carrier.efficient and not carrier.suppressed
+	if not (carrier.efficient and not carrier.suppressed):
+		return false
+	# Nessun'arma spara da un esagono d'acqua (Terrain Chart) né dal Filo (F106.3).
+	if is_water_hex(state, w.q, w.r):
+		return false
+	var hdw: GameState.HexData = state.hex_at(w.q, w.r)
+	if hdw != null and hdw.fortification == Domain.Fort.WIRE:
+		return false
+	return true
 
 
 ## Vincitore alla Morte Subitanea data la bilancia VP (positiva = Germania).
@@ -375,6 +394,7 @@ static func rout_unit(
 	var moved := 0
 	var eliminated := false
 	var suppressed := false
+	var path: Array[Vector2i] = []  # esagoni lasciati/entrati durante la ritirata
 
 	if steps == 0:
 		suppressed = not u.suppressed
@@ -400,8 +420,10 @@ static func rout_unit(
 					best = nb
 			if best == Vector2i(u.q, u.r):
 				break  # bloccata
+			path.append(Vector2i(u.q, u.r))  # esagono LASCIATO (mine, F103.1)
 			u.q = best.x
 			u.r = best.y
+			path.append(best)                # esagono ENTRATO
 			moved += 1
 
 	if not eliminated and steps > 0 and moved == 0 \
@@ -413,7 +435,8 @@ static func rout_unit(
 
 	return {
 		"unit": u.id, "roll": roll, "morale": morale, "steps": maxi(0, steps),
-		"moved": moved, "eliminated": eliminated, "suppressed": suppressed
+		"moved": moved, "eliminated": eliminated, "suppressed": suppressed,
+		"path": path
 	}
 
 
