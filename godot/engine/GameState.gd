@@ -163,6 +163,12 @@ var exited_units: Array = []
 ## proprio mazzo = innesco Tempo!): Game processa la coda a fine risoluzione.
 var pending_time_factions: Array = []
 
+## Unità attivate per il Fuoco di Opportunità durante l'ordine di Mossa IN CORSO
+## (A33.3 punto 2): restano idonee a sparare — senza spendere altre carte — a
+## ogni esagono entrato, ma solo per QUESTO ordine di Mossa. Si azzera all'inizio
+## di ogni nuovo ordine di Mossa.
+var opfire_order_ids: Array[String] = []
+
 
 # ─── Iniziativa ──────────────────────────────────────────────────────────────
 

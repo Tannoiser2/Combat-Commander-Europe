@@ -1238,9 +1238,18 @@ func _update_reaction_banner(phase: int) -> void:
 		var mv := s.unit_by_id(s.opfire_mover_id)
 		var who: String = mv.unit_name if mv != null else "Un'unità nemica"
 		var whereh: String = Domain.qr_to_label(mv.q, mv.r) if mv != null else "?"
+		# Costo reale (A33): la carta Fuoco si spende solo per ATTIVARE un nuovo
+		# tiratore; chi è già attivato in questo ordine di Mossa spara gratis.
+		var free_ready := false
+		for sid in s.opfire_shooter_ids:
+			if s.opfire_order_ids.has(sid):
+				free_ready = true
+				break
+		var cost := "[color=#9fe0a0]tiro gratuito[/color] (già attivato per questo movimento)" if free_ready \
+			else "costa [b]una carta Fuoco[/b] dalla mano (poi spari gratis a ogni esagono che attraversa)"
 		_reaction_label.text = "[b][color=#ffcf66]FUOCO DI OPPORTUNITÀ[/color][/b]  —  reazione\n" \
-			+ "[b]%s[/b] (nemico) si è mosso allo scoperto in [b]%s[/b].\n" % [who, whereh] \
-			+ "Clicca un tuo tiratore [color=#ffd24a]giallo[/color] per [b]sparargli subito[/b] (nessuna carta da giocare), oppure prosegui."
+			+ "[b]%s[/b] (nemico) è entrato in [b]%s[/b].\n" % [who, whereh] \
+			+ "Clicca un tuo tiratore [color=#ffd24a]giallo[/color] per sparargli: %s." % cost
 		_reaction_btn.text = "Non sparare  (SPAZIO)"
 	_reaction_banner.visible = true
 

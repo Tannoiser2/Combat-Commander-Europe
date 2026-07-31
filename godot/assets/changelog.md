@@ -1,3 +1,16 @@
+[b]v0.46.0[/b]
+
+[b]Fuoco di Opportunità a norma di regolamento (Fase 2 dell'audit)[/b]
+- [b]Economia corretta (A33.3 p.2)[/b]: la carta Fuoco si spende [b]una sola volta[/b], per [b]attivare[/b] il tiratore; da quel momento quell'unità (e il suo gruppo) spara [b]gratis a ogni esagono[/b] che il nemico attraversa, per tutta la durata di quell'ordine di Mossa. Prima serviva una carta per ogni singolo colpo e il tiratore sparava una volta sola: il fuoco di reazione era quasi inutile.
+- In un [b]altro[/b] ordine di Mossa dello stesso turno quelle unità non possono essere riattivate (nota di A33.3), e resta il limite di [b]un attacco per esagono entrato[/b].
+- [b]Chi reagisce non perde più il proprio turno[/b]: le attivazioni ora si azzerano all'inizio del [b]proprio[/b] turno (O14.1), non a fine turno del giocatore. Prima un'unità che faceva fuoco di opportunità durante il turno dell'IA restava bloccata anche nel tuo turno successivo — una delle cause del «sembrano tutte bloccate».
+- [b]Il mover colpito si ferma[/b]: un'unità dell'IA rotta (o eliminata) dal tuo fuoco di opportunità [b]interrompe il movimento[/b]. Prima proseguiva, e un'unità eliminata continuava perfino a «camminare» aprendo altre finestre di reazione.
+
+[b]Chiarezza del fuoco[/b]
+- Il fuoco di opportunità [b]si vede e si sente[/b]: traccianti, lampi e suono come per il fuoco normale (prima era completamente muto e invisibile: la pedina sembrava rompersi da sola). Lo stesso vale ora per il [b]fuoco ordinario dell'IA[/b].
+- Il riquadro di reazione dice il [b]costo reale[/b]: «costa una carta Fuoco (poi spari gratis a ogni esagono)» oppure «tiro gratuito, già attivato». Prima diceva «nessuna carta da giocare» mentre te ne scartava una di nascosto.
+- Un [b]click a vuoto non fa più rinunciare[/b] alla reazione: per non sparare c'è il pulsante (o SPAZIO). Prima bastava cliccare l'unità nemica per curiosità e la finestra si chiudeva per sempre.
+
 [b]v0.45.0[/b]
 
 [b]Economia di vittoria a norma di regolamento (Fase 1 dell'audit)[/b]

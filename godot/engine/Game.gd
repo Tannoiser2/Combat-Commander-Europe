@@ -649,6 +649,8 @@ func play_card(hand_index: int) -> void:
 			state.order_count += 1
 			state.current_order = card.order
 			state.assault_fired = false  # Fuoco d'Assalto disponibile una volta per ordine
+			# A33.3: l'attivazione per l'Op Fire vale solo per QUESTO ordine di Mossa.
+			state.opfire_order_ids.clear()
 			state.selected_card_index = hand_index
 			state.highlighted_hexes.clear()
 			state.command_preview_ids.clear()
@@ -890,13 +892,15 @@ func click_hex(q: int, r: int) -> void:
 					return
 			conceal_decline()
 			return
-		# Finestra di Fuoco di Opportunità: clicca un tiratore o rinuncia.
+		# Finestra di Fuoco di Opportunità: clicca un tiratore per sparare. Un click
+		# a vuoto NON rinuncia più (prima chiudeva la finestra per sempre): per
+		# rinunciare c'è il pulsante del banner (o SPAZIO).
 		for sid in s.opfire_shooter_ids:
 			var sv := s.unit_by_id(sid)
 			if sv != null and sv.q == q and sv.r == r:
 				opfire_choose(sid)
 				return
-		opfire_decline()
+		_log("Fuoco di Opportunità: clicca un tuo tiratore evidenziato, o «Non sparare» per proseguire.")
 	elif s.phase == Domain.Phase.PLAYER_TURN:
 		_cycle_select(units_here, true)
 	elif s.phase == Domain.Phase.PLAYER_SETUP:
@@ -2321,28 +2325,47 @@ func _fire_card_index(faction: int) -> int:
 
 ## Risolve un Fuoco di Opportunità con uno SPECIFICO tiratore. Restituisce true se
 ## il mover è stato rotto o eliminato (movimento da interrompere).
-## A24.1: è un'Azione → si gioca SCARTANDO una carta Fuoco dalla mano del
-## difensore (col rifornimento standard). A24.3: l'Op Fire ATTIVA il tiratore,
-## che quindi non può reagire una seconda volta nello stesso turno.
+## Economia dell'Op Fire (A33.2/A33.3 punto 2): la carta Fuoco si spende UNA sola
+## volta, per ATTIVARE il tiratore (e il suo gruppo); da quel momento quelle unità
+## «remain activated and eligible to fire at moving targets for the entirety of
+## that Move Order», cioè sparano gratis a ogni esagono entrato — ma solo per
+## quell'ordine di Mossa (in un altro ordine di Mossa dello stesso turno non
+## possono essere riattivate).
 func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
-	var fci := _fire_card_index(defender)
-	if fci < 0:
-		return false  # nessuna carta Fuoco in mano: nessuna reazione possibile
 	var group := Combat.fire_group(shooter, mover.q, mover.r, state)
 	var weapon_ids: Array = []
 	for g in group:
 		if g.is_weapon():
 			weapon_ids.append(g.id)
-	shooter.activated = true             # A24.3
-	_discard_for(defender, fci)          # A24.1: la carta Fuoco giocata come Azione
+	# Tiro GRATUITO se il tiratore è già stato attivato per l'Op Fire in questo
+	# stesso ordine di Mossa; altrimenti serve (e si scarta) una carta Fuoco.
+	if not state.opfire_order_ids.has(shooter.id):
+		var fci := _fire_card_index(defender)
+		if fci < 0:
+			return false  # nessuna carta Fuoco in mano: nessuna attivazione possibile
+		_discard_for(defender, fci)  # A33.1: la carta Fuoco giocata come Azione
+		# A33.2: la carta attiva il tiratore e (via Comando) il suo gruppo.
+		for g in group:
+			if g.is_man():
+				g.activated = true
+				if not state.opfire_order_ids.has(g.id):
+					state.opfire_order_ids.append(g.id)
+		if not state.opfire_order_ids.has(shooter.id):
+			shooter.activated = true
+			state.opfire_order_ids.append(shooter.id)
+		_log("Fuoco di Opportunità: giocata una carta Fuoco — %s resta attivata per tutto l'ordine di Mossa." % shooter.unit_name)
 	var atk_fate := _draw_fate(defender)
 	var def_fate := _draw_fate(mover.faction)
 	_maybe_react_concealment(mover.q, mover.r)  # il mover (se IA) può mimetizzarsi
 	_record_fire(shooter, mover.q, mover.r)  # indicatore "chi spara a chi"
 	var res := Combat.resolve_fire(shooter, mover.q, mover.r, state, _dice_of(atk_fate), _dice_of(def_fate))
-	_log("Opportunità — " + res.log_line, res.detail, "fire")
+	_log("Opportunità — " + res.log_line, res.detail,
+		"ai" if defender != state.human_faction else "fire")
 	for id in res.eliminated:
 		emit_signal("unit_eliminated", id)
+	# Traccianti, lampi e suono anche per l'Op Fire (prima era del tutto muto e
+	# invisibile: la pedina «si rompeva da sola»).
+	emit_signal("fire_resolved", res)
 	_apply_fate(atk_fate, defender, { "kind": "fire", "weapons": weapon_ids })
 	_apply_fate(def_fate, mover.faction)
 	return res.eliminated.has(mover.id) or res.broken.has(mover.id)
@@ -2352,7 +2375,9 @@ func _resolve_op_fire(shooter: Unit, mover: Unit, defender: int) -> bool:
 ## di fuoco ha la massima FP contro il mover (FlipBot), purché abbia una carta
 ## Fuoco e il tiro soddisfi la FP minima. Niente carte sprecate su tiri deboli.
 func _op_fire(mover: Unit, defender: int) -> bool:
-	if _fire_card_index(defender) < 0:
+	# Serve una carta Fuoco solo per ATTIVARE nuovi tiratori: chi è già attivato
+	# per l'Op Fire in questo ordine di Mossa spara gratis (A33.3 punto 2).
+	if _fire_card_index(defender) < 0 and state.opfire_order_ids.is_empty():
 		return false
 	var shooter := FlipBot.best_op_fire(state, mover, defender)
 	if shooter == null:
@@ -2364,10 +2389,16 @@ func _op_fire(mover: Unit, defender: int) -> bool:
 ## scelta del tiratore (o «non sparare») e attende la decisione; se è l'IA, fuoco
 ## automatico. Coroutine: il chiamante deve usare `await`.
 func _reactive_op_fire(mover: Unit, defender: int) -> bool:
-	# A24.1: senza una carta Fuoco in mano il difensore non può reagire.
-	if _fire_card_index(defender) < 0:
-		return false
-	var shooters := OpFire.eligible_shooters(state, mover, defender)
+	var has_card := _fire_card_index(defender) >= 0
+	var shooters := OpFire.eligible_shooters(state, mover, defender, state.opfire_order_ids)
+	# Senza carta Fuoco si può sparare solo con chi è GIÀ attivato per l'Op Fire
+	# in questo ordine di Mossa (i tiri successivi sono gratuiti, A33.3 punto 2).
+	if not has_card:
+		var free_only: Array[Unit] = []
+		for s in shooters:
+			if state.opfire_order_ids.has(s.id):
+				free_only.append(s)
+		shooters = free_only
 	if shooters.is_empty():
 		return false
 	if defender != state.human_faction:
@@ -2616,6 +2647,17 @@ func _overstack_victim(stack: Array, deficit: int) -> Unit:
 	return cover if cover != null else biggest
 
 
+## Inizio del turno di una fazione (O14.1): le sue unità tornano tutte
+## disponibili. Le attivazioni valgono per il Turno di CHI le ha usate, quindi
+## chi ha reagito col Fuoco di Opportunità nel turno avversario non perde anche
+## il proprio.
+func _begin_turn(faction: int) -> void:
+	for u in state.units.values():
+		if u.faction == faction:
+			u.activated = false
+	state.opfire_order_ids.clear()
+
+
 func _end_player_turn() -> void:
 	# Fine turno (8.2): risolvi il sovraccarico delle TUE unità prima di passare.
 	_resolve_overstacking(state.human_faction)
@@ -2633,8 +2675,10 @@ func _end_player_turn() -> void:
 	state.group_mp.clear()
 	state.move_committed = false
 	_clear_fire_assembly()
-	for u in state.units.values():
-		u.activated = false
+	# NB: le attivazioni NON si azzerano qui. O14.1 le lega al Turno di ciascun
+	# giocatore: si azzerano all'inizio del proprio turno (vedi _begin_turn), così
+	# un'unità che ha reagito col Fuoco di Opportunità durante il turno avversario
+	# resta spesa per quel turno ma è di nuovo disponibile nel proprio.
 
 	# Il tempo NON avanza a ogni turno: in CC:E si muove solo con un "Tempo!"
 	# pescato dal Mazzo del Fato (vedi Fate._consequence_time). La Morte Subitanea
@@ -2653,6 +2697,7 @@ func _end_player_turn() -> void:
 func _run_ai_turn() -> void:
 	_change_phase(Domain.Phase.AI_TURN)
 	var faction := _ai_faction()
+	_begin_turn(faction)  # O14.1: attivazioni azzerate all'inizio del proprio turno
 	# FlipBot: ricalcola la Disposizione (Offensiva/Difensiva) a inizio turno.
 	state.disposition = FlipBot.compute_disposition(state, faction)
 	_log("FlipBot: disposizione %s." % Domain.DISPOSITION_LABELS.get(state.disposition, "?"))
@@ -2661,6 +2706,7 @@ func _run_ai_turn() -> void:
 		_ai_pass_discard(faction)
 		_resolve_overstacking(faction)  # fine turno IA (8.2)
 		if state.phase != Domain.Phase.GAME_OVER:
+			_begin_turn(state.human_faction)
 			_change_phase(Domain.Phase.PLAYER_TURN)
 			_log("Turno %d — il tuo ordine" % state.turn_number, "", "turn")
 		return
@@ -2684,6 +2730,7 @@ func _run_ai_turn() -> void:
 	# essersi sospesa sulla finestra di reazione).
 	_resolve_overstacking(faction)
 	if state.phase != Domain.Phase.GAME_OVER:
+		_begin_turn(state.human_faction)
 		_change_phase(Domain.Phase.PLAYER_TURN)
 		_log("Turno %d — il tuo ordine" % state.turn_number, "", "turn")
 
@@ -2729,6 +2776,7 @@ func _ai_execute(faction: int, play: Dictionary) -> void:
 				_log("IA — " + fres.log_line, fres.detail, "ai")
 				for fid in fres.eliminated:
 					emit_signal("unit_eliminated", fid)
+				emit_signal("fire_resolved", fres)  # traccianti/lampi/suono
 				_apply_fate(ffate, faction, { "kind": "fire", "weapons": weapon_ids })
 				_apply_fate(dfate, _opponent(faction))
 		Domain.OrderType.ADVANCE:
@@ -2801,6 +2849,7 @@ func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
 ## poi le altre; ciascuna verso la sua destinazione strategica (priorità FlipBot
 ## + Disposizione), un esagono alla volta fino ai suoi PM.
 func _ai_move_order(faction: int) -> void:
+	state.opfire_order_ids.clear()  # A33.3: attivazioni Op Fire per questo ordine
 	var movers: Array = state.units_of(faction).filter(
 		func(u: Unit) -> bool: return Rules.can_be_ordered(u) and not u.is_weapon())
 	# Rotti per primi (si ritirano), poi le unità efficienti.
@@ -2882,8 +2931,12 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int, budget: int) -> in
 	# difensore è l'umano). Marca l'unità «in movimento» per il pareggio (A33).
 	var prev_moving := state.moving_unit_id
 	state.moving_unit_id = u.id
-	await _reactive_op_fire(u, _opponent(u.faction))
+	var hit := await _reactive_op_fire(u, _opponent(u.faction))
 	state.moving_unit_id = prev_moving
+	# Se il Fuoco di Opportunità l'ha rotta o eliminata, il movimento si FERMA
+	# (prima proseguiva, e un'unità eliminata continuava a «camminare»).
+	if hit or not state.units.has(u.id) or not u.efficient:
+		return 0
 	return best_cost
 
 

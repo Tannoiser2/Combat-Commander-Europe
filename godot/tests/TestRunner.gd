@@ -98,6 +98,8 @@ func _ready() -> void:
 	_test_chit_control_all()
 	_test_exit_last_unit_points()
 	_test_op_fire()
+	_test_opfire_economy()
+	_test_activation_resets_own_turn()
 	_test_op_fire_card_cost()
 	_test_pass_turn()
 	_test_move_command_group()
@@ -1873,6 +1875,76 @@ func _test_chit_control_all() -> void:
 	Game._check_end_conditions()
 	_check(s.phase != Domain.Phase.GAME_OVER, "senza chit V nessuna vittoria automatica")
 	_check(Game._faction_controls_all() == GER, "l'Asse controlla comunque tutti gli obiettivi")
+	Game.state = null
+
+
+func _test_opfire_economy() -> void:
+	print("· Op Fire (A33): una carta ATTIVA il tiratore, poi spara gratis per tutto l'ordine di Mossa")
+	var s := _new_state(8, 3)
+	s.human_faction = GER
+	s.sudden_death_space = 99
+	var shooter := _mk("sh", GER, SQUAD, RIFLE, 0, 1, 6, 7)
+	var mover := _mk("mv", RUS, SQUAD, RIFLE, 3, 1, 5, 7)
+	s.units["sh"] = shooter
+	s.units["mv"] = mover
+	# Mano con UNA carta Fuoco + mazzo per il rifornimento.
+	s.german_hand = [_card(Domain.OrderType.FIRE)]
+	for i in 6:
+		s.german_deck.append(_fate_card(3, 3, ""))
+		s.russian_deck.append(_fate_card(3, 3, ""))
+	Game.state = s
+	var fire_cards_before := 0
+	for c in s.german_hand:
+		if c.order == Domain.OrderType.FIRE:
+			fire_cards_before += 1
+	_check(fire_cards_before == 1, "il difensore ha 1 carta Fuoco in mano")
+
+	# 1° tiro: spende la carta e ATTIVA il tiratore per questo ordine di Mossa.
+	Game._resolve_op_fire(shooter, mover, GER)
+	_check(s.opfire_order_ids.has("sh"), "il tiratore risulta attivato per l'Op Fire di questo ordine")
+	_check(shooter.activated, "il tiratore è marcato attivato")
+	var still_fire := 0
+	for c in s.german_hand:
+		if c.order == Domain.OrderType.FIRE:
+			still_fire += 1
+	_check(still_fire == 0, "la carta Fuoco è stata spesa per l'attivazione")
+
+	# 2° tiro nello STESSO ordine di Mossa: GRATUITO, anche senza carte Fuoco.
+	var hand_before := s.german_hand.size()
+	mover.q = 2  # il nemico entra in un altro esagono
+	Game._resolve_op_fire(shooter, mover, GER)
+	_check(s.german_hand.size() == hand_before, "il tiro successivo non consuma altre carte (A33.3 p.2)")
+
+	# Il tiratore resta idoneo pur essendo «attivato», ma solo grazie a opfire_order_ids.
+	var elig := OpFire.eligible_shooters(s, mover, GER, s.opfire_order_ids)
+	_check(elig.size() == 1 and elig[0].id == "sh", "già attivato → resta idoneo in questo ordine di Mossa")
+	var elig_new := OpFire.eligible_shooters(s, mover, GER, [])
+	_check(elig_new.is_empty(), "in un ALTRO ordine di Mossa non può essere riattivato (A33.3, nota)")
+
+	# Nuovo ordine di Mossa → l'attivazione per l'Op Fire decade.
+	s.opfire_order_ids.clear()
+	_check(OpFire.eligible_shooters(s, mover, GER, s.opfire_order_ids).is_empty(),
+		"azzerato l'elenco, il tiratore attivato non è più idoneo")
+	Game.state = null
+
+
+func _test_activation_resets_own_turn() -> void:
+	print("· Attivazioni (O14.1): si azzerano all'inizio del PROPRIO turno")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	var mine := _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	var theirs := _mk("r", RUS, SQUAD, RIFLE, 4, 2, 5, 7)
+	s.units["g"] = mine
+	s.units["r"] = theirs
+	Game.state = s
+	# Simula: la mia unità ha reagito col Fuoco di Opportunità nel turno avversario.
+	mine.activated = true
+	theirs.activated = true
+	s.opfire_order_ids.append("g")
+	Game._begin_turn(GER)
+	_check(not mine.activated, "all'inizio del mio turno la mia unità è di nuovo disponibile")
+	_check(theirs.activated, "le unità avversarie NON vengono azzerate dal mio inizio turno")
+	_check(s.opfire_order_ids.is_empty(), "azzerate anche le attivazioni di Op Fire")
 	Game.state = null
 
 
