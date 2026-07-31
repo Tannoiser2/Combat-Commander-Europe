@@ -89,6 +89,10 @@ static func _state_to_dict(s: GameState) -> Dictionary:
 		"bot_difficulty": s.bot_difficulty,
 		"vp_tracker": s.vp_tracker, "bonus_vp": s.bonus_vp,
 		"chit_double_exit": s.chit_double_exit, "chit_double_elim": s.chit_double_elim,
+		"chit_control_all": s.chit_control_all,
+		"objective_chits": s.objective_chits.duplicate(true),
+		"chit_excluded": s.chit_excluded.duplicate(),
+		"exited_units": _exited_to(s.exited_units),
 		# Per-fazione
 		"hand_size": _faction_dict(s.hand_size),
 		"casualties": _faction_dict(s.casualties),
@@ -146,6 +150,17 @@ static func _state_from_dict(d: Dictionary) -> GameState:
 	s.vp_tracker = int(d.get("vp_tracker", 0)); s.bonus_vp = int(d.get("bonus_vp", 0))
 	s.chit_double_exit = bool(d.get("chit_double_exit", false))
 	s.chit_double_elim = bool(d.get("chit_double_elim", false))
+	s.chit_control_all = bool(d.get("chit_control_all", false))
+	for ce in d.get("objective_chits", []):
+		s.objective_chits.append({ "letter": String(ce.get("letter", "")),
+			"owner": int(ce.get("owner", -1)), "revealed": bool(ce.get("revealed", true)) })
+	for cl in d.get("chit_excluded", []):
+		s.chit_excluded.append(String(cl))
+	for ee in d.get("exited_units", []):
+		var eu := _unit_from_dict(ee.get("unit", {}))
+		var ew: Unit = _unit_from_dict(ee["weapon"]) if ee.get("weapon") is Dictionary else null
+		if eu != null:
+			s.exited_units.append({ "unit": eu, "weapon": ew, "space": int(ee.get("space", 0)) })
 	s.hand_size = _faction_dict_from(d.get("hand_size", {}), 4)
 	s.casualties = _faction_dict_from(d.get("casualties", {}), 0)
 	s.surrender_threshold = _faction_dict_from(d.get("surrender_threshold", {}), 0)
@@ -180,6 +195,19 @@ static func _faction_dict_from(dd: Dictionary, deflt: int) -> Dictionary:
 		Domain.Faction.GERMAN: int(dd.get("german", deflt)),
 		Domain.Faction.RUSSIAN: int(dd.get("russian", deflt)),
 	}
+
+
+## Serializza le unità uscite dal bordo (7.2.1) in attesa di rientrare.
+static func _exited_to(exited: Array) -> Array:
+	var out := []
+	for e in exited:
+		var w: Unit = e.get("weapon")
+		out.append({
+			"unit": _unit_to_dict(e["unit"]),
+			"weapon": _unit_to_dict(w) if w != null else null,
+			"space": int(e.get("space", 0)),
+		})
+	return out
 
 
 static func _unit_to_dict(u: Unit) -> Dictionary:

@@ -139,9 +139,29 @@ var vp_tracker: int = 0  ## >0 Germania in vantaggio, <0 Russia
 var bonus_vp: int = 0
 
 ## Chit Obiettivo "[open]" attivi (7.3.2): W = VP d'uscita raddoppiati,
-## X = VP da eliminazione raddoppiati.
+## X = VP da eliminazione raddoppiati, V = «controlla tutti gli obiettivi» vince
+## (verificato subito prima di ogni tiro di Morte Subitanea).
 var chit_double_exit: bool = false
 var chit_double_elim: bool = false
+var chit_control_all: bool = false
+
+## Chit Obiettivo pescati allo scenario (7.3.2/7.3.3): { "letter": String,
+## "owner": -1 (aperto) o Domain.Faction (segreto di quel lato),
+## "revealed": bool }. I segreti contano nei VP solo a fine partita (o quando
+## rivelati, es. E67 Ricognizione).
+var objective_chits: Array = []
+## Lettere escluse dal sacchetto dagli SSR dello scenario (servono anche alle
+## pescate in partita E65/E74, che pescano dal sacchetto RIMANENTE).
+var chit_excluded: Array = []
+
+## Unità uscite volontariamente dal bordo avversario (7.2.1): tornano come
+## rinforzi quando il Tempo raggiunge il loro spazio. { "unit": Unit,
+## "weapon": Unit|null, "space": int }.
+var exited_units: Array = []
+
+## Fazioni il cui mazzo si è appena esaurito (6.1.2: pescare l'ultima carta del
+## proprio mazzo = innesco Tempo!): Game processa la coda a fine risoluzione.
+var pending_time_factions: Array = []
 
 
 # ─── Iniziativa ──────────────────────────────────────────────────────────────
@@ -324,6 +344,16 @@ func units_of(faction: int) -> Array[Unit]:
 	return result
 
 
+## Solo gli UOMINI (squadre/team/leader) di una fazione: per i controlli di
+## annientamento le armi a terra non tengono in vita nessuno.
+func men_of(faction: int) -> Array[Unit]:
+	var result: Array[Unit] = []
+	for u in units.values():
+		if u.faction == faction and u.is_man():
+			result.append(u)
+	return result
+
+
 ## Uomini rotti (lato rovesciato) di una fazione — bersagli di Recupero e Rotta.
 func broken_men_of(faction: int) -> Array[Unit]:
 	var result: Array[Unit] = []
@@ -392,12 +422,16 @@ func exit_unit_for_vp(uid: String) -> int:
 			bonus_vp += v  # i Tedeschi guadagnano
 		else:
 			bonus_vp -= v  # i Russi guadagnano
-	# 11.3: l'arma trasportata lascia la mappa col proprietario.
-	if u.is_man():
-		var w := weapon_carried_by(uid)
-		if w != null:
-			units.erase(w.id)
+	# 7.2.1: l'unità uscita NON è persa — va sulla Traccia del Tempo e rientrerà
+	# come rinforzo (integra, con la sua arma, 11.3). La parcheggiamo in
+	# `exited_units` allo spazio successivo del Tempo.
+	var w: Unit = weapon_carried_by(uid) if u.is_man() else null
+	if w != null:
+		units.erase(w.id)
 	units.erase(uid)
+	u.efficient = true
+	u.suppressed = false
+	exited_units.append({ "unit": u, "weapon": w, "space": time_marker + 1 })
 	return v
 
 

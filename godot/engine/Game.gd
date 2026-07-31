@@ -1044,7 +1044,9 @@ func _on_exit_edge(u: Unit) -> bool:
 func can_exit_selected() -> bool:
 	if state == null or state.phase != Domain.Phase.PLAYER_MOVING:
 		return false
-	if state.current_order != Domain.OrderType.MOVE:
+	# 7.2.1: può uscire un'unità in Mossa (O21) o in Avanzata (O16), al costo di 1.
+	if state.current_order != Domain.OrderType.MOVE \
+			and state.current_order != Domain.OrderType.ADVANCE:
 		return false
 	var u := state.unit_by_id(state.selected_unit_id)
 	if u == null or u.faction != state.human_faction:
@@ -1131,14 +1133,23 @@ func exit_selected_unit() -> void:
 	if not can_exit_selected():
 		return
 	var u := state.unit_by_id(state.selected_unit_id)
+	var was_advance := state.current_order == Domain.OrderType.ADVANCE
 	var v := state.exit_unit_for_vp(u.id)
-	_log("%s esce dal bordo avversario (7.2): +%d VP a %s." % [
+	_log("%s esce dal bordo avversario (7.2): +%d VP a %s (rientrerà come rinforzo)." % [
 		u.unit_name, v, Domain.FACTION_NAMES[u.faction]])
 	emit_signal("unit_eliminated", u.id)  # rimuove la pedina dalla mappa
 	state.group_mp.erase(u.id)
+	# 6.3(3): se era l'ULTIMA unità sulla mappa, la partita finisce e si decide
+	# AI PUNTI (non è un annientamento: uscire è una mossa legittima).
+	if state.men_of(u.faction).is_empty():
+		_end_game_on_points("uscita volontaria dell'ultima unità")
+		emit_signal("state_changed")
+		return
 	_check_end_conditions()
 	if state.phase == Domain.Phase.GAME_OVER:
 		emit_signal("state_changed")
+	elif was_advance:
+		_after_advance_done()
 	else:
 		_after_mover_done()
 
@@ -2047,7 +2058,12 @@ func _discard_for(faction: int, hand_index: int) -> void:
 	var deck := state.german_deck if faction == Domain.Faction.GERMAN else state.russian_deck
 	if hand_index >= 0 and hand_index < hand.size():
 		Cards.discard_from_hand(hand, discard, hand_index)
-		Cards.draw(deck, discard, hand)
+		# 6.1.2: pescare l'ultima carta del proprio mazzo innesca il Tempo.
+		var reshuffles := Cards.draw(deck, discard, hand)
+		for _i in reshuffles:
+			state.pending_time_factions.append(faction)
+		if reshuffles > 0:
+			_process_pending_time()
 
 
 ## Reazione di Mimetizzazione (A29) del DIFENSORE all'istante del tiro di Difesa.
@@ -2410,25 +2426,59 @@ func opfire_decline() -> void:
 func _apply_fate(card: Card, faction: int, context: Dictionary = {}) -> void:
 	if card == null:
 		return
-	var prev_time := state.time_marker
 	for line in Fate.apply_consequence(state, card, faction, context):
 		_log("Fato — " + line)
-	if state.time_marker > prev_time:
-		# Rinforzi (Tabella del Tempo): entrano quando il Tempo raggiunge il loro spazio.
-		_check_reinforcements()
-		# FlipBot: la Disposizione si rivaluta a ogni avanzamento del Tempo.
-		state.disposition = FlipBot.compute_disposition(state, _ai_faction())
-		if state.time_marker >= state.sudden_death_space \
-				and state.phase != Domain.Phase.GAME_OVER:
-			_check_sudden_death(faction)
+	_process_pending_time()
+
+
+## Processa la coda degli inneschi del Tempo (Tempo! pescato o mazzo esaurito).
+## In coda perché l'innesco può nascere DENTRO una pescata (fine mazzo) o una
+## risoluzione: qui siamo a un punto sicuro.
+func _process_pending_time() -> void:
+	while not state.pending_time_factions.is_empty() \
+			and state.phase != Domain.Phase.GAME_OVER:
+		var f := int(state.pending_time_factions.pop_front())
+		_advance_time(f)
+
+
+## Avanzamento del Tempo (6.1.2), nell'ORDINE del regolamento:
+## 1) SOLO l'innescante rimescola mazzo+scarti; 2) il segnalino avanza e, se è
+## in/oltre la casella di Morte Subitanea, si tira subito la Morte Subitanea;
+## SOLO se la partita non è finita: 3) +1 VP al Difensore; 4) via UN fumo;
+## 5) rinforzi (e rientro delle unità uscite, 7.2.1). (Il passo 6, Trincerarsi
+## di fine avanzamento, arriverà con l'azione A32.)
+func _advance_time(triggering: int) -> void:
+	Fate._reshuffle(state, triggering)  # passo 1: solo chi innesca
+	state.time_marker += 1
+	_log("Fato — TEMPO! La traccia avanza a %d/%d" % [state.time_marker, state.sudden_death_space])
+	if state.time_marker >= state.sudden_death_space:
+		_check_sudden_death(triggering)  # passo 2: PRIMA del +1 al difensore
+		if state.phase == Domain.Phase.GAME_OVER:
+			return
+	# Passo 3: +1 VP al Difensore (nessuno se lo scontro non ha un difensore).
+	if state.defender_faction == Domain.Faction.GERMAN:
+		state.bonus_vp += 1
+		_log("TEMPO!: +1 VP al Difensore (Asse).")
+	elif state.defender_faction == Domain.Faction.RUSSIAN:
+		state.bonus_vp -= 1
+		_log("TEMPO!: +1 VP al Difensore (Alleati).")
+	# Passo 4: rimozione di UN marker fumo.
+	for key in state.hexes:
+		var h: GameState.HexData = state.hexes[key]
+		if h.has_smoke:
+			h.has_smoke = false
+			_log("TEMPO!: rimosso un marker fumo.")
+			break
+	# Passo 5: rinforzi della Tabella del Tempo + rientro delle unità uscite.
+	_check_reinforcements()
+	# FlipBot: la Disposizione si rivaluta a ogni avanzamento del Tempo.
+	state.disposition = FlipBot.compute_disposition(state, _ai_faction())
 
 
 ## Fa entrare i rinforzi il cui spazio della Tabella del Tempo è stato raggiunto
 ## dal segnalino: crea le unità sul bordo amico (esagoni liberi) e le rimuove dal
 ## pool. Finora NON erano in `state.units`, quindi nessuna logica le considerava.
 func _check_reinforcements() -> void:
-	if state.reinforcements.is_empty():
-		return
 	var still_waiting: Array = []
 	for grp in state.reinforcements:
 		if int(grp.get("space", 99)) <= state.time_marker:
@@ -2436,6 +2486,32 @@ func _check_reinforcements() -> void:
 		else:
 			still_waiting.append(grp)
 	state.reinforcements = still_waiting
+	# 7.2.1: le unità uscite dal bordo avversario rientrano come rinforzi dal
+	# PROPRIO bordo quando il Tempo raggiunge il loro spazio.
+	var still_out: Array = []
+	for e in state.exited_units:
+		if int(e.get("space", 99)) > state.time_marker:
+			still_out.append(e)
+			continue
+		var u: Unit = e["unit"]
+		var edge_q := state.map_cols - 1 if u.faction == Domain.Faction.GERMAN else 0
+		var rows: Array = []
+		for r in state.map_rows:
+			rows.append(r)
+		var pos := _free_edge_hex(edge_q, rows)
+		u.q = pos.x
+		u.r = pos.y
+		u.activated = false
+		state.units[u.id] = u
+		var w: Unit = e.get("weapon")
+		if w != null:
+			w.q = pos.x
+			w.r = pos.y
+			w.carrier_id = u.id
+			state.units[w.id] = w
+		_log("%s rientra dal proprio bordo (7.2.1, era uscita per i VP)." % u.unit_name)
+		emit_signal("state_changed")
+	state.exited_units = still_out
 
 
 func _enter_reinforcement(grp: Dictionary) -> void:
@@ -2822,8 +2898,9 @@ func _key_less(a: Array, b: Array) -> bool:
 # ─── Fine partita ─────────────────────────────────────────────────────────────
 
 ## Da chiamare dopo ogni azione: aggiorna obiettivi/VP, controlla la resa
-## (Casualty Track), la vittoria automatica (tutti gli obiettivi) e
-## l'eliminazione totale di una fazione.
+## (Casualty Track) e l'eliminazione totale di una fazione. La vittoria «tutti
+## gli obiettivi» NON è qui: esiste solo col chit V e si verifica subito prima
+## di ogni tiro di Morte Subitanea (7.3.2).
 func _check_end_conditions() -> void:
 	# Resa (6.3.1): le perdite di una fazione hanno raggiunto la sua soglia →
 	# sconfitta immediata, a prescindere dai VP. Ha la precedenza su obiettivi/VP.
@@ -2833,17 +2910,16 @@ func _check_end_conditions() -> void:
 		_resolve_loss(ger_surr, rus_surr, "resa")
 		return
 
-	var sweep := _update_objectives()
-	if sweep != -1:
-		_log("%s controlla tutti gli obiettivi — vittoria automatica!" % Domain.FACTION_NAMES.get(sweep, "?"))
-		_end_game(sweep)
-		return
+	_update_objectives()
 
-	# Ultima unità sulla mappa eliminata (6.3, situazione 2).
-	var ger_units := state.units_of(Domain.Faction.GERMAN).size()
-	var rus_units := state.units_of(Domain.Faction.RUSSIAN).size()
-	if ger_units == 0 or rus_units == 0:
-		_resolve_loss(ger_units == 0, rus_units == 0, "annientamento")
+	# Ultima unità ELIMINATA (6.3.1 situazione 2): contano solo gli uomini (le
+	# armi a terra non tengono in vita una fazione). Se invece l'ultima unità è
+	# USCITA volontariamente, la partita si decide ai VP (6.3.2): quel caso è
+	# gestito da exit_selected_unit, che qui non arriva.
+	var ger_men := state.men_of(Domain.Faction.GERMAN).size()
+	var rus_men := state.men_of(Domain.Faction.RUSSIAN).size()
+	if ger_men == 0 or rus_men == 0:
+		_resolve_loss(ger_men == 0, rus_men == 0, "annientamento")
 
 
 ## Conclude la partita quando una o entrambe le fazioni hanno perso (6.3.1):
@@ -2869,18 +2945,28 @@ func _resolve_loss(ger_lost: bool, rus_lost: bool, reason: String) -> void:
 ## (6.3.2); altrimenti si prosegue. La carta tirata serve solo per i dadi: la sua
 ## conseguenza non si applica, per evitare inneschi a catena.
 func _check_sudden_death(triggering_faction: int) -> void:
+	# Chit V (7.3.2): subito PRIMA di ogni tiro di Morte Subitanea, se un
+	# giocatore controlla TUTTI gli obiettivi vince automaticamente.
+	_update_objectives()
+	if state.chit_control_all:
+		var all := _faction_controls_all()
+		if all != -1:
+			_log("Chit V: %s controlla tutti gli obiettivi — vittoria automatica (prima della Morte Subitanea)!" %
+				Domain.FACTION_NAMES.get(all, "?"))
+			_end_game(all)
+			return
 	var space := state.time_marker
 	var total := _sd_roll(triggering_faction)
 	if total >= space:
 		_log("Morte Subitanea evitata: tiro %d >= %d (casella Tempo)." % [total, space])
 		return
-	# La Morte Subitanea scatterebbe. Vincitore = leader nei VP; in pareggio,
-	# il detentore dell'Iniziativa (9.2).
-	_update_objectives()
-	var winner := Rules.sd_winner(state.vp_tracker, state.initiative_holder)
+	# La Morte Subitanea scatterebbe. Vincitore = leader nei VP INCLUSI i chit
+	# segreti (6.3.2: a fine partita si rivelano); in pareggio, l'Iniziativa (9.2).
+	var final_vp := state.vp_tracker + ObjectiveChits.secret_balance(state)
+	var winner := Rules.sd_winner(final_vp, state.initiative_holder)
 	# 9.1 Re-Roll: chi sta perdendo può annullare e rifare il tiro, MA cedendo la
 	# carta Iniziativa all'avversario. (Lo fa solo se gli conviene, cioè se perde.)
-	if Rules.sd_initiative_rerolls(state.vp_tracker, state.initiative_holder):
+	if Rules.sd_initiative_rerolls(final_vp, state.initiative_holder):
 		var loser := state.initiative_holder
 		state.initiative_holder = winner  # la carta Iniziativa passa all'avversario
 		var t2 := _sd_roll(loser)
@@ -2890,6 +2976,9 @@ func _check_sudden_death(triggering_faction: int) -> void:
 			_log("Morte Subitanea evitata col Re-Roll: %d >= %d — la partita continua." % [t2, space])
 			return
 		_log("Morte Subitanea confermata anche dopo il Re-Roll: %d < %d." % [t2, space])
+	for line in ObjectiveChits.reveal_all(state):
+		_log(String(line))
+	_update_objectives()  # ora i chit rivelati contano nella bilancia pubblica
 	_log("VP finali — bilancia %+d (positivo = Germania)" % state.vp_tracker)
 	_log("MORTE SUBITANEA — fine partita.")
 	_end_game(winner)
@@ -2901,13 +2990,14 @@ func _sd_roll(faction: int) -> int:
 	return dice.x + dice.y
 
 
-## Ricalcola il controllo degli obiettivi e la bilancia VP (in-place).
-## Restituisce la fazione che controlla TUTTI gli obiettivi, o -1.
-func _update_objectives() -> int:
+## Ricalcola il controllo degli obiettivi e la bilancia VP pubblica (in-place).
+## Controllo "appiccicoso" (7.3.1): l'ULTIMO giocatore ad aver occupato da solo
+## l'esagono lo controlla ANCHE dopo averlo lasciato; un esagono conteso o
+## vuoto NON cambia di mano; mai ritorno al neutro. I VP contati qui sono solo
+## quelli dei chit aperti/rivelati (i segreti si sommano a fine partita).
+func _update_objectives() -> void:
 	var ger_vp := 0
 	var rus_vp := 0
-	var all_ger := state.objectives.size() > 0
-	var all_rus := state.objectives.size() > 0
 	for obj in state.objectives:
 		var ger := 0
 		var rus := 0
@@ -2916,35 +3006,41 @@ func _update_objectives() -> int:
 				ger += 1
 			else:
 				rus += 1
-		if ger > rus:
+		if ger > 0 and rus == 0:
 			obj.controller = Domain.Faction.GERMAN
-			ger_vp += obj.vp
-			all_rus = false
-		elif rus > ger:
+		elif rus > 0 and ger == 0:
 			obj.controller = Domain.Faction.RUSSIAN
+		# conteso o vuoto: il controllo resta com'era
+		if obj.controller == Domain.Faction.GERMAN:
+			ger_vp += obj.vp
+		elif obj.controller == Domain.Faction.RUSSIAN:
 			rus_vp += obj.vp
-			all_ger = false
-		else:
-			obj.controller = -1
-			all_ger = false
-			all_rus = false
 	# Bilancia = VP obiettivi + VP non-obiettivo (iniziali, Tempo!, eliminazioni 7.1).
 	state.vp_tracker = ger_vp - rus_vp + state.bonus_vp
-	if all_ger:
-		return Domain.Faction.GERMAN
-	if all_rus:
-		return Domain.Faction.RUSSIAN
-	return -1
 
 
-func _count_objectives() -> int:
+## La fazione che controlla TUTTI gli obiettivi, o -1 (per il chit V).
+func _faction_controls_all() -> int:
+	if state.objectives.is_empty():
+		return -1
+	var first := state.objectives[0].controller
+	if first == -1:
+		return -1
+	for obj in state.objectives:
+		if obj.controller != first:
+			return -1
+	return first
+
+
+## Fine partita decisa AI PUNTI (6.3.2): si rivelano i chit segreti, si sommano
+## i loro VP alla bilancia e vince chi è in vantaggio (pareggio → Iniziativa).
+func _end_game_on_points(reason: String) -> void:
 	_update_objectives()
-	_log("VP finali — bilancia %+d (positivo = Germania)" % state.vp_tracker)
-	if state.vp_tracker > 0:
-		return Domain.Faction.GERMAN
-	elif state.vp_tracker < 0:
-		return Domain.Faction.RUSSIAN
-	return -1
+	for line in ObjectiveChits.reveal_all(state):
+		_log(String(line))
+	_update_objectives()  # i chit rivelati ora contano nella bilancia pubblica
+	_log("VP finali (%s) — bilancia %+d (positivo = Germania)" % [reason, state.vp_tracker])
+	_end_game(Rules.sd_winner(state.vp_tracker, state.initiative_holder))
 
 
 func _end_game(winner: int) -> void:

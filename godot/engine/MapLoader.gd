@@ -87,7 +87,11 @@ static func load_into(state: GameState, path: String) -> bool:
 		var qr := Domain.label_to_qr(String(obj.get("hex", "")))
 		if qr.x < 0:
 			continue
-		var o := Objective.new(int(obj.get("id", oid)), qr.x, qr.y, int(obj.get("vp", 1)))
+		# Il campo storico "vp" dei map*.json è in realtà il NUMERO STAMPATO
+		# dell'obiettivo (1–5): diventa l'id (i chit bersagliano quel numero).
+		# Il VALORE in VP parte da 0 (7.3: senza chit un obiettivo vale zero).
+		var num := int(obj.get("vp", oid))
+		var o := Objective.new(num, qr.x, qr.y, 0)
 		state.objectives.append(o)
 		var hd: GameState.HexData = state.hex_at(qr.x, qr.y)
 		if hd:

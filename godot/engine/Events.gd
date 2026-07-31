@@ -38,6 +38,7 @@ static func fire(state: GameState, card: Card, faction: int) -> Array[String]:
 		"INCENDIO":                _blaze(state, card, lines)
 		"OBIETTIVO DELLA MISSIONE": _draw_objective_chit(state, lines, "Obiettivo della missione")
 		"OBIETTIVO STRATEGICO":    _draw_objective_chit(state, lines, "Obiettivo strategico")
+		"RICOGNIZIONE":            _recon(state, faction, lines)
 		"ZAPPATORI":
 			lines.append("Zappatori: nessuna mina o filo spinato da rimuovere.")
 		"SCONTRO SENZA PERDITE":
@@ -417,6 +418,26 @@ static func _dust(state: GameState, card: Card, lines: Array[String]) -> void:
 		return
 	hd.has_smoke = true
 	lines.append("Polvere: nube di polvere (fumo) in %s." % card.random_hex_label)
+
+
+## E67 Ricognizione: l'AVVERSARIO di chi innesca deve rivelare un chit
+## Obiettivo segreto (scelto a caso fra i suoi non ancora rivelati).
+static func _recon(state: GameState, faction: int, lines: Array[String]) -> void:
+	var opp := Domain.Faction.RUSSIAN if faction == Domain.Faction.GERMAN else Domain.Faction.GERMAN
+	var hidden: Array = []
+	for e in state.objective_chits:
+		if int(e["owner"]) == opp and not bool(e["revealed"]):
+			hidden.append(e)
+	if hidden.is_empty():
+		lines.append("Ricognizione: %s non ha chit segreti da rivelare." % Domain.FACTION_NAMES.get(opp, "?"))
+		return
+	var pick: Dictionary = hidden[randi() % hidden.size()]
+	pick["revealed"] = true
+	ObjectiveChits.recompute(state)
+	var chit := ObjectiveChits._find(String(pick["letter"]))
+	lines.append("Ricognizione: %s rivela il chit segreto %s." % [
+		Domain.FACTION_NAMES.get(opp, "?"),
+		ObjectiveChits._describe(chit) if not chit.is_empty() else String(pick["letter"])])
 
 
 ## E65 Obiettivo della missione / E74 Obiettivo strategico: si estrae un chit

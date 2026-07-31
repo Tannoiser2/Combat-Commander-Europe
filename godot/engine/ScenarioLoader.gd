@@ -77,14 +77,47 @@ static func setup(state: GameState, num: int) -> bool:
 	if not MapLoader.load_into(state, "res://assets/maps/%s.json" % map_id):
 		return false
 
-	# Chit Obiettivo (7.3.2): se lo scenario li richiede, i VP degli obiettivi
-	# vengono estratti a sorte (cumulativi) sostituendo quelli stampati sulla mappa.
-	var chits := int(e.get("objective_chits", 0))
-	if chits > 0:
-		var rng := RandomNumberGenerator.new()
-		rng.randomize()
-		# SSR: alcuni scenari escludono certi gettoni Obiettivo dal sacchetto.
-		ObjectiveChits.assign(state, chits, rng, ScenarioEffects.exclude_chits(num))
+	# Chit Obiettivo (7.3.2/7.3.3): composizione dalla scheda — chit APERTI
+	# (lettere esplicite o "?" = casuale) e chit SEGRETI per lato, pescati dallo
+	# stesso sacchetto senza rimpiazzo (meno gli esclusi da SSR). Se la scheda
+	# non specifica nulla, composizione standard: 1 aperto + 1 segreto per lato.
+	var spec := {
+		"open": e.get("chit_open", ["?"]),
+		"axis": e.get("chit_axis", ["?"]),
+		"allies": e.get("chit_allies", ["?"]),
+	}
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	for line in ObjectiveChits.setup(state, spec, rng, ScenarioEffects.exclude_chits(num)):
+		state.add_log(String(line))
+
+	# Controllo INIZIALE degli obiettivi dalla scheda (7.3.1): "axis"/"allies" =
+	# quel lato li controlla tutti; un dizionario { "axis": [2,3], "allies": [1] }
+	# li ripartisce per numero; "none" = tutti neutri. Se la scheda non lo
+	# specifica: li controlla il DIFENSORE (postura defend), altrimenti neutri.
+	var default_ctrl := "none"
+	if String(e.get("posture_axis", "")) == "defend":
+		default_ctrl = "axis"
+	elif String(e.get("posture_allies", "")) == "defend":
+		default_ctrl = "allies"
+	var ctrl: Variant = e.get("controllo_iniziale", default_ctrl)
+	if ctrl is String:
+		var f := -1
+		if String(ctrl) == "axis":
+			f = Domain.Faction.GERMAN
+		elif String(ctrl) == "allies":
+			f = Domain.Faction.RUSSIAN
+		for o in state.objectives:
+			o.controller = f
+	elif ctrl is Dictionary:
+		# I numeri dal JSON arrivano come float: confronto per valore intero.
+		for o in state.objectives:
+			for n_ax in (ctrl as Dictionary).get("axis", []):
+				if int(n_ax) == o.id:
+					o.controller = Domain.Faction.GERMAN
+			for n_al in (ctrl as Dictionary).get("allies", []):
+				if int(n_al) == o.id:
+					o.controller = Domain.Faction.RUSSIAN
 
 	# ─── Parametri ──────────────────────────────────────────────────────────
 	state.scenario_number = num

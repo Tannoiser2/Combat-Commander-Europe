@@ -74,22 +74,28 @@ static func shuffle(deck: Array[Card]) -> void:
 		deck[j] = tmp
 
 
-## Pesca `count` carte dal mazzo nella mano, rimescolando gli scarti se necessario.
+## Pesca `count` carte dal mazzo nella mano, rimescolando gli scarti se
+## necessario. Restituisce quante volte ha rimescolato (mazzo esaurito): per
+## 6.1.2 ogni esaurimento del mazzo innesca un avanzamento del Tempo — il
+## chiamante di gioco lo accoda (la distribuzione iniziale lo ignora).
 static func draw(
 	deck: Array[Card], discard: Array[Card], hand: Array[Card],
 	count: int = 1
-) -> void:
+) -> int:
+	var reshuffles := 0
 	for _i in range(count):
 		if deck.is_empty():
 			if discard.is_empty():
-				return
+				return reshuffles
 			# Rimescola gli scarti nel mazzo
 			deck.append_array(discard)
 			discard.clear()
 			shuffle(deck)
+			reshuffles += 1
 		if deck.is_empty():
-			return
+			return reshuffles
 		hand.append(deck.pop_back())
+	return reshuffles
 
 
 ## Distribuisce le mani iniziali per entrambe le fazioni, ciascuna alla sua
