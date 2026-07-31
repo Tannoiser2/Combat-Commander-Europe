@@ -9,12 +9,19 @@ extends RefCounted
 
 ## Unità di `defender` che possono reagire al movimento di `mover`:
 ## efficienti, con FP, non mortai/cannoni, in gittata e con linea di vista.
-static func eligible_shooters(state: GameState, mover: Unit, defender: int) -> Array[Unit]:
+## `free_ids` = unità già attivate per l'Op Fire in QUESTO ordine di Mossa
+## (A33.3 punto 2): restano idonee a sparare pur essendo attivate.
+static func eligible_shooters(
+	state: GameState, mover: Unit, defender: int, free_ids: Array = []
+) -> Array[Unit]:
 	var result: Array[Unit] = []
 	for u in state.units_of(defender):
-		# A24.3: il Fuoco di Opportunità ATTIVA il tiratore; un'unità già attivata
-		# (ha già sparato/agito in questo turno) non può reagire di nuovo.
-		if not u.efficient or u.suppressed or u.fp <= 0 or u.activated:
+		# Un'unità già attivata non può essere attivata di nuovo per l'Op Fire
+		# (A33.3, nota), a meno che l'attivazione sia di questo stesso ordine di
+		# Mossa: in quel caso continua a sparare gratis.
+		if not u.efficient or u.suppressed or u.fp <= 0:
+			continue
+		if u.activated and not free_ids.has(u.id):
 			continue
 		if u.ordnance or u.unit_class == Domain.UnitClass.MORTAR or u.unit_class == Domain.UnitClass.AT:
 			continue  # ordnance escluso dal Fuoco di Opportunità (11.5/A33.3)

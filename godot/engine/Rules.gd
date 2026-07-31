@@ -109,12 +109,13 @@ static func cover_at(state: GameState, q: int, r: int, vs_ordnance: bool) -> int
 ## penalità del Filo spinato.
 static func range_with_command(state: GameState, u: Unit) -> int:
 	var cmd := weapon_command_bonus(state, u) if u.is_weapon() else unit_command_bonus(state, u)
-	return u.range + cmd - wire_penalty(state, u)
+	return u.range + cmd - wire_penalty(state, u) - (1 if u.suppressed else 0)
 
 
 ## Movimento effettivo includendo il Comando del leader co-locato (3.3.1.2).
 static func move_with_command(state: GameState, u: Unit) -> int:
-	return u.move + unit_command_bonus(state, u)
+	# 13.2: la soppressione toglie 1 a FP, Gittata, Movimento e Morale.
+	return u.move + unit_command_bonus(state, u) - (1 if u.suppressed else 0)
 
 
 ## PM effettivi disponibili per la Mossa: base + Comando, meno il malus
@@ -133,7 +134,7 @@ static func fp_with_command(state: GameState, u: Unit) -> int:
 	if u.ordnance:
 		return u.fp - wire_penalty(state, u)
 	var cmd := weapon_command_bonus(state, u) if u.is_weapon() else unit_command_bonus(state, u)
-	return u.fp + cmd - wire_penalty(state, u)
+	return u.fp + cmd - wire_penalty(state, u) - (1 if u.suppressed else 0)
 
 
 ## Deriva della granata d'artiglieria (O18.2.2). Partendo da (q,r):
@@ -174,10 +175,16 @@ static func try_recover(
 ) -> Dictionary:
 	var roll := dice.x + dice.y
 	var target := u.morale + command_bonus_at(state, u.q, u.r, u.faction)
-	var success := roll <= target
+	# O22.3, tre esiti: < Morale = si riprende; = Morale = resta rotta e viene
+	# SOPPRESSA; > Morale = nessun effetto.
+	var success := roll < target
+	var suppressed := roll == target
 	if success:
 		u.recover()
-	return { "unit": u.id, "roll": roll, "target": target, "success": success }
+	elif suppressed:
+		u.suppressed = true
+	return { "unit": u.id, "roll": roll, "target": target,
+		"success": success, "suppressed": suppressed }
 
 
 ## Recupero (O22): un ordine di Recupero rimuove AUTOMATICAMENTE (senza tiro) la
@@ -192,11 +199,24 @@ static func clear_suppression(state: GameState, faction: int) -> int:
 	return freed
 
 
-## Un'unità può ricevere un ordine "attivo" (Mossa/Fuoco/Avanzata) solo se è
-## efficiente, NON soppressa e NON già attivata. Le unità rotte o soppresse sono
-## immobilizzate: possono solo difendersi e (le rotte) ritirarsi/recuperare.
+## Un'unità può ricevere un ordine "attivo" (Mossa/Fuoco/Avanzata) se è
+## efficiente e non già attivata. La SOPPRESSIONE non immobilizza (13.2): dà solo
+## -1 a FP/Gittata/Movimento/Morale e vieta di sparare le ARMI trasportate
+## (vedi can_fire_weapon). Le unità ROTTE non possono ricevere ordini attivi.
 static func can_be_ordered(u: Unit) -> bool:
-	return u != null and u.efficient and not u.suppressed and not u.activated
+	return u != null and u.efficient and not u.activated
+
+
+## 13.2 / 11.1: un'arma può sparare solo se il suo portatore è efficiente e NON
+## soppresso («a Suppressed unit cannot fire any Weapon it possesses»). Un'arma
+## senza portatore resta a terra e non spara.
+static func weapon_usable(state: GameState, w: Unit) -> bool:
+	if w == null or not w.is_weapon():
+		return true
+	var carrier := state.unit_by_id(w.carrier_id) if w.carrier_id != "" else null
+	if carrier == null:
+		return false
+	return carrier.efficient and not carrier.suppressed
 
 
 ## Vincitore alla Morte Subitanea data la bilancia VP (positiva = Germania).
@@ -348,18 +368,32 @@ static func rout_unit(
 	state: GameState, u: Unit, dice: Vector2i
 ) -> Dictionary:
 	var roll := dice.x + dice.y
-	var steps := roll - u.morale
+	# O23.2, tre esiti: < Morale = nessun effetto; = Morale = SOPPRESSA;
+	# > Morale = si ritira di (tiro − Morale) esagoni.
+	var morale := u.morale + command_bonus_at(state, u.q, u.r, u.faction)
+	var steps := roll - morale
 	var moved := 0
 	var eliminated := false
+	var suppressed := false
 
-	if steps > 0:
+	if steps == 0:
+		suppressed = not u.suppressed
+		u.suppressed = true
+	elif steps > 0:
 		var edge := friendly_edge_col(state, u.faction)
 		for _i in range(steps):
+			# O23.3: ogni esagono deve avvicinare al PROPRIO bordo; se l'unità è
+			# già adiacente al suo bordo, esce dalla mappa ed è eliminata.
+			if absi(u.q - edge) == 0:
+				eliminated = true
+				break
 			var best := Vector2i(u.q, u.r)
 			var best_score := _rout_score(state, u.q, u.r, edge, u.faction)
 			for nb in HexGrid.neighbors(u.q, u.r):
 				if not _rout_passable(state, nb, u):
 					continue
+				if absi(nb.x - edge) >= absi(u.q - edge):
+					continue  # deve avvicinarsi al bordo amico
 				var sc := _rout_score(state, nb.x, nb.y, edge, u.faction)
 				if sc < best_score:
 					best_score = sc
@@ -370,14 +404,16 @@ static func rout_unit(
 			u.r = best.y
 			moved += 1
 
-	if moved == 0 and _nearest_enemy_dist(state, u.q, u.r, u.faction) <= 1:
-		# Nessuna via di fuga e nemico adiacente → eliminata.
+	if not eliminated and steps > 0 and moved == 0 \
+			and _nearest_enemy_dist(state, u.q, u.r, u.faction) <= 1:
+		# Nessuna via di fuga e nemico adiacente → eliminata (si arrende).
 		eliminated = true
+	if eliminated:
 		state.eliminate_unit(u.id)
 
 	return {
-		"unit": u.id, "roll": roll, "steps": maxi(0, steps),
-		"moved": moved, "eliminated": eliminated
+		"unit": u.id, "roll": roll, "morale": morale, "steps": maxi(0, steps),
+		"moved": moved, "eliminated": eliminated, "suppressed": suppressed
 	}
 
 

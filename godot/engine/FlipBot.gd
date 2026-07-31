@@ -380,7 +380,7 @@ static func best_op_fire(state: GameState, mover: Unit, defender: int) -> Unit:
 	var def_static := mover.morale + Rules.cover_at(state, mover.q, mover.r, false)
 	var best: Unit = null
 	var best_fp := -1
-	for u in OpFire.eligible_shooters(state, mover, defender):
+	for u in OpFire.eligible_shooters(state, mover, defender, state.opfire_order_ids):
 		var hind := HexGrid.los_hindrance(u.q, u.r, mover.q, mover.r, state) \
 			+ maxi(0, state.global_hindrance)
 		var fp := _group_fp(state, Combat.fire_group(u, mover.q, mover.r, state)) - hind

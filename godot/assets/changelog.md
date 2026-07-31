@@ -1,3 +1,31 @@
+[b]v0.47.0[/b]
+
+[b]Ordini e azioni a norma di regolamento (Fase 3 dell'audit)[/b]
+- [b]Soppressione (13.2) corretta[/b]: prima un'unità soppressa era [b]paralizzata[/b] come se fosse rotta. Ora è quello che dice la regola: [b]−1 a Potenza di fuoco, Gittata, Movimento e Morale[/b], [b]può ancora ricevere ordini[/b], ma [b]non può sparare l'arma[/b] che trasporta. (Nemmeno un portatore rotto può usare l'arma, 11.1.)
+- [b]Artiglieria Negata (O17)[/b]: non era implementata — il badge era acceso e la carta veniva scartata senza effetto. Ora [b]guasta la Radio nemica[/b] (e la [b]elimina[/b] se era già guasta), ed è giocabile solo se il nemico ha davvero una Radio in gioco.
+- [b]Recupero (O22)[/b]: ora è [b]uno per turno[/b] (si attiva il giocatore, non le unità) e il tiro ha i [b]tre esiti[/b] giusti — minore del Morale = si riprende, [b]pari = resta rotta e viene soppressa[/b], maggiore = nessun effetto. Prima riusciva anche col pari ed era ripetibile.
+- [b]Rotta (O23)[/b]: ora può attivare [b]anche l'avversario[/b] (metà dell'utilità della carta, prima mancava) e ha i tre esiti corretti: minore del Morale = niente, [b]pari = soppressa[/b], maggiore = si ritira di quella differenza. La ritirata deve [b]avvicinarsi al proprio bordo[/b] e un'unità costretta a uscirne viene [b]eliminata[/b] (O23.3.5).
+- [b]Granate Fumogene (A39)[/b]: timing invertito, ora corretto. Si giocano [b]mentre una tua unità è attivata a muovere[/b] e il fumo cade [b]nel suo esagono o in uno adiacente[/b]. Prima si giocavano nel turno (momento sbagliato) e il fumo finiva in un [b]esagono a caso[/b] della mappa.
+
+[b]Badge più onesti[/b]
+- I [b]modificatori di fuoco[/b] (Mirato, Sostenuto, Incrociato, Bombe a mano, Sventagliata) si accendono [b]solo se i prerequisiti sono soddisfatti[/b]: prima erano tutti accesi e il click non faceva nulla.
+- Il [b]Fuoco d'Assalto[/b] si accende solo se è davvero eseguibile (unità idonea, bersaglio a tiro, non già usato).
+- L'[b]Avanzata[/b] non si accende più quando nessuna avanzata è legale (controlla anche l'impilamento).
+- [b]Recupero e Rotta[/b] rispecchiano l'attivazione già usata nel turno.
+
+[b]v0.46.0[/b]
+
+[b]Fuoco di Opportunità a norma di regolamento (Fase 2 dell'audit)[/b]
+- [b]Economia corretta (A33.3 p.2)[/b]: la carta Fuoco si spende [b]una sola volta[/b], per [b]attivare[/b] il tiratore; da quel momento quell'unità (e il suo gruppo) spara [b]gratis a ogni esagono[/b] che il nemico attraversa, per tutta la durata di quell'ordine di Mossa. Prima serviva una carta per ogni singolo colpo e il tiratore sparava una volta sola: il fuoco di reazione era quasi inutile.
+- In un [b]altro[/b] ordine di Mossa dello stesso turno quelle unità non possono essere riattivate (nota di A33.3), e resta il limite di [b]un attacco per esagono entrato[/b].
+- [b]Chi reagisce non perde più il proprio turno[/b]: le attivazioni ora si azzerano all'inizio del [b]proprio[/b] turno (O14.1), non a fine turno del giocatore. Prima un'unità che faceva fuoco di opportunità durante il turno dell'IA restava bloccata anche nel tuo turno successivo — una delle cause del «sembrano tutte bloccate».
+- [b]Il mover colpito si ferma[/b]: un'unità dell'IA rotta (o eliminata) dal tuo fuoco di opportunità [b]interrompe il movimento[/b]. Prima proseguiva, e un'unità eliminata continuava perfino a «camminare» aprendo altre finestre di reazione.
+
+[b]Chiarezza del fuoco[/b]
+- Il fuoco di opportunità [b]si vede e si sente[/b]: traccianti, lampi e suono come per il fuoco normale (prima era completamente muto e invisibile: la pedina sembrava rompersi da sola). Lo stesso vale ora per il [b]fuoco ordinario dell'IA[/b].
+- Il riquadro di reazione dice il [b]costo reale[/b]: «costa una carta Fuoco (poi spari gratis a ogni esagono)» oppure «tiro gratuito, già attivato». Prima diceva «nessuna carta da giocare» mentre te ne scartava una di nascosto.
+- Un [b]click a vuoto non fa più rinunciare[/b] alla reazione: per non sparare c'è il pulsante (o SPAZIO). Prima bastava cliccare l'unità nemica per curiosità e la finestra si chiudeva per sempre.
+
 [b]v0.45.0[/b]
 
 [b]Economia di vittoria a norma di regolamento (Fase 1 dell'audit)[/b]

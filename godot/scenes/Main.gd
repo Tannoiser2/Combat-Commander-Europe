@@ -282,9 +282,18 @@ func _action_playable(card: Card, s: GameState) -> bool:
 		# Fuoco: i modificatori si applicano durante l'assemblaggio (gruppo-prima),
 		# cioè appena c'è un gruppo, non solo dopo aver scelto il bersaglio.
 		if s.current_order == Domain.OrderType.FIRE and not s.fire_eligible_ids.is_empty():
-			return name in Game.FIRE_MOD_NAMES or name.begins_with("SVENTAGLIATA")
+			# Accendi il modificatore SOLO se i suoi prerequisiti sono soddisfatti
+			# (prima si accendevano tutti e il click non faceva nulla).
+			if name in Game.FIRE_MOD_NAMES or name.begins_with("SVENTAGLIATA"):
+				return Game.fire_modifier_ok(name)
+			return false
 		if s.current_order == Domain.OrderType.MOVE:
-			return name == "FUOCO D'ASSALTO"
+			if name == "FUOCO D'ASSALTO":
+				return Game.assault_fire_ok()
+			# A39: le Granate Fumogene si giocano MENTRE una tua unità è attivata
+			# a muovere (prima erano accese nel turno, cioè al momento sbagliato).
+			if name == "GRANATE FUMOGENE":
+				return Game.smoke_grenades_ok()
 	return false
 
 
@@ -1238,9 +1247,18 @@ func _update_reaction_banner(phase: int) -> void:
 		var mv := s.unit_by_id(s.opfire_mover_id)
 		var who: String = mv.unit_name if mv != null else "Un'unità nemica"
 		var whereh: String = Domain.qr_to_label(mv.q, mv.r) if mv != null else "?"
+		# Costo reale (A33): la carta Fuoco si spende solo per ATTIVARE un nuovo
+		# tiratore; chi è già attivato in questo ordine di Mossa spara gratis.
+		var free_ready := false
+		for sid in s.opfire_shooter_ids:
+			if s.opfire_order_ids.has(sid):
+				free_ready = true
+				break
+		var cost := "[color=#9fe0a0]tiro gratuito[/color] (già attivato per questo movimento)" if free_ready \
+			else "costa [b]una carta Fuoco[/b] dalla mano (poi spari gratis a ogni esagono che attraversa)"
 		_reaction_label.text = "[b][color=#ffcf66]FUOCO DI OPPORTUNITÀ[/color][/b]  —  reazione\n" \
-			+ "[b]%s[/b] (nemico) si è mosso allo scoperto in [b]%s[/b].\n" % [who, whereh] \
-			+ "Clicca un tuo tiratore [color=#ffd24a]giallo[/color] per [b]sparargli subito[/b] (nessuna carta da giocare), oppure prosegui."
+			+ "[b]%s[/b] (nemico) è entrato in [b]%s[/b].\n" % [who, whereh] \
+			+ "Clicca un tuo tiratore [color=#ffd24a]giallo[/color] per sparargli: %s." % cost
 		_reaction_btn.text = "Non sparare  (SPAZIO)"
 	_reaction_banner.visible = true
 
@@ -1294,6 +1312,10 @@ func _on_action_pressed(index: int) -> void:
 	elif s.phase == Domain.Phase.PLAYER_MOVING and s.current_order == Domain.OrderType.MOVE \
 			and nm == "FUOCO D'ASSALTO":
 		Game.assault_fire(index)
+		_refresh_ui()
+	elif s.phase == Domain.Phase.PLAYER_MOVING and s.current_order == Domain.OrderType.MOVE \
+			and nm == "GRANATE FUMOGENE":
+		Game.play_smoke_grenades(index)  # A39: durante la propria Mossa
 		_refresh_ui()
 	else:
 		Game.play_action(index)
