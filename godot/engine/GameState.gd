@@ -163,6 +163,11 @@ var exited_units: Array = []
 ## proprio mazzo = innesco Tempo!): Game processa la coda a fine risoluzione.
 var pending_time_factions: Array = []
 
+## Giocatori già "attivati" da un Recupero o una Rotta in questo turno (O22.1 /
+## O23.1: al massimo un Recupero per giocatore, e una Rotta per bersaglio).
+## Si azzera all'inizio del turno di ciascun giocatore.
+var rally_used: Array = []
+
 ## Unità attivate per il Fuoco di Opportunità durante l'ordine di Mossa IN CORSO
 ## (A33.3 punto 2): restano idonee a sparare — senza spendere altre carte — a
 ## ogni esagono entrato, ma solo per QUESTO ordine di Mossa. Si azzera all'inizio

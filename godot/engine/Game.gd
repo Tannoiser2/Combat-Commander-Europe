@@ -440,6 +440,15 @@ func _compute_fire_ready() -> void:
 
 
 ## C'è almeno un'unità del giocatore che può sparare ora (≥1 bersaglio valido)?
+## Radio della fazione avversaria a quella umana, se presente in gioco (O17).
+func _enemy_radio(faction: int = -1) -> Unit:
+	var owner := _opponent(state.human_faction) if faction == -1 else faction
+	for u in state.units_of(owner):
+		if u.is_weapon() and u.unit_name.contains("Radio"):
+			return u
+	return null
+
+
 func _any_fire_ready() -> bool:
 	for u in state.units_of(state.human_faction):
 		if not Rules.can_be_ordered(u):
@@ -545,7 +554,10 @@ func order_feasible(order: int) -> bool:
 		Domain.OrderType.ARTY:
 			return has_artillery_available()
 		Domain.OrderType.RECOVER:
-			# Recupero utile se ci sono unità rotte o soppresse da ripristinare.
+			# O22.1: serve almeno un'unità rotta o soppressa, e il giocatore non
+			# deve essere già stato attivato da un Recupero/Rotta in questo turno.
+			if state.rally_used.has(human):
+				return false
 			if not state.broken_men_of(human).is_empty():
 				return true
 			for u in state.units_of(human):
@@ -553,7 +565,15 @@ func order_feasible(order: int) -> bool:
 					return true
 			return false
 		Domain.OrderType.ROUT:
-			return not state.broken_men_of(human).is_empty()
+			# O23.1: si può attivare SE STESSI o L'AVVERSARIO, purché quel
+			# giocatore abbia unità rotte e non sia già stato attivato nel turno.
+			for f in [human, _opponent(human)]:
+				if not state.rally_used.has(f) and not state.broken_men_of(f).is_empty():
+					return true
+			return false
+		Domain.OrderType.ARTY_DENIED:
+			# O17: serve una Radio nemica in gioco.
+			return _enemy_radio() != null
 		Domain.OrderType.FIRE:
 			return _any_fire_ready()
 		Domain.OrderType.MOVE:
@@ -569,8 +589,10 @@ func order_feasible(order: int) -> bool:
 				if not (Rules.can_be_ordered(u) and u.is_man()):
 					continue
 				for h in HexGrid.neighbors(u.q, u.r):
-					if h.x >= 0 and h.x < state.map_cols and h.y >= 0 and h.y < state.map_rows:
-						return true
+					if h.x < 0 or h.x >= state.map_cols or h.y < 0 or h.y >= state.map_rows:
+						continue
+					if _can_advance_into(u, h.x, h.y):
+						return true  # avanzata davvero legale (impilamento incluso)
 			return false
 		_:
 			return true
@@ -635,7 +657,8 @@ func play_card(hand_index: int) -> void:
 	# o giocare Azioni (tasto destro).
 	var counts_as_order: bool = card.order in [
 		Domain.OrderType.MOVE, Domain.OrderType.FIRE, Domain.OrderType.ADVANCE,
-		Domain.OrderType.RECOVER, Domain.OrderType.ROUT, Domain.OrderType.ARTY]
+		Domain.OrderType.RECOVER, Domain.OrderType.ROUT, Domain.OrderType.ARTY,
+		Domain.OrderType.ARTY_DENIED]
 	if counts_as_order and state.order_count >= state.max_orders:
 		_log("Ordini esauriti per questo turno (%d/%d). Premi «Fine Turno» o gioca un'Azione." % [
 			state.order_count, state.max_orders])
@@ -674,6 +697,8 @@ func play_card(hand_index: int) -> void:
 			_execute_rout(hand_index)
 		Domain.OrderType.ARTY:
 			_play_artillery(hand_index)
+		Domain.OrderType.ARTY_DENIED:
+			_execute_arty_denied(hand_index)
 		Domain.OrderType.PASS:
 			_discard_card(hand_index)
 			_end_player_turn()
@@ -1371,7 +1396,7 @@ const FIRE_MOD_NAMES := ["FUOCO MIRATO", "FUOCO SOSTENUTO", "FUOCO INCROCIATO", 
 ## non fanno nulla (verrebbero solo scartate). I modificatori di fuoco, la
 ## Sventagliata e il Fuoco d'Assalto restano "di contesto" (vedi _action_playable).
 const AUTONOMOUS_ACTIONS := [
-	"MIMETIZZAZIONE", "TRINCERARSI", "FERITE LEGGERE", "GRANATE FUMOGENE",
+	"MIMETIZZAZIONE", "TRINCERARSI", "FERITE LEGGERE",
 	"TRINCERAMENTI NASCOSTI", "MINE NASCOSTE", "CASAMATTA NASCOSTA", "FILO SPINATO NASCOSTO",
 ]
 
@@ -1404,6 +1429,89 @@ func _current_fire_group() -> Array:
 
 
 ## "" se il modificatore è applicabile, altrimenti il motivo (prerequisito CC:E).
+## Il modificatore di fuoco `nm` è applicabile adesso? (per i badge della UI)
+func fire_modifier_ok(nm: String) -> bool:
+	if state == null or state.current_order != Domain.OrderType.FIRE:
+		return false
+	if nm.begins_with("SVENTAGLIATA"):
+		return _spray_target().x >= 0
+	return _fire_modifier_error(nm) == ""
+
+
+## Granate Fumogene (A39): giocabili SOLO mentre una propria unità con Movimento
+## «in scatola» è attivata a muovere; il fumo va nel suo esagono o adiacente.
+func smoke_grenades_ok() -> bool:
+	return _smoke_thrower() != null
+
+
+## L'unità che può lanciare le fumogene adesso (mover attivo con Movimento
+## riquadrato), o null.
+func _smoke_thrower() -> Unit:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING \
+			or state.current_order != Domain.OrderType.MOVE:
+		return null
+	var u := state.unit_by_id(state.selected_unit_id)
+	if u == null:
+		u = state.unit_by_id(state.moving_unit_id)
+	if u == null or not u.is_man() or not u.efficient or not u.move_boxed:
+		return null
+	return u
+
+
+## Gioca le Granate Fumogene (A39): fumo nell'esagono del mover o in uno
+## adiacente (si sceglie quello verso il nemico più vicino, per coprire davvero
+## l'avanzata). Vietato su acqua o su un esagono con incendio.
+func play_smoke_grenades(hand_index: int) -> void:
+	var u := _smoke_thrower()
+	if u == null:
+		_log("Granate Fumogene: serve un'unità attivata a muovere con Movimento «in scatola» (A39).")
+		return
+	var best := Vector2i(u.q, u.r)
+	var best_d := 9999
+	var cands: Array[Vector2i] = [Vector2i(u.q, u.r)]
+	for nb in HexGrid.neighbors(u.q, u.r):
+		if nb.x >= 0 and nb.x < state.map_cols and nb.y >= 0 and nb.y < state.map_rows:
+			cands.append(nb)
+	for c in cands:
+		var hd: GameState.HexData = state.hex_at(c.x, c.y)
+		if hd == null or hd.has_blaze:
+			continue
+		if hd.terrain == Domain.TerrainType.WATER_BARRIER:
+			continue
+		# Preferisci l'esagono più vicino al nemico più prossimo (copre l'avanzata).
+		for e in state.units.values():
+			if e.faction == u.faction or not e.is_man():
+				continue
+			var d := HexGrid.distance(c.x, c.y, e.q, e.r)
+			if d < best_d:
+				best_d = d
+				best = c
+	var hdb: GameState.HexData = state.hex_at(best.x, best.y)
+	if hdb == null:
+		_log("Granate Fumogene: nessun esagono valido qui.")
+		return
+	hdb.has_smoke = true
+	_log("[b]Granate Fumogene[/b]: fumo posato in %s (A39)." % Domain.qr_to_label(best.x, best.y))
+	_discard_card(hand_index)
+	emit_signal("state_changed")
+
+
+## Il Fuoco d'Assalto (A26) è giocabile adesso? Serve una squadra/team attivata a
+## muovere con FP «in scatola» e un bersaglio in gittata/LOS, e non averlo già
+## usato in questo ordine (per accendere il badge solo quando ha effetto).
+func assault_fire_ok() -> bool:
+	if state == null or state.phase != Domain.Phase.PLAYER_MOVING \
+			or state.current_order != Domain.OrderType.MOVE or state.assault_fired:
+		return false
+	var u := state.unit_by_id(state.selected_unit_id)
+	if u == null:
+		u = state.unit_by_id(state.moving_unit_id)
+	if u == null or not u.is_man() or u.is_leader() or not u.efficient \
+			or u.fp <= 0 or u.ordnance or not u.fp_boxed:
+		return false
+	return _best_assault_target(u).x >= 0
+
+
 func _fire_modifier_error(nm: String) -> String:
 	var group := _current_fire_group()
 	match nm:
@@ -1980,8 +2088,16 @@ func _finish_advance() -> void:
 ## Recupero (O22): tiro di Morale per ogni unità rotta amica.
 func _execute_recover(hand_index: int) -> void:
 	state.order_count += 1
+	# O22.1: si attiva il GIOCATORE (non le unità); uno solo per turno, e non se
+	# è già stato attivato da un Recupero/Rotta in questo turno.
+	if state.rally_used.has(state.human_faction):
+		_log("Recupero: hai già usato un Recupero o una Rotta in questo turno (O22.1).")
+		_discard_card(hand_index)
+		emit_signal("state_changed")
+		return
+	state.rally_used.append(state.human_faction)
 	var broken := state.broken_men_of(state.human_faction)
-	# Soppressione: un ordine di Recupero la rimuove automaticamente (no tiro).
+	# O22.2: PRIMA si rimuove ogni soppressione, poi il tiro per le unità rotte.
 	var freed := Rules.clear_suppression(state, state.human_faction)
 	if freed > 0:
 		_log("Recupero: rimossa la soppressione da %d unità." % freed)
@@ -1990,9 +2106,11 @@ func _execute_recover(hand_index: int) -> void:
 	for u in broken:
 		var fate := _draw_fate(state.human_faction)
 		var r := Rules.try_recover(state, u, _dice_of(fate))
-		_log("Recupero %s: %d vs %d -> %s" % [
-			u.unit_name, r["roll"], r["target"], "OK" if r["success"] else "fallito"
-		])
+		var esito := "si riprende"
+		if not r["success"]:
+			esito = "resta rotta e SOPPRESSA" if r["suppressed"] else "nessun effetto"
+		_log("Recupero %s: %d vs Morale %d -> %s" % [
+			u.unit_name, r["roll"], r["target"], esito])
 		_apply_fate(fate, state.human_faction)
 		if state.phase == Domain.Phase.GAME_OVER:
 			break
@@ -2001,25 +2119,68 @@ func _execute_recover(hand_index: int) -> void:
 
 
 ## Rotta (O23): ogni unità rotta amica si ritira verso il bordo amico.
+## Rotta (O23): si sceglie quale GIOCATORE attivare — se stessi o l'avversario
+## (O23.1). Di norma conviene attivare l'avversario, per far scappare (o far
+## eliminare a bordo mappa) le sue unità rotte: qui si attiva l'avversario se ha
+## unità rotte ed è ancora attivabile, altrimenti se stessi.
 func _execute_rout(hand_index: int) -> void:
 	state.order_count += 1
-	var broken := state.broken_men_of(state.human_faction)
-	if broken.is_empty():
-		_log("Rotta: nessuna unità rotta.")
+	var human := state.human_faction
+	var foe := _opponent(human)
+	var target := -1
+	if not state.rally_used.has(foe) and not state.broken_men_of(foe).is_empty():
+		target = foe
+	elif not state.rally_used.has(human) and not state.broken_men_of(human).is_empty():
+		target = human
+	if target == -1:
+		_log("Rotta: nessun giocatore attivabile (serve chi ha unità rotte e non è già stato attivato).")
+		_discard_card(hand_index)
+		emit_signal("state_changed")
+		return
+	state.rally_used.append(target)
+	_log("Rotta: attivato %s (O23.1)." % Domain.FACTION_NAMES.get(target, "?"))
+	var broken := state.broken_men_of(target)
 	for u in broken:
-		var fate := _draw_fate(state.human_faction)
+		var fate := _draw_fate(human)
 		var r := Rules.rout_unit(state, u, _dice_of(fate))
 		if r["eliminated"]:
-			_log("Rotta %s: %d esagoni -> ELIMINATA (nessuna via di fuga)" % [u.unit_name, r["steps"]])
+			_log("Rotta %s: tiro %d vs Morale %d -> [b]ELIMINATA[/b] (ritirata impossibile)" % [
+				u.unit_name, r["roll"], r["morale"]])
 			emit_signal("unit_eliminated", u.id)
+		elif r["steps"] == 0 and int(r["roll"]) == int(r["morale"]):
+			_log("Rotta %s: tiro %d = Morale %d -> SOPPRESSA" % [u.unit_name, r["roll"], r["morale"]])
+		elif r["steps"] <= 0:
+			_log("Rotta %s: tiro %d < Morale %d -> nessun effetto" % [u.unit_name, r["roll"], r["morale"]])
 		else:
-			_log("Rotta %s: tiro %d, si ritira di %d esagoni" % [u.unit_name, r["roll"], r["moved"]])
+			_log("Rotta %s: tiro %d vs Morale %d -> si ritira di %d esagoni" % [
+				u.unit_name, r["roll"], r["morale"], r["moved"]])
 			emit_signal("unit_moved", u.id, u.q, u.r)
-		_apply_fate(fate, state.human_faction)
+		_apply_fate(fate, human)
 		if state.phase == Domain.Phase.GAME_OVER:
 			break
 	_discard_card(hand_index)
 	_check_end_conditions()
+	emit_signal("state_changed")
+
+
+## Artiglieria Negata (O17): rompe la Radio avversaria; se era già rotta, la
+## elimina. Non attiva nulla, ma serve una Radio nemica in gioco.
+func _execute_arty_denied(hand_index: int) -> void:
+	var radio := _enemy_radio()
+	if radio == null:
+		_log("Artiglieria Negata: nessuna Radio nemica in gioco (O17).")
+		_discard_card(hand_index)
+		emit_signal("state_changed")
+		return
+	state.order_count += 1
+	if radio.efficient:
+		radio.efficient = false
+		_log("[b]Artiglieria Negata[/b]: la Radio nemica si guasta (O17).")
+	else:
+		state.units.erase(radio.id)
+		emit_signal("unit_eliminated", radio.id)
+		_log("[b]Artiglieria Negata[/b]: la Radio nemica era già guasta — [b]eliminata[/b] (O17).")
+	_discard_card(hand_index)
 	emit_signal("state_changed")
 
 
@@ -2656,6 +2817,7 @@ func _begin_turn(faction: int) -> void:
 		if u.faction == faction:
 			u.activated = false
 	state.opfire_order_ids.clear()
+	state.rally_used.erase(faction)  # O22.1/O23.1: nuovo turno, nuova attivazione
 
 
 func _end_player_turn() -> void:

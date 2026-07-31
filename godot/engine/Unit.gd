@@ -17,6 +17,9 @@ var fp: int = 0
 var fp_boxed: bool = false
 var range: int = 0
 var range_boxed: bool = false
+## Movimento «in scatola» (A39 Granate Fumogene). Il catalogo unità non porta
+## ancora questo dato: default true (permissivo) finché non sarà disponibile.
+var move_boxed: bool = true
 var move: int = 4
 var morale: int = 7
 var command: int = 0       # solo leader: valore in cerchio
@@ -120,6 +123,7 @@ func clone() -> Unit:
 	u.nation_art = nation_art
 	u.fp = fp; u.fp_boxed = fp_boxed
 	u.range = range; u.range_boxed = range_boxed
+	u.move_boxed = move_boxed
 	u.move = move; u.morale = morale
 	u.command = command; u.move_penalty = move_penalty
 	u.ordnance = ordnance; u.min_range = min_range

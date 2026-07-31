@@ -16,7 +16,10 @@ static func play(state: GameState, card: Card, faction: int) -> Array[String]:
 		"FERITE LEGGERE":     _light_wounds(state, faction, lines)
 		"TRINCERARSI":        _entrench(state, faction, lines)
 		"MIMETIZZAZIONE":     _camouflage(state, faction, lines)
-		"GRANATE FUMOGENE":   _smoke(state, card, lines)
+		"GRANATE FUMOGENE":
+			# A39: si gioca durante la PROPRIA Mossa (Game.play_smoke_grenades),
+			# non come azione autonoma del turno.
+			lines.append("Granate Fumogene: si giocano mentre una tua unità è attivata a muovere (A39).")
 		"FILO SPINATO NASCOSTO":  _place_fort(state, faction, Domain.Fort.WIRE, lines)
 		"MINE NASCOSTE":          _place_fort(state, faction, Domain.Fort.MINES, lines)
 		"CASAMATTA NASCOSTA":     _place_fort(state, faction, Domain.Fort.PILLBOX, lines)

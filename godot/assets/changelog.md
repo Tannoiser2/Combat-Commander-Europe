@@ -1,3 +1,18 @@
+[b]v0.47.0[/b]
+
+[b]Ordini e azioni a norma di regolamento (Fase 3 dell'audit)[/b]
+- [b]Soppressione (13.2) corretta[/b]: prima un'unità soppressa era [b]paralizzata[/b] come se fosse rotta. Ora è quello che dice la regola: [b]−1 a Potenza di fuoco, Gittata, Movimento e Morale[/b], [b]può ancora ricevere ordini[/b], ma [b]non può sparare l'arma[/b] che trasporta. (Nemmeno un portatore rotto può usare l'arma, 11.1.)
+- [b]Artiglieria Negata (O17)[/b]: non era implementata — il badge era acceso e la carta veniva scartata senza effetto. Ora [b]guasta la Radio nemica[/b] (e la [b]elimina[/b] se era già guasta), ed è giocabile solo se il nemico ha davvero una Radio in gioco.
+- [b]Recupero (O22)[/b]: ora è [b]uno per turno[/b] (si attiva il giocatore, non le unità) e il tiro ha i [b]tre esiti[/b] giusti — minore del Morale = si riprende, [b]pari = resta rotta e viene soppressa[/b], maggiore = nessun effetto. Prima riusciva anche col pari ed era ripetibile.
+- [b]Rotta (O23)[/b]: ora può attivare [b]anche l'avversario[/b] (metà dell'utilità della carta, prima mancava) e ha i tre esiti corretti: minore del Morale = niente, [b]pari = soppressa[/b], maggiore = si ritira di quella differenza. La ritirata deve [b]avvicinarsi al proprio bordo[/b] e un'unità costretta a uscirne viene [b]eliminata[/b] (O23.3.5).
+- [b]Granate Fumogene (A39)[/b]: timing invertito, ora corretto. Si giocano [b]mentre una tua unità è attivata a muovere[/b] e il fumo cade [b]nel suo esagono o in uno adiacente[/b]. Prima si giocavano nel turno (momento sbagliato) e il fumo finiva in un [b]esagono a caso[/b] della mappa.
+
+[b]Badge più onesti[/b]
+- I [b]modificatori di fuoco[/b] (Mirato, Sostenuto, Incrociato, Bombe a mano, Sventagliata) si accendono [b]solo se i prerequisiti sono soddisfatti[/b]: prima erano tutti accesi e il click non faceva nulla.
+- Il [b]Fuoco d'Assalto[/b] si accende solo se è davvero eseguibile (unità idonea, bersaglio a tiro, non già usato).
+- L'[b]Avanzata[/b] non si accende più quando nessuna avanzata è legale (controlla anche l'impilamento).
+- [b]Recupero e Rotta[/b] rispecchiano l'attivazione già usata nel turno.
+
 [b]v0.46.0[/b]
 
 [b]Fuoco di Opportunità a norma di regolamento (Fase 2 dell'audit)[/b]

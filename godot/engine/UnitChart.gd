@@ -208,6 +208,7 @@ static func _leader(id: String, faction: int, label: String) -> Unit:
 	var cls := Domain.UnitClass.ELITE if (key == "Captain" or key == "Lieutenant Y" or key == "Hero") else Domain.UnitClass.RIFLE
 	var u := _mk(id, faction, Domain.UnitType.LEADER, cls, label)
 	u.fp = int(s.get("fp", 1)); u.fp_boxed = bool(s.get("fp_boxed", false))
+	u.move_boxed = bool(s.get("move_boxed", true))
 	u.range = int(s.get("range", 1)); u.range_boxed = bool(s.get("range_boxed", false))
 	u.move = int(s.get("move", 6)); u.morale = int(s.get("morale", 8))
 	u.command = int(s.get("command", 1)); u.move_penalty = 0
@@ -234,6 +235,7 @@ static func _squad(id: String, faction: int, label: String, nat: String) -> Unit
 	var utype := Domain.UnitType.TEAM if _is_team(label) else Domain.UnitType.SQUAD
 	var u := _mk(id, faction, utype, _squad_class(label), label)
 	u.fp = int(s.get("fp", 5)); u.fp_boxed = bool(s.get("fp_boxed", false))
+	u.move_boxed = bool(s.get("move_boxed", true))
 	u.range = int(s.get("range", 5)); u.range_boxed = bool(s.get("range_boxed", true))
 	u.move = int(s.get("move", 4)); u.morale = int(s.get("morale", 7))
 	u.command = 0; u.move_penalty = 0

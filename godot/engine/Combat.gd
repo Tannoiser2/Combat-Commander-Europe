@@ -40,6 +40,8 @@ static func fire_group(attacker: Unit, tq: int, tr: int, state: GameState) -> Ar
 	for u in state.units.values():
 		if u.faction != attacker.faction or not u.efficient or u.fp <= 0 or u.ordnance:
 			continue
+		if not Rules.weapon_usable(state, u):
+			continue  # 13.2/11.1: arma di un portatore rotto o soppresso
 		var co_located: bool = u.q == attacker.q and u.r == attacker.r
 		var commanded: bool = leader != null and HexGrid.distance(leader.q, leader.r, u.q, u.r) <= leader.command
 		if not (co_located or commanded):
@@ -69,6 +71,8 @@ static func potential_fire_group(attacker: Unit, state: GameState) -> Array[Unit
 	for u in state.units.values():
 		if u.faction != attacker.faction or not u.efficient or u.fp <= 0 or u.ordnance:
 			continue
+		if not Rules.weapon_usable(state, u):
+			continue  # 13.2/11.1: arma di un portatore rotto o soppresso
 		var co_located: bool = u.q == attacker.q and u.r == attacker.r
 		var commanded: bool = leader != null \
 			and HexGrid.distance(leader.q, leader.r, u.q, u.r) <= leader.command
@@ -332,7 +336,10 @@ static func resolve_artillery(
 ## Verifica se un'unità può sparare legalmente.
 static func can_fire(attacker: Unit, tq: int, tr: int, state: GameState) -> bool:
 	if not Rules.can_be_ordered(attacker):
-		return false  # attivata, rotta o soppressa: non può sparare
+		return false  # già attivata o rotta: non può sparare
+	# 13.2: una SOPPRESSA può sparare (a -1 FP/Gittata), ma non con la sua ARMA.
+	if attacker.is_weapon() and not Rules.weapon_usable(state, attacker):
+		return false
 	var dist := HexGrid.distance(attacker.q, attacker.r, tq, tr)
 	if dist == 0 or dist > Rules.range_with_command(state, attacker):
 		return false

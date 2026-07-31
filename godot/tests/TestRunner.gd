@@ -98,6 +98,9 @@ func _ready() -> void:
 	_test_chit_control_all()
 	_test_exit_last_unit_points()
 	_test_op_fire()
+	_test_arty_denied()
+	_test_recover_rout_once_per_turn()
+	_test_suppressed_weapon()
 	_test_opfire_economy()
 	_test_activation_resets_own_turn()
 	_test_op_fire_card_cost()
@@ -317,11 +320,18 @@ func _test_command_stats() -> void:
 func _test_recover() -> void:
 	print("· Recupero (tiro di morale)")
 	var s := _new_state()
-	var u := _mk("rus", RUS, SQUAD, RIFLE, 2, 2, 5, 12)  # morale 12 → 2d6 sempre ≤ 12
+	var u := _mk("rus", RUS, SQUAD, RIFLE, 2, 2, 5, 13)  # morale 13 → 2d6 sempre < 13
 	u.break_unit()
 	s.units[u.id] = u
-	var r := Rules.try_recover(s, u, Vector2i(6, 6))  # 12 ≤ 12 → riuscito
-	_check(r["success"] and u.efficient, "morale 12 → recupero sempre riuscito")
+	var r := Rules.try_recover(s, u, Vector2i(6, 6))  # 12 < 13 → si riprende
+	_check(r["success"] and u.efficient, "tiro MINORE del Morale → l'unità si riprende (O22.3)")
+	# O22.3: tiro PARI al Morale → resta rotta e viene soppressa.
+	var ueq := _mk("rus-eq", RUS, SQUAD, RIFLE, 2, 3, 5, 12)
+	ueq.break_unit()
+	s.units[ueq.id] = ueq
+	var req := Rules.try_recover(s, ueq, Vector2i(6, 6))  # 12 == 12
+	_check(not req["success"] and req["suppressed"], "tiro PARI al Morale → resta rotta e SOPPRESSA")
+	_check(not ueq.efficient and ueq.suppressed, "l'unità è rotta e soppressa")
 
 	var u2 := _mk("rus2", RUS, SQUAD, RIFLE, 4, 4, 5, 1)  # morale 1
 	u2.break_unit()
@@ -545,7 +555,9 @@ func _test_can_be_ordered() -> void:
 	_check(Rules.can_be_ordered(healthy), "unità efficiente, non soppressa, non attivata → può ricevere ordini")
 	var sup := _mk("s", GER, SQUAD, RIFLE, 1, 1, 5, 7)
 	sup.suppress()
-	_check(not Rules.can_be_ordered(sup), "unità soppressa → immobilizzata (no Mossa/Fuoco/Avanzata)")
+	# 13.2: la soppressione NON immobilizza — dà -1 a FP/Gittata/Movimento/Morale
+	# e vieta solo di sparare le armi trasportate.
+	_check(Rules.can_be_ordered(sup), "unità soppressa → può comunque ricevere ordini (13.2)")
 	var brk := _mk("b", GER, SQUAD, RIFLE, 1, 1, 5, 7)
 	brk.break_unit()
 	_check(not Rules.can_be_ordered(brk), "unità rotta → no ordini attivi (solo Rotta/Recupero)")
@@ -559,7 +571,10 @@ func _test_can_be_ordered() -> void:
 	var tgt := _mk("tg", RUS, SQUAD, RIFLE, 1, 0, 5, 7)
 	s.units[shooter.id] = shooter
 	s.units[tgt.id] = tgt
-	_check(not Combat.can_fire(shooter, 1, 0, s), "can_fire rifiuta la soppressa (coerente con can_be_ordered)")
+	_check(Combat.can_fire(shooter, 1, 0, s), "la soppressa può sparare col proprio FP (13.2)")
+	_check(Rules.fp_with_command(s, shooter) == shooter.fp - 1, "soppressione: -1 FP")
+	_check(Rules.range_with_command(s, shooter) == shooter.range - 1, "soppressione: -1 Gittata")
+	_check(Rules.move_with_command(s, shooter) == shooter.move - 1, "soppressione: -1 Movimento")
 
 
 func _test_melee_winner_and_losses() -> void:
@@ -582,26 +597,39 @@ func _test_melee_winner_and_losses() -> void:
 
 func _test_rout_retreat() -> void:
 	print("· Rotta: ritirata verso il bordo amico")
-	var s := _new_state()
-	var u := _mk("ger", GER, SQUAD, RIFLE, 1, 2, 5, 0)  # morale 0 → passi = tiro > 0
+	# Mappa larga: 2 passi di ritirata senza raggiungere il bordo.
+	var s := _new_state(8, 5)
+	var u := _mk("ger", GER, SQUAD, RIFLE, 1, 2, 5, 10)  # Morale 10, tiro 12 → 2 passi
 	u.break_unit()
 	s.units[u.id] = u
-	var r := Rules.rout_unit(s, u, Vector2i(3, 3))  # passi = 6 - 0 = 6 > 0
+	var r := Rules.rout_unit(s, u, Vector2i(6, 6))
 	_check(not r["eliminated"], "non eliminata se ha via di fuga")
 	_check(u.q > 1, "si ritira verso est (bordo tedesco, q cresce)")
+	_check(r["moved"] == 2, "si ritira di (tiro − Morale) = 2 esagoni (O23.2)")
 
 
 func _test_rout_trapped() -> void:
 	print("· Rotta: eliminazione se intrappolata")
 	var s := _new_state()
-	var u := _mk("ger", GER, SQUAD, RIFLE, 2, 2, 5, 12)  # morale 12 → passi ≤ 0
+	# O23.2: tiro PARI al Morale → soppressa (non eliminata).
+	var u := _mk("ger", GER, SQUAD, RIFLE, 2, 2, 5, 12)
 	u.break_unit()
 	var e := _mk("rus", RUS, SQUAD, RIFLE, 3, 2, 5, 7)   # nemico adiacente
 	s.units[u.id] = u
 	s.units[e.id] = e
-	var r := Rules.rout_unit(s, u, Vector2i(6, 6))  # passi = 12 - 12 = 0 → bloccata
-	_check(r["eliminated"], "intrappolata + nemico adiacente → eliminata")
-	_check(not s.units.has("ger"), "unità intrappolata rimossa")
+	var r := Rules.rout_unit(s, u, Vector2i(6, 6))  # 12 == Morale 12
+	_check(not r["eliminated"] and u.suppressed, "tiro pari al Morale → SOPPRESSA, non eliminata (O23.2)")
+
+	# O23.3.5: già adiacente al proprio bordo e costretta a ritirarsi → eliminata
+	# (esce dalla mappa). Il bordo amico tedesco è la colonna di destra.
+	var s2 := _new_state()
+	var edge := Rules.friendly_edge_col(s2, GER)
+	var u2 := _mk("ger2", GER, SQUAD, RIFLE, edge, 2, 5, 0)  # morale 0 → si ritira
+	u2.break_unit()
+	s2.units[u2.id] = u2
+	var r2 := Rules.rout_unit(s2, u2, Vector2i(6, 6))
+	_check(r2["eliminated"], "ritirata fuori dal proprio bordo → eliminata (O23.3.5)")
+	_check(not s2.units.has("ger2"), "unità uscita dal bordo rimossa")
 
 
 func _test_ai_best_fire() -> void:
@@ -1948,6 +1976,81 @@ func _test_activation_resets_own_turn() -> void:
 	Game.state = null
 
 
+func _test_arty_denied() -> void:
+	print("· Artiglieria Negata (O17): rompe la Radio nemica, la elimina se già rotta")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	s.max_orders = 3
+	s.units["g"] = _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	var radio := _mk("rus-radio", RUS, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 4, 1, 0, 7)
+	radio.unit_name = "Radio 75mm"
+	s.units["rus-radio"] = radio
+	s.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 2, 5, 7)
+	for i in 4:
+		s.german_deck.append(_card(Domain.OrderType.MOVE))
+	Game.state = s
+	_check(Game.order_feasible(Domain.OrderType.ARTY_DENIED), "con una Radio nemica in gioco l'ordine è possibile")
+	s.german_hand = [_card(Domain.OrderType.ARTY_DENIED)]
+	Game.play_card(0)
+	_check(not radio.efficient, "la Radio nemica si guasta (O17)")
+	# Seconda volta: la Radio già guasta viene eliminata.
+	s.german_hand = [_card(Domain.OrderType.ARTY_DENIED)]
+	Game.play_card(0)
+	_check(not s.units.has("rus-radio"), "Radio già guasta → eliminata (O17)")
+	_check(not Game.order_feasible(Domain.OrderType.ARTY_DENIED), "senza Radio nemica l'ordine non è più possibile")
+	Game.state = null
+
+
+func _test_recover_rout_once_per_turn() -> void:
+	print("· Recupero/Rotta: un'attivazione per giocatore per turno (O22.1/O23.1)")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	var brk := _mk("g", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	brk.break_unit()
+	s.units["g"] = brk
+	var foe := _mk("r", RUS, SQUAD, RIFLE, 4, 2, 5, 7)
+	foe.break_unit()
+	s.units["r"] = foe
+	Game.state = s
+	_check(Game.order_feasible(Domain.OrderType.RECOVER), "con un'unità rotta il Recupero è possibile")
+	s.rally_used.append(GER)
+	_check(not Game.order_feasible(Domain.OrderType.RECOVER), "già attivato in questo turno → Recupero non possibile")
+	# O23.1: la Rotta può attivare l'AVVERSARIO, che non è ancora stato attivato.
+	_check(Game.order_feasible(Domain.OrderType.ROUT), "la Rotta resta possibile: attiva l'avversario (O23.1)")
+	s.rally_used.append(RUS)
+	_check(not Game.order_feasible(Domain.OrderType.ROUT), "attivati entrambi → nessuna Rotta possibile")
+	# All'inizio del proprio turno l'attivazione si azzera.
+	Game._begin_turn(GER)
+	_check(not s.rally_used.has(GER), "l'attivazione di Recupero/Rotta si azzera a inizio turno")
+	Game.state = null
+
+
+func _test_suppressed_weapon() -> void:
+	print("· Soppressione (13.2): l'unità spara col proprio FP ma non con l'ARMA")
+	var s := _new_state(6, 3)
+	var carrier := _mk("c", GER, SQUAD, RIFLE, 0, 1, 6, 7)
+	var mg := _mk("mg", GER, Domain.UnitType.WEAPON, Domain.UnitClass.MG, 0, 1, 8, 7)
+	mg.carrier_id = "c"
+	var tgt := _mk("t", RUS, SQUAD, RIFLE, 2, 1, 5, 7)
+	s.units["c"] = carrier
+	s.units["mg"] = mg
+	s.units["t"] = tgt
+	var grp0 := Combat.fire_group(carrier, 2, 1, s)
+	var has_mg0 := false
+	for g in grp0:
+		if g.id == "mg":
+			has_mg0 = true
+	_check(has_mg0, "portatore integro: la MG partecipa al gruppo di fuoco")
+	carrier.suppress()
+	var grp1 := Combat.fire_group(carrier, 2, 1, s)
+	var has_mg1 := false
+	for g in grp1:
+		if g.id == "mg":
+			has_mg1 = true
+	_check(not has_mg1, "portatore SOPPRESSO: la sua arma non spara (13.2)")
+	_check(Combat.can_fire(carrier, 2, 1, s), "ma l'unità soppressa spara comunque col proprio FP")
+
+
 func _test_op_fire() -> void:
 	print("· Fuoco di opportunità (A33)")
 	var s := _new_state()
@@ -3078,12 +3181,41 @@ func _test_actions() -> void:
 	_check(r1.broken.is_empty(), "con A29 (+Copertura) lo stesso attacco non ha effetto")
 	_check(not dm.concealed, "la Mimetizzazione A29 è consumata (one-shot)")
 
-	# Granate fumogene → fumo → hindrance lungo la LOS
-	var s4 := _new_state()
-	var c4 := _act("GRANATE FUMOGENE")
-	c4.random_hex_label = "B1"  # (1,0)
-	Actions.play(s4, c4, GER)
-	_check(s4.hex_at(1, 0).has_smoke, "Granate fumogene posano fumo sull'esagono")
+	# Granate fumogene (A39): si giocano DURANTE la propria Mossa e il fumo va
+	# nell'esagono del mover o in uno adiacente (non nell'esagono casuale
+	# stampato sulla carta, che era il comportamento sbagliato).
+	var s4 := _new_state(8, 5)
+	s4.human_faction = GER
+	s4.phase = Domain.Phase.PLAYER_MOVING
+	s4.current_order = Domain.OrderType.MOVE
+	var thrower := _mk("th", GER, SQUAD, RIFLE, 3, 2, 5, 7)
+	s4.units["th"] = thrower
+	s4.units["foe"] = _mk("foe", RUS, SQUAD, RIFLE, 6, 2, 5, 7)
+	s4.selected_unit_id = "th"
+	s4.german_hand = [_act("GRANATE FUMOGENE")]
+	# Mazzo non vuoto: altrimenti lo scarto esaurirebbe il mazzo e il Tempo! che
+	# ne segue rimuoverebbe subito il marcatore di fumo appena posato (6.1.2).
+	for i in 4:
+		s4.german_deck.append(_card(Domain.OrderType.MOVE))
+	Game.state = s4
+	_check(Game.smoke_grenades_ok(), "fumogene giocabili mentre l'unità è attivata a muovere")
+	Game.play_smoke_grenades(0)
+	var smoke_at := Vector2i(-1, -1)
+	for key in s4.hexes:
+		var hd: GameState.HexData = s4.hexes[key]
+		if hd.has_smoke:
+			var pp := String(key).split(",")
+			smoke_at = Vector2i(int(pp[0]), int(pp[1]))
+	_check(smoke_at.x >= 0, "il fumo è stato posato sulla mappa")
+	_check(smoke_at.x >= 0 and HexGrid.distance(smoke_at.x, smoke_at.y, 3, 2) <= 1,
+		"il fumo è nell'esagono del mover o in uno adiacente (A39)")
+	# Fuori da una Mossa non sono giocabili.
+	var s5 := _new_state()
+	s5.human_faction = GER
+	s5.phase = Domain.Phase.PLAYER_TURN
+	Game.state = s5
+	_check(not Game.smoke_grenades_ok(), "fuori dalla propria Mossa le fumogene non si giocano")
+	Game.state = null
 
 
 func _test_grenade() -> void:
@@ -3263,7 +3395,7 @@ func _test_fire_suppress() -> void:
 	_check(r.suppressed.has("rus"), "pareggio su unità ferma → soppressa")
 	_check(def.suppressed and def.efficient, "soppressa resta sul lato efficiente")
 	_check(r.broken.is_empty(), "la soppressione non rompe")
-	_check(not Combat.can_fire(def, 0, 0, s), "una unità soppressa non può sparare")
+	_check(Combat.can_fire(def, 0, 0, s), "la soppressa può ancora sparare, a -1 FP/Gittata (13.2)")
 
 
 func _test_fire_moving_break() -> void:
