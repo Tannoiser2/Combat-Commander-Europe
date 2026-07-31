@@ -1,3 +1,12 @@
+[b]v0.49.0[/b]
+
+[b]LOS delle colline, eventi, Imboscata e strada[/b]
+- [b]Linea di vista avanzata sulle colline (T88)[/b]: dall'alto ora si vede [b]oltre[/b] gli ostacoli più bassi (un edificio a quota 0 non ferma più chi guarda da una collina), ma resta [b]un esagono cieco[/b] subito dietro di essi (T88.4.1). Gli [b]ostacoli del terreno a quota inferiore non disturbano più[/b] il tiro da/verso una collina (T88.5), mentre il fumo disturba sempre e un [b]incendio blocca sempre[/b] la vista.
+- [b]Vantaggio d'altura (T88.2)[/b]: [b]+1[/b] potenza di fuoco se spari dall'alto verso il basso, [b]−1[/b] se spari verso l'alto.
+- [b]Strada (T93)[/b]: riduce di [b]1 la copertura[/b] dell'esagono (un edificio con la strada copre 2 invece di 3 — stare in strada è pericoloso) e dà [b]+1 Movimento[/b] all'unità che vi entra, per il resto di quell'ordine di Mossa.
+- [b]Imboscata (A25) ora la giochi anche tu[/b]: prima era riservata all'IA e le tue carte erano inutilizzabili. Quando una tua unità entra in mischia e hai la carta in mano, viene giocata rompendo l'unità nemica più pericolosa prima dei dadi.
+- [b]Otto eventi che non facevano nulla[/b] ora funzionano: [b]Crateri[/b] (buche), [b]Trappola esplosiva[/b] (mine), [b]Nebbia di guerra[/b] (scarto casuale reciproco), [b]Spionaggio[/b] (vedi la mano avversaria e gli fai scartare una carta), [b]Saccheggio[/b] (recuperi un'arma), [b]Procedere feriti[/b] (un'unità eliminata torna rotta in campo), [b]Zappatori[/b] (rimuove mine o filo), [b]Scontro senza perdite[/b] (VP pari alle perdite nemiche).
+
 [b]v0.48.0[/b]
 
 [b]Regole di contorno: terreno, fortificazioni e tiri di difesa (Fase 4 dell'audit)[/b]

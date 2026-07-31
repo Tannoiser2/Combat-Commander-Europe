@@ -695,6 +695,7 @@ func play_card(hand_index: int) -> void:
 			state.assault_fired = false  # Fuoco d'Assalto disponibile una volta per ordine
 			# A33.3: l'attivazione per l'Op Fire vale solo per QUESTO ordine di Mossa.
 			state.opfire_order_ids.clear()
+			state.road_bonus_ids.clear()  # T93: il bonus strada vale per un solo ordine
 			state.selected_card_index = hand_index
 			state.highlighted_hexes.clear()
 			state.command_preview_ids.clear()
@@ -1962,6 +1963,12 @@ func _execute_move_step(u: Unit, tq: int, tr: int) -> void:
 	var old_q := u.q
 	var old_r := u.r
 	state.set_unit_pos(u, tq, tr)  # porta con sé l'eventuale arma (11.1)
+	# T93: entrare in un esagono con strada dà +1 Movimento per il resto
+	# dell'ordine (i PM residui si adeguano subito).
+	var thd: GameState.HexData = state.hex_at(tq, tr)
+	if thd != null and thd.has_road and not state.road_bonus_ids.has(u.id):
+		state.road_bonus_ids.append(u.id)
+		remaining += 1
 	remaining -= cost
 	state.group_mp[u.id] = remaining
 	state.move_committed = true
@@ -2380,8 +2387,44 @@ func conceal_decline() -> void:
 func _resolve_melee_ambushes(attackers: Array, defenders: Array) -> void:
 	if attackers.is_empty() or defenders.is_empty():
 		return
-	_ai_ambush(defenders[0].faction, defenders, attackers)  # difensore IA rompe un attaccante
-	_ai_ambush(attackers[0].faction, attackers, defenders)  # attaccante IA rompe un difensore
+	# A25: prima tutte le Imboscate del giocatore INATTIVO (il difensore della
+	# mischia), poi quelle dell'attivo. Vale per l'IA e per l'umano.
+	_offer_ambush(defenders[0].faction, defenders, attackers)
+	_offer_ambush(attackers[0].faction, attackers, defenders)
+
+
+## Propone/gioca un'Imboscata per `faction`: se è l'IA la gioca da sola, se è
+## l'umano registra l'occasione perché la GUI possa offrirla (human_ambush).
+func _offer_ambush(faction: int, own: Array, opp: Array) -> void:
+	if faction == state.human_faction:
+		_human_ambush(own, opp)
+	else:
+		_ai_ambush(faction, own, opp)
+
+
+## A25 lato umano: se il giocatore ha una carta IMBOSCATA e partecipa alla
+## mischia, la gioca rompendo l'unità nemica più pericolosa (FP più alta) tra
+## quelle ancora intatte. La carta viene scartata.
+func _human_ambush(own: Array, opp: Array) -> void:
+	if own.is_empty() or opp.is_empty() or not state.ambush_auto:
+		return
+	var hand := state.hand_of(state.human_faction)
+	var ci := -1
+	for i in hand.size():
+		if hand[i].action_name == "IMBOSCATA":
+			ci = i
+			break
+	if ci < 0:
+		return
+	var victim: Unit = null
+	for o in opp:
+		if o.efficient and (victim == null or o.effective_fp() > victim.effective_fp()):
+			victim = o
+	if victim == null:
+		return
+	victim.break_unit()
+	_log("[b]IMBOSCATA[/b] (A25): %s viene rotta prima dei dadi della mischia." % victim.unit_name)
+	_discard_card(ci)
 
 
 ## L'IA `faction` (se partecipa con `own`) gioca un'Imboscata, se ha la carta,
@@ -2873,6 +2916,7 @@ func _begin_turn(faction: int) -> void:
 		if u.faction == faction:
 			u.activated = false
 	state.opfire_order_ids.clear()
+	state.road_bonus_ids.clear()
 	state.rally_used.erase(faction)  # O22.1/O23.1: nuovo turno, nuova attivazione
 
 
@@ -3073,6 +3117,7 @@ func _ai_advance(faction: int, u: Unit, tq: int, tr: int) -> void:
 ## + Disposizione), un esagono alla volta fino ai suoi PM.
 func _ai_move_order(faction: int) -> void:
 	state.opfire_order_ids.clear()  # A33.3: attivazioni Op Fire per questo ordine
+	state.road_bonus_ids.clear()    # T93: bonus strada per questo ordine
 	var movers: Array = state.units_of(faction).filter(
 		func(u: Unit) -> bool: return Rules.can_be_ordered(u) and not u.is_weapon())
 	# Rotti per primi (si ritirano), poi le unità efficienti.
@@ -3145,6 +3190,9 @@ func _ai_move_toward(u: Unit, tq: int, tr: int, faction: int, budget: int) -> in
 	var oq := u.q
 	var orr := u.r
 	state.set_unit_pos(u, best.x, best.y)  # porta con sé l'eventuale arma (11.1)
+	var bhd: GameState.HexData = state.hex_at(best.x, best.y)
+	if bhd != null and bhd.has_road and not state.road_bonus_ids.has(u.id):
+		state.road_bonus_ids.append(u.id)  # T93: +1 Movimento per questo ordine
 	emit_signal("unit_moved", u.id, best.x, best.y)
 	# Mine (F103) sull'IA che si muove: se colpita, il movimento si ferma.
 	if _mine_attack_on_move(u, oq, orr):
