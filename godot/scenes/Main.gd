@@ -734,9 +734,18 @@ func _refresh_ui() -> void:
 	time_label.text = "Tempo %s %d/%d" % [
 		"#".repeat(filled) + "-".repeat(max(0, sd - filled)), s.time_marker, sd
 	]
-	# Bilancia VP (positivo = Germania avanti)
+	# Bilancia VP come sul segnalino fisico: valore assoluto + lato in vantaggio
+	# (es. «VP 12 (RUS)» = i Russi conducono di 12). I chit segreti non compaiono.
 	var leader := "GER" if s.vp_tracker > 0 else ("RUS" if s.vp_tracker < 0 else "—")
-	vp_label.text = "VP %+d (%s)" % [s.vp_tracker, leader]
+	vp_label.text = "VP %d (%s)" % [absi(s.vp_tracker), leader]
+	# I TUOI chit segreti (l'avversario non li vede): promemoria nel tooltip.
+	var mine: Array = []
+	for e in s.objective_chits:
+		if int(e["owner"]) == s.human_faction and not bool(e["revealed"]):
+			var chit: Dictionary = ObjectiveChits._find(String(e["letter"]))
+			mine.append(ObjectiveChits._describe(chit) if not chit.is_empty() else String(e["letter"]))
+	vp_label.tooltip_text = "Bilancia VP pubblica (chit aperti)." \
+		+ ("\nI tuoi chit SEGRETI: %s" % " · ".join(mine) if not mine.is_empty() else "")
 	deck_label.text = "Mazzi  GER:%d  RUS:%d" % [
 		s.german_deck.size(), s.russian_deck.size()
 	]

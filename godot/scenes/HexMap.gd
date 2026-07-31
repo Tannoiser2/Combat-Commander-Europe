@@ -197,13 +197,21 @@ func _draw() -> void:
 				var p2 := String(key).split(",")
 				_draw_hex_fill(int(p2[0]), int(p2[1]), Color(0.7, 0.6, 0.4, 0.4))
 
-	# Obiettivi (gettone con valore VP e controllore)
+	# Obiettivi: gettone col NUMERO stampato (i chit bersagliano quel numero);
+	# accanto, il valore in VP dei chit aperti se > 0. Anello colorato = controllore.
 	for obj in s.objectives:
 		_draw_hex_fill(obj.q, obj.r, COL_OBJECTIVE)
 		var oc := _hex_center(obj.q, obj.r)
+		var ring := Color.WHITE
+		if obj.controller == Domain.Faction.GERMAN:
+			ring = Color(0.85, 0.75, 0.35)
+		elif obj.controller == Domain.Faction.RUSSIAN:
+			ring = Color(0.45, 0.8, 0.45)
 		draw_circle(oc, 11.0, Color(0.1, 0.1, 0.1, 0.85))
-		draw_arc(oc, 11.0, 0, TAU, 20, Color.WHITE, 1.5)
-		_draw_text("%d" % obj.vp, oc, 12.0, Color(1, 0.95, 0.3), true)
+		draw_arc(oc, 11.0, 0, TAU, 20, ring, 2.0)
+		_draw_text("%d" % obj.id, oc, 12.0, Color(1, 0.95, 0.3), true)
+		if obj.vp > 0:
+			_draw_text("%d VP" % obj.vp, oc + Vector2(0, 20), 10.0, Color(1, 0.85, 0.3), true)
 
 	# Fumo (Granate/Polvere/Fosforo/barrage): nube grigia translucida (hindrance)
 	for key in s.hexes:

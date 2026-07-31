@@ -55,6 +55,8 @@ func _ready() -> void:
 	_test_fate_draw_and_reshuffle()
 	_test_fate_time()
 	_test_time_defender_vp()
+	_test_time_on_deck_exhaustion()
+	_test_time_sequence_sd_before_defender_vp()
 	_test_fate_sniper()
 	_test_fate_jam()
 	_test_los_hexside()
@@ -92,6 +94,9 @@ func _ready() -> void:
 	_test_spray_fire()
 	_test_fortifications()
 	_test_objectives_vp()
+	_test_objective_chits_secret()
+	_test_chit_control_all()
+	_test_exit_last_unit_points()
 	_test_op_fire()
 	_test_op_fire_card_cost()
 	_test_pass_turn()
@@ -672,34 +677,113 @@ func _test_fate_time() -> void:
 	var s := _new_state()
 	s.time_marker = 2
 	s.sudden_death_space = 7
+	# La carta accoda l'innesco: la sequenza 6.1.2 la esegue Game._advance_time
+	# (rimescolo dell'innescante → Morte Subitanea → VP difensore → fumo → rinforzi).
 	var lines := Fate.apply_consequence(s, _fate_card(1, 1, "time"), RUS)
-	_check(s.time_marker == 3, "TEMPO! avanza la traccia del tempo")
+	_check(s.time_marker == 2, "la carta TEMPO! non avanza da sola la traccia")
+	_check(int(s.pending_time_factions[0]) == RUS, "TEMPO! accoda l'innesco di chi ha pescato")
 	_check(lines.size() > 0, "la conseguenza produce un messaggio di log")
 
 
 func _test_time_defender_vp() -> void:
 	print("· TEMPO!: +1 VP al Difensore dello scenario (6.1.2)")
+	# La carta «Tempo!» accoda l'innesco; l'avanzamento lo orchestra Game (6.1.2).
+	var sq := _new_state()
+	Fate.apply_consequence(sq, _fate_card(1, 1, "time"), RUS)
+	_check(sq.pending_time_factions.size() == 1 and int(sq.pending_time_factions[0]) == RUS,
+		"la carta TEMPO! accoda l'innesco della fazione che l'ha pescata")
+
 	# Difensore Asse (GER) → +1 alla bilancia (positiva = Germania).
 	var sg := _new_state()
 	sg.defender_faction = GER
-	sg.sudden_death_space = 7
+	sg.sudden_death_space = 99  # niente Morte Subitanea in questo test
+	sg.units["g"] = _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	sg.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 4, 5, 7)
+	Game.state = sg
 	var b0 := sg.bonus_vp
-	Fate.apply_consequence(sg, _fate_card(1, 1, "time"), RUS)
+	var t0 := sg.time_marker
+	Game._advance_time(RUS)
+	_check(sg.time_marker == t0 + 1, "TEMPO! avanza la traccia del tempo")
 	_check(sg.bonus_vp == b0 + 1, "Difensore Asse → +1 alla bilancia VP")
 	# Difensore Alleati (RUS) → -1.
 	var sr := _new_state()
 	sr.defender_faction = RUS
-	sr.sudden_death_space = 7
+	sr.sudden_death_space = 99
+	sr.units["g"] = _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	sr.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 4, 5, 7)
+	Game.state = sr
 	var r0 := sr.bonus_vp
-	Fate.apply_consequence(sr, _fate_card(1, 1, "time"), GER)
+	Game._advance_time(GER)
 	_check(sr.bonus_vp == r0 - 1, "Difensore Alleati → -1 alla bilancia VP")
 	# Nessun difensore (scontro recon/recon) → il Tempo! non assegna VP.
 	var sn := _new_state()
 	sn.defender_faction = -1
-	sn.sudden_death_space = 7
+	sn.sudden_death_space = 99
+	sn.units["g"] = _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	sn.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 4, 5, 7)
+	Game.state = sn
 	var n0 := sn.bonus_vp
-	Fate.apply_consequence(sn, _fate_card(1, 1, "time"), GER)
+	Game._advance_time(GER)
 	_check(sn.bonus_vp == n0, "Senza difensore il Tempo! non dà VP")
+	Game.state = null
+
+
+func _test_time_on_deck_exhaustion() -> void:
+	print("· TEMPO! anche a mazzo esaurito (6.1.2) e rimescolo del solo innescante")
+	var s := _new_state()
+	s.human_faction = GER
+	s.sudden_death_space = 99
+	s.units["g"] = _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	s.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 4, 5, 7)
+	# Mazzo tedesco vuoto con una carta negli scarti: la prossima pescata
+	# esaurisce/rimescola e deve innescare il Tempo.
+	s.german_deck.clear()
+	s.german_discard.append(_card(Domain.OrderType.MOVE))
+	Game.state = s
+	var t0 := s.time_marker
+	Game._draw_fate(GER)
+	_check(not s.pending_time_factions.is_empty(), "il mazzo esaurito accoda un innesco del Tempo")
+	Game._process_pending_time()
+	_check(s.time_marker == t0 + 1, "il Tempo avanza quando il mazzo si esaurisce")
+
+	# Rimescolo: al Tempo! rimescola SOLO chi ha innescato (6.1.2 passo 1).
+	var s2 := _new_state()
+	s2.sudden_death_space = 99
+	s2.units["g"] = _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	s2.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 4, 5, 7)
+	s2.german_discard.append(_card(Domain.OrderType.MOVE))
+	s2.russian_discard.append(_card(Domain.OrderType.MOVE))
+	Game.state = s2
+	Game._advance_time(GER)
+	_check(s2.german_discard.is_empty(), "l'innescante (Asse) rimescola i propri scarti")
+	_check(s2.russian_discard.size() == 1, "l'avversario NON rimescola")
+	Game.state = null
+
+
+func _test_time_sequence_sd_before_defender_vp() -> void:
+	print("· TEMPO!: la Morte Subitanea si tira PRIMA del +1 VP al Difensore (6.1.2)")
+	var s := _new_state()
+	s.defender_faction = RUS       # il difensore guadagnerebbe -1 (a favore RUS)
+	s.time_marker = 6
+	s.sudden_death_space = 7       # avanzando a 7 scatta la Morte Subitanea
+	s.initiative_holder = GER
+	s.bonus_vp = 0                 # bilancia in pareggio → vince chi ha l'iniziativa
+	s.units["g"] = _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	s.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 4, 5, 7)
+	# Mazzi con dadi bassi: il tiro di Morte Subitanea (2) sarà < 7 → fine partita.
+	for i in 4:
+		s.german_deck.append(_fate_card(1, 1, ""))
+		s.russian_deck.append(_fate_card(1, 1, ""))
+	var winner := { "f": -99 }
+	var cb := func(w: int) -> void: winner["f"] = w
+	Game.state = s
+	Game.game_over.connect(cb)
+	Game._advance_time(GER)
+	Game.game_over.disconnect(cb)
+	_check(s.phase == Domain.Phase.GAME_OVER, "Morte Subitanea: la partita finisce")
+	_check(s.bonus_vp == 0, "il +1 VP al Difensore NON viene assegnato sul Tempo! finale")
+	_check(winner["f"] == GER, "in pareggio vince chi detiene l'Iniziativa (9.2)")
+	Game.state = null
 
 
 func _test_fate_sniper() -> void:
@@ -1312,29 +1396,29 @@ func _test_objective_chits() -> void:
 	_check(ObjectiveChits.apply(s_small, "Q", []) and _obj_vp(s_small, 1) == 0,
 		"Chit per un obiettivo assente non produce VP")
 
-	# assign(): estrae `count` chit DISTINTI dal sacchetto da 22 (senza rimpiazzo).
+	# setup(): estrae chit DISTINTI dal sacchetto da 22 (senza rimpiazzo).
 	var s2 := _new_state()
 	for i in 5:
-		s2.objectives.append(Objective.new(i + 1, 0, i, 9))
+		s2.objectives.append(Objective.new(i + 1, 0, i, 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 42
-	var res := ObjectiveChits.assign(s2, 4, rng)
-	_check(res["drawn"].size() == 4, "assign estrae 4 chit")
+	ObjectiveChits.setup(s2, { "open": ["?", "?"], "axis": ["?"], "allies": ["?"] }, rng)
+	_check(s2.objective_chits.size() == 4, "setup estrae 4 chit (2 aperti + 1 per lato)")
 	var uniq := {}
-	for d in res["drawn"]:
-		uniq[d] = true
+	for e in s2.objective_chits:
+		uniq[String(e["letter"])] = true
 	_check(uniq.size() == 4, "i chit estratti sono distinti (senza rimpiazzo)")
 
-	# count<=0 → nessun cambiamento ai VP stampati.
+	# Senza chit richiesti: nessun VP (7.3: un obiettivo vale 0 senza chit).
 	var s3 := _new_state()
 	s3.objectives.append(Objective.new(1, 0, 0, 7))
-	ObjectiveChits.assign(s3, 0, rng)
-	_check(s3.objectives[0].vp == 7, "Senza chit i VP stampati restano")
+	ObjectiveChits.setup(s3, { "open": [], "axis": [], "allies": [] }, rng)
+	_check(s3.objectives[0].vp == 0, "Senza chit un obiettivo vale 0 VP (7.3)")
 
 	# Nessun obiettivo → nessun crash, nessun chit.
 	var s4 := _new_state()
-	var r4 := ObjectiveChits.assign(s4, 5, rng)
-	_check(r4["drawn"].is_empty(), "Nessun obiettivo: nessun chit assegnato")
+	ObjectiveChits.setup(s4, { "open": ["?"], "axis": [], "allies": [] }, rng)
+	_check(s4.objective_chits.is_empty(), "Nessun obiettivo: nessun chit assegnato")
 
 	# Doppia eliminazione (Chit X): i VP da eliminazione sono raddoppiati.
 	var s5 := _new_state()
@@ -1662,23 +1746,133 @@ func _test_fortifications() -> void:
 
 
 func _test_objectives_vp() -> void:
-	print("· Obiettivi: controllo e VP live")
+	print("· Obiettivi: controllo «appiccicoso» (7.3.1) e VP live")
 	var s := _new_state()
 	s.objectives.append(Objective.new(1, 1, 1, 3))  # obiettivo a (1,1), 3 VP
 	s.objectives.append(Objective.new(2, 3, 3, 2))  # obiettivo a (3,3), 2 VP
 	var g := _mk("ger", GER, SQUAD, RIFLE, 1, 1, 5, 7)
 	s.units[g.id] = g
 	Game.state = s
-	var sweep := Game._update_objectives()
-	_check(s.objectives[0].controller == GER, "obiettivo presidiato è controllato")
+	Game._update_objectives()
+	_check(s.objectives[0].controller == GER, "obiettivo occupato da solo è controllato")
 	_check(s.vp_tracker == 3, "VP = valore dell'obiettivo controllato")
-	_check(sweep == -1, "non tutti gli obiettivi controllati → niente vittoria automatica")
+	_check(Game._faction_controls_all() == -1, "non tutti gli obiettivi controllati")
+
+	# 7.3.1: il controllo RESTA anche dopo che l'unità se n'è andata.
+	g.q = 0
+	g.r = 0
+	Game._update_objectives()
+	_check(s.objectives[0].controller == GER, "il controllo resta dopo aver lasciato l'esagono")
+	_check(s.vp_tracker == 3, "i VP restano al controllore anche se l'esagono è vuoto")
+
+	# Un esagono CONTESO non cambia di mano.
+	var r1 := _mk("rus1", RUS, SQUAD, RIFLE, 1, 1, 5, 7)
+	var g3 := _mk("ger3", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+	s.units[r1.id] = r1
+	s.units[g3.id] = g3
+	Game._update_objectives()
+	_check(s.objectives[0].controller == GER, "esagono conteso: il controllo non cambia")
+	# Restando da solo, il russo lo conquista.
+	s.units.erase(g3.id)
+	Game._update_objectives()
+	_check(s.objectives[0].controller == RUS, "occupandolo da solo, l'avversario lo conquista")
 
 	var g2 := _mk("ger2", GER, SQUAD, RIFLE, 3, 3, 5, 7)
 	s.units[g2.id] = g2
-	var sweep2 := Game._update_objectives()
-	_check(s.vp_tracker == 5, "VP cumulati su entrambi gli obiettivi")
-	_check(sweep2 == GER, "controllo di TUTTI gli obiettivi → vittoria automatica")
+	Game._update_objectives()
+	_check(s.vp_tracker == -3 + 2, "bilancia = obiettivi avversari e propri")
+	Game.state = null
+
+
+func _test_exit_last_unit_points() -> void:
+	print("· Uscita (7.2): l'unità torna come rinforzo; con l'ultima si vince ai punti")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	s.sudden_death_space = 99
+	s.phase = Domain.Phase.PLAYER_MOVING
+	s.current_order = Domain.OrderType.MOVE
+	# Il bordo d'uscita dell'Asse è la colonna 0.
+	var u := _mk("g", GER, SQUAD, RIFLE, 0, 1, 5, 7)
+	s.units["g"] = u
+	s.units["g2"] = _mk("g2", GER, SQUAD, RIFLE, 3, 1, 5, 7)
+	s.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 5, 2, 5, 7)
+	s.selected_unit_id = "g"
+	s.group_mp["g"] = 2
+	Game.state = s
+	var vp0 := s.bonus_vp
+	Game.exit_selected_unit()
+	_check(not s.units.has("g"), "l'unità uscita lascia la mappa")
+	_check(s.bonus_vp == vp0 + 2, "l'uscita di una squadra dà 2 VP al proprietario (7.1/7.2)")
+	_check(s.exited_units.size() == 1, "l'unità uscita attende sulla Traccia del Tempo (7.2.1)")
+	# Al Tempo successivo rientra come rinforzo.
+	Game._advance_time(GER)
+	_check(s.units.has("g"), "l'unità uscita rientra come rinforzo")
+	_check(s.exited_units.is_empty(), "la coda delle uscite si svuota")
+
+	# Uscire con l'ULTIMA unità chiude la partita AI PUNTI (6.3(3)), non è sconfitta.
+	var s2 := _new_state(6, 3)
+	s2.human_faction = GER
+	s2.sudden_death_space = 99
+	s2.phase = Domain.Phase.PLAYER_MOVING
+	s2.current_order = Domain.OrderType.MOVE
+	s2.bonus_vp = 8  # l'Asse è in netto vantaggio
+	var last := _mk("solo", GER, SQUAD, RIFLE, 0, 1, 5, 7)
+	s2.units["solo"] = last
+	s2.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 5, 2, 5, 7)
+	s2.selected_unit_id = "solo"
+	s2.group_mp["solo"] = 2
+	var winner := { "f": -99 }
+	var cb := func(w: int) -> void: winner["f"] = w
+	Game.state = s2
+	Game.game_over.connect(cb)
+	Game.exit_selected_unit()
+	Game.game_over.disconnect(cb)
+	_check(s2.phase == Domain.Phase.GAME_OVER, "uscire con l'ultima unità termina la partita")
+	_check(winner["f"] == GER, "vince chi ha più VP (NON è una sconfitta per annientamento)")
+	Game.state = null
+
+
+func _test_objective_chits_secret() -> void:
+	print("· Chit Obiettivo: aperti vs segreti (7.3.2/7.3.3)")
+	var s := _new_state()
+	s.human_faction = GER
+	for i in 5:
+		s.objectives.append(Objective.new(i + 1, i, 0, 0))
+	Game.state = s
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 42
+	# Aperto T (ogni obiettivo +2), segreto Q per l'Asse (Obiettivo 5 +5).
+	ObjectiveChits.setup(s, { "open": ["T"], "axis": ["Q"], "allies": [] }, rng)
+	_check(s.objective_chits.size() == 2, "pescati 2 chit (1 aperto + 1 segreto)")
+	var o5: Objective = s.objectives[4]
+	_check(o5.vp == 2, "il chit APERTO T dà 2 VP; il segreto Q non è ancora visibile")
+	# L'Asse controlla l'Obiettivo 5: pubblicamente vale 2, ma il segreto vale altri 5.
+	o5.controller = GER
+	Game._update_objectives()
+	_check(s.vp_tracker == 2, "la bilancia pubblica conta solo i chit aperti")
+	_check(ObjectiveChits.secret_balance(s) == 5, "il chit segreto dell'Asse vale 5 VP a fine partita")
+	# Rivelandolo (fine partita / E67) entra nella bilancia pubblica.
+	ObjectiveChits.reveal_all(s)
+	Game._update_objectives()
+	_check(s.vp_tracker == 7, "rivelati i segreti, la bilancia sale a 7")
+	Game.state = null
+
+
+func _test_chit_control_all() -> void:
+	print("· Chit V: «controlla tutti gli obiettivi» solo col chit, alla Morte Subitanea")
+	var s := _new_state()
+	s.human_faction = GER
+	for i in 2:
+		s.objectives.append(Objective.new(i + 1, i, 0, 0))
+	s.units["g"] = _mk("g", GER, SQUAD, RIFLE, 0, 0, 5, 7)
+	s.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 4, 5, 7)
+	Game.state = s
+	for o in s.objectives:
+		o.controller = GER
+	# Senza chit V: controllare tutto NON chiude la partita.
+	Game._check_end_conditions()
+	_check(s.phase != Domain.Phase.GAME_OVER, "senza chit V nessuna vittoria automatica")
+	_check(Game._faction_controls_all() == GER, "l'Asse controlla comunque tutti gli obiettivi")
 	Game.state = null
 
 
@@ -1874,8 +2068,14 @@ func _test_scenario_effects() -> void:
 	s.objectives.append(Objective.new(5, 4, 1, 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 99
-	var res := ObjectiveChits.assign(s, 22, rng, ["V", "W", "X"])
-	var drawn: Array = res["drawn"]
+	# Pesca 19 chit casuali con V/W/X esclusi dal sacchetto: non devono uscire.
+	var many: Array = []
+	for i in 19:
+		many.append("?")
+	ObjectiveChits.setup(s, { "open": many, "axis": [], "allies": [] }, rng, ["V", "W", "X"])
+	var drawn: Array = []
+	for e in s.objective_chits:
+		drawn.append(String(e["letter"]))
 	_check(not drawn.has("V") and not drawn.has("W") and not drawn.has("X"),
 		"i gettoni esclusi non vengono pescati")
 	_check(drawn.size() == 19, "restano 19 gettoni nel sacchetto (22 − 3 esclusi)")

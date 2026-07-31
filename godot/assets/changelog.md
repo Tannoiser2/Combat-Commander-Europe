@@ -1,3 +1,18 @@
+[b]v0.45.0[/b]
+
+[b]Economia di vittoria a norma di regolamento (Fase 1 dell'audit)[/b]
+- [b]Controllo degli obiettivi «appiccicoso» (7.3.1)[/b]: l'ultimo che occupa da solo un obiettivo lo [b]mantiene anche dopo essersene andato[/b]; un esagono conteso non cambia di mano e non si torna mai al neutro. Prima i VP sparivano appena lasciavi l'esagono.
+- [b]Controllo iniziale dalla scheda[/b]: ogni scenario parte col controllo previsto dalla sua scheda (es. «Asse — tutti», o ripartito per numero).
+- [b]Chit Obiettivo veri (7.3.2/7.3.3)[/b]: senza chit un obiettivo vale [b]0 VP[/b] (prima si usava il numero stampato come valore!). Ora ogni scenario pesca i chit della sua scheda: quelli [b]aperti[/b] sono visibili, quelli [b]segreti[/b] restano nascosti e contano solo a fine partita (o se rivelati dall'evento Ricognizione). I tuoi chit segreti sono nel tooltip dei VP.
+- [b]Vittoria «controlli tutti gli obiettivi»[/b]: ora esiste [b]solo col chit V[/b] e si verifica soltanto prima di un tiro di Morte Subitanea. Prima scattava sempre, chiudendo partite a caso.
+- [b]Uscire con l'ultima unità[/b] non è più una sconfitta: la partita finisce e [b]vince chi ha più VP[/b] (6.3).
+- [b]Le unità uscite tornano[/b] (7.2.1): prendi i VP d'uscita e la pedina [b]rientra come rinforzo[/b] dal tuo bordo. Si può uscire anche in Avanzata, non solo in Mossa.
+- [b]Il Tempo avanza anche a mazzo esaurito (6.1.2)[/b]: prima l'orologio si muoveva solo con le rare carte «Tempo!», e le partite non finivano mai.
+- [b]Sequenza del Tempo! corretta[/b]: prima la [b]Morte Subitanea[/b], poi (solo se la partita continua) il +1 VP al Difensore, il fumo e i rinforzi. Prima il difensore incassava un punto che poteva ribaltare la partita.
+- Al Tempo! rimescola [b]solo chi ha innescato[/b] (prima entrambi i mazzi).
+- [b]Tempo iniziale[/b] dalla scheda di ogni scenario (es. «Cold Front» parte da 5, non da 0).
+- La barra mostra i VP come il segnalino fisico: [b]«VP 12 (RUS)»[/b] invece di «VP -12 (RUS)»; sulla mappa gli obiettivi mostrano il [b]numero stampato[/b] (e il valore solo se un chit aperto glielo assegna).
+
 [b]v0.44.2[/b]
 
 [b]Fuoco più leggibile sulla mappa[/b]

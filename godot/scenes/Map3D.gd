@@ -1447,7 +1447,9 @@ func _add_objectives(s: GameState) -> void:
 		pole.position = Vector3(ci.x * _world, top_y + 0.55, ci.y * _world)
 		_dynamic.add_child(pole)
 		var lbl := Label3D.new()
-		lbl.text = "%d" % o.vp
+		# Numero stampato dell'obiettivo; se i chit aperti gli danno un valore,
+		# lo si mostra accanto (es. «3 · 6 VP»).
+		lbl.text = "%d" % o.id if o.vp <= 0 else "%d · %d VP" % [o.id, o.vp]
 		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		lbl.font_size = 80
 		lbl.pixel_size = 0.011

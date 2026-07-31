@@ -20,6 +20,10 @@ static func draw(state: GameState, faction: int) -> Card:
 		deck.append_array(discard)
 		discard.clear()
 		Cards.shuffle(deck)
+		# 6.1.2: aver pescato l'ULTIMA carta del proprio mazzo innesca un
+		# avanzamento del Tempo (come un «Tempo!»). Game processa la coda a
+		# fine risoluzione (non qui: siamo dentro una pescata).
+		state.pending_time_factions.append(faction)
 	if deck.is_empty():
 		return null
 	var c: Card = deck.pop_back()
@@ -44,7 +48,11 @@ static func apply_consequence(
 		return lines
 	match card.consequence:
 		"time":
-			_consequence_time(state, lines)
+			# Tempo! (6.1.2): la sequenza (rimescolo dell'innescante, Morte
+			# Subitanea, +1 VP al difensore, fumo, rinforzi) è orchestrata da
+			# Game._advance_time: qui si accoda soltanto l'innesco.
+			state.pending_time_factions.append(faction)
+			lines.append("TEMPO!")
 		"sniper":
 			_consequence_sniper(state, card, faction, lines)
 		"jam":
@@ -55,29 +63,6 @@ static func apply_consequence(
 
 
 # ─── Conseguenze ─────────────────────────────────────────────────────────────
-
-## Tempo!: avanza la traccia del tempo, +1 VP al DIFENSORE dello scenario
-## (6.1.2 passo 3; nessun VP se lo scontro non ha un difensore) e rimescola
-## mazzo+scarti di entrambe le fazioni.
-static func _consequence_time(state: GameState, lines: Array[String]) -> void:
-	state.time_marker += 1
-	lines.append("TEMPO! La traccia avanza a %d/%d" % [state.time_marker, state.sudden_death_space])
-	if state.defender_faction == Domain.Faction.GERMAN:
-		state.bonus_vp += 1
-		lines.append("TEMPO!: +1 VP al Difensore (Asse).")
-	elif state.defender_faction == Domain.Faction.RUSSIAN:
-		state.bonus_vp -= 1
-		lines.append("TEMPO!: +1 VP al Difensore (Alleati).")
-	_reshuffle(state, Domain.Faction.GERMAN)
-	_reshuffle(state, Domain.Faction.RUSSIAN)
-	# Passo 4 (6.1.2): rimuovi UN marker fumo.
-	for key in state.hexes:
-		var h: GameState.HexData = state.hexes[key]
-		if h.has_smoke:
-			h.has_smoke = false
-			lines.append("TEMPO!: rimosso un marker fumo.")
-			break
-
 
 ## Cecchino (1.9.1): rompe UNA unità nemica in o adiacente all'esagono indicato
 ## (se già rotta, la elimina).

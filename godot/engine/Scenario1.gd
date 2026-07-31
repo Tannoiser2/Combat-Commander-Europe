@@ -70,15 +70,19 @@ static func build_map() -> Dictionary:
 
 
 static func build_objectives() -> Array[Objective]:
+	# Ripiego (usato solo se map1.json non si carica): i 5 obiettivi stampati
+	# della mappa 1, valore 0 (7.3: i VP li danno i chit).
 	var objs: Array[Objective] = []
-	objs.append(_obj(1, 5, 1, 2))  # edificio in alto
-	objs.append(_obj(2, 5, 7, 2))  # edificio in basso
-	objs.append(_obj(3, 7, 4, 3))  # incrocio centrale
+	objs.append(_obj(1, 5, 1))  # edificio in alto
+	objs.append(_obj(2, 5, 7))  # edificio in basso
+	objs.append(_obj(3, 7, 4))  # incrocio centrale
+	objs.append(_obj(4, 4, 2))
+	objs.append(_obj(5, 13, 4))
 	return objs
 
 
-static func _obj(id: int, q: int, r: int, vp: int) -> Objective:
-	return Objective.new(id, q, r, vp)
+static func _obj(id: int, q: int, r: int) -> Objective:
+	return Objective.new(id, q, r, 0)
 
 
 static func build_units() -> Dictionary:
@@ -198,6 +202,13 @@ static func setup(state: GameState) -> void:
 			var hd: GameState.HexData = state.hex_at(obj.q, obj.r)
 			if hd:
 				hd.objective_id = obj.id
+	# Chit Obiettivo dalla scheda di «Fat Lipki» (7.3.2): 1 aperto casuale +
+	# 1 segreto per lato; controllo iniziale: nessuno (ricognizione contro
+	# ricognizione). Gli obiettivi valgono 0 VP finché un chit non li valorizza.
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	for line in ObjectiveChits.setup(state, { "open": ["?"], "axis": ["?"], "allies": ["?"] }, rng):
+		state.add_log(String(line))
 	state.units = build_units()
 	state.time_marker       = SETUP["time_start"]
 	state.sudden_death_space = SETUP["sudden_death"]
