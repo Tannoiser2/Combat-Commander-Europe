@@ -116,6 +116,12 @@ static func los_kind(q1: int, r1: int, q2: int, r2: int, state: GameState) -> in
 ## Linea di vista da (q1,r1) a (q2,r2). Bloccata da terreno opaco o elevazione
 ## più alta degli estremi negli esagoni intermedi, e da lati BOCAGE (sempre) o
 ## MURO/SIEPE su un lato NON di estremità. Un lato LOS_CLEAR è un varco libero.
+## Quota effettiva di un esagono (campo `elevation`, con il minimo implicito dal
+## terreno collina HILL1/HILL2). Pubblica: serve anche a Combat (T88.2).
+static func elevation_at(state: GameState, q: int, r: int) -> int:
+	return _elev(state, q, r)
+
+
 static func has_los(
 	q1: int, r1: int, q2: int, r2: int,
 	state: GameState
@@ -126,13 +132,33 @@ static func has_los(
 	var path := line(q1, r1, q2, r2)
 	var max_end_elev := maxi(_elev(state, q1, r1), _elev(state, q2, r2))
 
-	# Esagoni intermedi: terreno opaco o collina più alta degli estremi.
+	var e1 := _elev(state, q1, r1)
+	var e2 := _elev(state, q2, r2)
+	var high_end := maxi(e1, e2)   # quota del punto d'osservazione più alto
+	var low_end := mini(e1, e2)
+
+	# Esagoni intermedi: ostacoli e colline.
 	for i in range(1, dist):
 		var hd: GameState.HexData = state.hex_at(path[i].x, path[i].y)
 		if hd == null:
 			continue
-		if Domain.TERRAIN_BLOCKS_LOS.get(hd.terrain, false):
+		var he := _elev(state, path[i].x, path[i].y)
+		# T88.4: un Incendio blocca SEMPRE la LOS, a qualunque quota.
+		if hd.has_blaze:
 			return false
+		if Domain.TERRAIN_BLOCKS_LOS.get(hd.terrain, false):
+			# T88.4: l'ostacolo blocca solo se sta a quota PARI O SUPERIORE
+			# rispetto all'estremo più alto; visto dall'alto non blocca...
+			if he >= high_end:
+				return false
+			# ...ma T88.4.1 «Blind Hex»: dietro un Bosco/Edificio più basso c'è
+			# UN esagono cieco, se anche quello è alla stessa quota o più in basso.
+			if i + 1 <= dist:
+				var beyond := path[i + 1]
+				var be := _elev(state, beyond.x, beyond.y)
+				if be <= he and beyond == Vector2i(q2, r2) and low_end <= he:
+					return false
+		# T88.3.3: una collina più alta di ENTRAMBI gli estremi blocca la vista.
 		if hd.elevation > max_end_elev:
 			return false
 
@@ -166,10 +192,14 @@ static func los_hindrance(q1: int, r1: int, q2: int, r2: int, state: GameState) 
 	if dist <= 1:
 		return best
 	var path := line(q1, r1, q2, r2)
+	var hi_end := maxi(_elev(state, q1, r1), _elev(state, q2, r2))
 	for i in range(1, dist):
 		var hd: GameState.HexData = state.hex_at(path[i].x, path[i].y)
 		if hd != null:
-			best = maxi(best, int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0)))
+			# T88.5: un ostacolo del terreno a quota INFERIORE non ostacola la LOS
+			# da/verso una collina. Il fumo invece ostacola sempre.
+			if _elev(state, path[i].x, path[i].y) >= hi_end:
+				best = maxi(best, int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0)))
 			if hd.has_smoke:
 				best = maxi(best, SMOKE_HINDRANCE)
 	# Recinzione (Terrain Chart): ostacolo 1 se la LOS attraversa un lato con

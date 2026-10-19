@@ -340,14 +340,19 @@ sull'avversario, Granate Fumogene (A39) col timing giusto, badge con prerequisit
 - Fuoco: **un tiro di difesa per ogni unità** (O20.3.4) — niente più esiti "tutto o niente"
   sugli stack.
 
+**Fase 5 — LOS colline, eventi, Imboscata, strada** ✅ (v0.49.0):
+- T88 LOS avanzata: ostacoli più bassi non bloccano da una collina, esagono cieco (T88.4.1),
+  ostacoli a quota inferiore che non disturbano (T88.5), incendio che blocca sempre.
+- T88.2 vantaggio d'altura (±1 FP); T93 Strada (copertura −1, +1 Movimento per l'ordine).
+- A25 Imboscata giocabile dall'umano.
+- Otto eventi implementati: Crateri, Trappola esplosiva, Nebbia di guerra, Spionaggio,
+  Saccheggio, Procedere feriti, Zappatori, Scontro senza perdite.
+
 **Resta aperto** (non ancora affrontato):
-- Terreno: copertura −1 della Strada (serve tracciare se l'unità è entrata lungo la strada),
-  copertura alternativa di Muro/Siepe attraversati dal tiro, vantaggio d'altura T88.2, LOS
-  collinare avanzata (Blind Hex, Crest Line), Forra visibile solo da adiacente/più in alto,
-  incendio che blocca la LOS e si propaga.
+- Terreno: copertura alternativa di Muro/Siepe attraversati dal tiro; Forra visibile solo da
+  adiacente/più in alto; Crest Line vera (T88.3.1); incendio che si propaga con la Brezza.
 - Gruppi di fuoco per catena di adiacenza (O20.3.1) invece del raggio di Comando.
 - Trincea: movimento trincea↔trincea a 1 PM (F105.2).
 - Armi rotte: riparazione/eliminazione col Random Hex (11.4); Battery Access (O18.1).
-- ~12 eventi del mazzo ancora "non ancora simulato" e il Deploy/split in team (E52).
-- Mimetizzazione offerta al mover umano sotto op fire dell'IA (A29); Imboscata giocabile
-  dall'umano (A25).
+- Deploy/split in team (E52) e i pochi eventi che richiedono marcatori assenti.
+- Mimetizzazione offerta al mover umano sotto op fire dell'IA (A29).

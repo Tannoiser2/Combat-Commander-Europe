@@ -98,6 +98,10 @@ func _ready() -> void:
 	_test_chit_control_all()
 	_test_exit_last_unit_points()
 	_test_op_fire()
+	_test_hill_los_advanced()
+	_test_height_and_road()
+	_test_events_implemented()
+	_test_human_ambush()
 	_test_terrain_chart_fixes()
 	_test_defense_roll_per_unit()
 	_test_mines_advance_retreat()
@@ -1976,6 +1980,131 @@ func _test_activation_resets_own_turn() -> void:
 	_check(not mine.activated, "all'inizio del mio turno la mia unità è di nuovo disponibile")
 	_check(theirs.activated, "le unità avversarie NON vengono azzerate dal mio inizio turno")
 	_check(s.opfire_order_ids.is_empty(), "azzerate anche le attivazioni di Op Fire")
+	Game.state = null
+
+
+func _test_hill_los_advanced() -> void:
+	print("· LOS avanzata (T88): ostacoli bassi, esagono cieco, ostacoli e altura")
+	var s := _new_state(8, 3)
+	# Osservatore su collina quota 1, edificio a quota 0 in mezzo, bersaglio oltre.
+	s.hex_at(0, 1).elevation = 1
+	s.hex_at(2, 1).terrain = Domain.TerrainType.BUILDING  # ostacolo a quota 0
+	_check(HexGrid.has_los(0, 1, 2, 1, s), "dall'alto si vede DENTRO l'edificio più basso")
+	_check(not HexGrid.has_los(0, 1, 3, 1, s),
+		"T88.4.1: l'esagono subito dietro l'edificio è cieco")
+	_check(HexGrid.has_los(0, 1, 4, 1, s), "oltre l'esagono cieco si torna a vedere")
+	# Alla stessa quota l'edificio blocca normalmente.
+	var s2 := _new_state(8, 3)
+	s2.hex_at(2, 1).terrain = Domain.TerrainType.BUILDING
+	_check(not HexGrid.has_los(0, 1, 4, 1, s2), "a pari quota l'edificio blocca la LOS")
+	# T88.5: un ostacolo (macchia) a quota inferiore non ostacola da una collina.
+	var s3 := _new_state(8, 3)
+	s3.hex_at(0, 1).elevation = 1
+	s3.hex_at(2, 1).terrain = Domain.TerrainType.BRUSH  # hindrance 3 a quota 0
+	_check(HexGrid.los_hindrance(0, 1, 4, 1, s3) == 0,
+		"T88.5: l'ostacolo più basso non ostacola la LOS dalla collina")
+	var s4 := _new_state(8, 3)
+	s4.hex_at(2, 1).terrain = Domain.TerrainType.BRUSH
+	_check(HexGrid.los_hindrance(0, 1, 4, 1, s4) == 3, "a pari quota la macchia ostacola (3)")
+
+
+func _test_height_and_road() -> void:
+	print("· Vantaggio d'altura (T88.2) e Strada (T93)")
+	var s := _new_state(8, 3)
+	s.human_faction = GER
+	var atk := _mk("a", GER, SQUAD, RIFLE, 0, 1, 6, 7)
+	var tgt := _mk("t", RUS, SQUAD, RIFLE, 3, 1, 5, 7)
+	s.units["a"] = atk
+	s.units["t"] = tgt
+	var flat := Combat.resolve_fire(atk, 3, 1, s, Vector2i(3, 3), Vector2i(1, 1))
+	# Tiratore in alto: +1 FP.
+	s.hex_at(0, 1).elevation = 1
+	tgt.recover()
+	var high := Combat.resolve_fire(atk, 3, 1, s, Vector2i(3, 3), Vector2i(1, 1))
+	_check(high.fp_total == flat.fp_total + 1, "T88.2: chi spara dall'alto guadagna +1 FP")
+	# Bersaglio in alto: −1 FP.
+	s.hex_at(0, 1).elevation = 0
+	s.hex_at(3, 1).elevation = 1
+	tgt.recover()
+	var low := Combat.resolve_fire(atk, 3, 1, s, Vector2i(3, 3), Vector2i(1, 1))
+	_check(low.fp_total == flat.fp_total - 1, "T88.2: sparare verso l'alto costa −1 FP")
+
+	# T93: la strada riduce di 1 la copertura dell'esagono.
+	var s2 := _new_state(6, 3)
+	s2.hex_at(1, 1).terrain = Domain.TerrainType.BUILDING
+	var c_no := Rules.cover_at(s2, 1, 1, false)
+	s2.hex_at(1, 1).has_road = true
+	_check(Rules.cover_at(s2, 1, 1, false) == c_no - 1,
+		"T93: un edificio attraversato da una strada copre 1 in meno")
+
+
+func _test_events_implemented() -> void:
+	print("· Eventi: nessuno resta «non ancora simulato»")
+	var names := ["CRATERI", "TRAPPOLA ESPLOSIVA", "NEBBIA DI GUERRA", "SPIONAGGIO",
+		"SACCHEGGIO", "PROCEDERE FERITI", "ZAPPATORI", "SCONTRO SENZA PERDITE",
+		"RICOGNIZIONE"]
+	var missing: Array = []
+	for nm in names:
+		var s := _new_state(6, 3)
+		s.human_faction = GER
+		s.units["g"] = _mk("g", GER, SQUAD, RIFLE, 1, 1, 5, 7)
+		s.units["r"] = _mk("r", RUS, SQUAD, RIFLE, 4, 2, 5, 7)
+		s.casualties[RUS] = 2
+		s.casualties[GER] = 1
+		for i in 3:
+			s.german_deck.append(_card(Domain.OrderType.MOVE))
+			s.russian_deck.append(_card(Domain.OrderType.MOVE))
+		s.german_hand = [_card(Domain.OrderType.FIRE)]
+		s.russian_hand = [_card(Domain.OrderType.FIRE)]
+		var c := Card.new()
+		c.event_name = nm
+		c.random_hex_label = "C2"
+		var out := Events.fire(s, c, GER)
+		var joined := " ".join(out)
+		if joined.contains("non ancora simulat"):
+			missing.append(nm)
+	_check(missing.is_empty(), "tutti gli eventi elencati hanno un effetto (%s)" % str(missing))
+
+	# E45: i VP vanno davvero a chi riceve l'evento.
+	var sv := _new_state(6, 3)
+	sv.casualties[RUS] = 3
+	var cv := Card.new()
+	cv.event_name = "SCONTRO SENZA PERDITE"
+	var vp0 := sv.bonus_vp
+	Events.fire(sv, cv, GER)
+	_check(sv.bonus_vp == vp0 + 3, "Scontro senza perdite: +1 VP per perdita nemica (E45)")
+
+	# E73 Crateri: buca nell'esagono indicato.
+	var sc := _new_state(6, 3)
+	var cc := Card.new()
+	cc.event_name = "CRATERI"
+	cc.random_hex_label = "B2"
+	Events.fire(sc, cc, GER)
+	_check(sc.hex_at(1, 1).has_foxhole, "Crateri: buca creata nell'esagono casuale (E73)")
+
+
+func _test_human_ambush() -> void:
+	print("· Imboscata (A25): ora la gioca anche il giocatore, non solo l'IA")
+	var s := _new_state(6, 3)
+	s.human_faction = GER
+	var mine := _mk("g", GER, SQUAD, RIFLE, 1, 1, 6, 7)
+	var foe := _mk("r", RUS, SQUAD, RIFLE, 1, 1, 6, 7)
+	s.units["g"] = mine
+	s.units["r"] = foe
+	var amb := Card.new()
+	amb.action_name = "IMBOSCATA"
+	amb.faction = GER
+	s.german_hand = [amb]
+	for i in 3:
+		s.german_deck.append(_card(Domain.OrderType.MOVE))
+	Game.state = s
+	Game._resolve_melee_ambushes([mine], [foe])
+	_check(not foe.efficient, "l'Imboscata del giocatore rompe un'unità nemica in mischia")
+	var still := false
+	for c in s.german_hand:
+		if c.action_name == "IMBOSCATA":
+			still = true
+	_check(not still, "la carta Imboscata è stata spesa")
 	Game.state = null
 
 

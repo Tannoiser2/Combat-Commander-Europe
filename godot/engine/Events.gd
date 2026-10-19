@@ -39,10 +39,14 @@ static func fire(state: GameState, card: Card, faction: int) -> Array[String]:
 		"OBIETTIVO DELLA MISSIONE": _draw_objective_chit(state, lines, "Obiettivo della missione")
 		"OBIETTIVO STRATEGICO":    _draw_objective_chit(state, lines, "Obiettivo strategico")
 		"RICOGNIZIONE":            _recon(state, faction, lines)
-		"ZAPPATORI":
-			lines.append("Zappatori: nessuna mina o filo spinato da rimuovere.")
-		"SCONTRO SENZA PERDITE":
-			lines.append("Scontro senza perdite: nessun effetto.")
+		"ZAPPATORI":              _sappers(state, lines)
+		"SCONTRO SENZA PERDITE":  _battlefield_integrity(state, faction, lines)
+		"CRATERI":                _shellholes(state, card, lines)
+		"TRAPPOLA ESPLOSIVA":     _booby_trap(state, card, lines)
+		"NEBBIA DI GUERRA":       _fog_of_war(state, lines)
+		"SPIONAGGIO":             _interrogation(state, faction, lines)
+		"SACCHEGGIO":             _scrounge(state, faction, lines)
+		"PROCEDERE FERITI":       _walking_wounded(state, faction, card, lines)
 		_:
 			lines.append("Evento «%s»: effetto non ancora simulato." % card.event_name)
 	return lines
@@ -472,3 +476,152 @@ static func _commissar(state: GameState, card: Card, lines: Array[String]) -> vo
 		target.recover()
 		lines.append("Commissario: %s — tiro %d <= morale %d -> ripristinata." % [
 			target.unit_name, roll, target.morale])
+
+
+## E70 Zappatori: rimuove UN marcatore di Mine o di Filo spinato dalla mappa.
+static func _sappers(state: GameState, lines: Array[String]) -> void:
+	for key in state.hexes:
+		var hd: GameState.HexData = state.hexes[key]
+		if hd.fortification == Domain.Fort.MINES or hd.fortification == Domain.Fort.WIRE:
+			var nm := String(Domain.FORT_NAMES.get(hd.fortification, "?"))
+			hd.fortification = Domain.Fort.NONE
+			var pp := String(key).split(",")
+			lines.append("Zappatori: rimosso %s in %s." % [nm, Domain.qr_to_label(int(pp[0]), int(pp[1]))])
+			return
+	lines.append("Zappatori: nessuna mina o filo spinato da rimuovere.")
+
+
+## E45 Scontro senza perdite: chi riceve l'evento guadagna 1 VP per ogni unità
+## NEMICA già finita sul Casualty Track.
+static func _battlefield_integrity(state: GameState, faction: int, lines: Array[String]) -> void:
+	var foe := Domain.Faction.RUSSIAN if faction == Domain.Faction.GERMAN else Domain.Faction.GERMAN
+	var n := int(state.casualties.get(foe, 0))
+	if n <= 0:
+		lines.append("Scontro senza perdite: nessuna perdita nemica, nessun VP.")
+		return
+	if faction == Domain.Faction.GERMAN:
+		state.bonus_vp += n
+	else:
+		state.bonus_vp -= n
+	lines.append("Scontro senza perdite: %s guadagna %d VP (perdite nemiche)." % [
+		Domain.FACTION_NAMES.get(faction, "?"), n])
+
+
+## E73 Crateri: una Buca nell'esagono casuale (se non è acqua e non ha già
+## incendio o fortificazioni).
+static func _shellholes(state: GameState, card: Card, lines: Array[String]) -> void:
+	var qr := Domain.label_to_qr(card.random_hex_label)
+	var hd: GameState.HexData = state.hex_at(qr.x, qr.y)
+	if hd == null or hd.has_blaze or hd.has_foxhole \
+			or hd.fortification != Domain.Fort.NONE or Rules.is_water_hex(state, qr.x, qr.y):
+		lines.append("Crateri: %s non è adatto, nessuna buca." % card.random_hex_label)
+		return
+	hd.has_foxhole = true
+	lines.append("Crateri: buche scavate dalle granate in %s." % card.random_hex_label)
+
+
+## E47 Trappola esplosiva: Mine nell'esagono casuale (stesse condizioni).
+static func _booby_trap(state: GameState, card: Card, lines: Array[String]) -> void:
+	var qr := Domain.label_to_qr(card.random_hex_label)
+	var hd: GameState.HexData = state.hex_at(qr.x, qr.y)
+	if hd == null or hd.has_blaze or hd.fortification != Domain.Fort.NONE \
+			or Rules.is_water_hex(state, qr.x, qr.y):
+		lines.append("Trappola esplosiva: %s non è adatto." % card.random_hex_label)
+		return
+	hd.fortification = Domain.Fort.MINES
+	lines.append("Trappola esplosiva: Mine piazzate in %s." % card.random_hex_label)
+
+
+## E57 Nebbia di guerra: ciascun giocatore perde una carta a caso.
+static func _fog_of_war(state: GameState, lines: Array[String]) -> void:
+	var n := 0
+	for f in [Domain.Faction.GERMAN, Domain.Faction.RUSSIAN]:
+		var hand := state.hand_of(f)
+		if hand.is_empty():
+			continue
+		var idx := randi() % hand.size()
+		var discard := state.german_discard if f == Domain.Faction.GERMAN else state.russian_discard
+		var deck := state.german_deck if f == Domain.Faction.GERMAN else state.russian_deck
+		Cards.discard_from_hand(hand, discard, idx)
+		Cards.draw(deck, discard, hand)
+		n += 1
+	lines.append("Nebbia di guerra: %d carte scartate a caso (una per giocatore)." % n)
+
+
+## E61 Spionaggio: chi riceve l'evento guarda la mano avversaria e ne fa scartare
+## una carta (qui: la più preziosa, cioè la prima con Ordine di Fuoco).
+static func _interrogation(state: GameState, faction: int, lines: Array[String]) -> void:
+	var foe := Domain.Faction.RUSSIAN if faction == Domain.Faction.GERMAN else Domain.Faction.GERMAN
+	var hand := state.hand_of(foe)
+	if hand.is_empty():
+		lines.append("Spionaggio: l'avversario non ha carte.")
+		return
+	var idx := 0
+	for i in hand.size():
+		if hand[i].order == Domain.OrderType.FIRE:
+			idx = i
+			break
+	var discard := state.german_discard if foe == Domain.Faction.GERMAN else state.russian_discard
+	var deck := state.german_deck if foe == Domain.Faction.GERMAN else state.russian_deck
+	var nm := String(Domain.ORDER_LABELS.get(hand[idx].order, "?"))
+	Cards.discard_from_hand(hand, discard, idx)
+	Cards.draw(deck, discard, hand)
+	lines.append("Spionaggio: vista la mano avversaria, scartata una carta (%s)." % nm)
+
+
+## E71 Saccheggio: si recupera un'arma e la si affida a una propria unità che non
+## ne porta già una.
+static func _scrounge(state: GameState, faction: int, lines: Array[String]) -> void:
+	var carrier: Unit = null
+	for u in state.units_of(faction):
+		if u.is_man() and u.efficient and state.weapon_carried_by(u.id) == null:
+			carrier = u
+			break
+	if carrier == null:
+		lines.append("Saccheggio: nessuna unità libera per portare un'arma.")
+		return
+	var wid := "SCR-%d" % (state.units.size() + 700)
+	var w := Unit.new(wid, faction, Domain.UnitType.WEAPON, Domain.UnitClass.MG, "Light MG")
+	w.fp = 4
+	w.range = 6
+	w.q = carrier.q
+	w.r = carrier.r
+	w.carrier_id = carrier.id
+	state.units[wid] = w
+	lines.append("Saccheggio: recuperata una Light MG, affidata a %s." % carrier.unit_name)
+
+
+## E76 Procedere feriti: un'unità eliminata torna in gioco ROTTA in/adiacente
+## all'esagono casuale, rispettando l'impilamento.
+static func _walking_wounded(state: GameState, faction: int, card: Card, lines: Array[String]) -> void:
+	if int(state.casualties.get(faction, 0)) <= 0:
+		lines.append("Procedere feriti: nessuna perdita da recuperare.")
+		return
+	var qr := Domain.label_to_qr(card.random_hex_label)
+	if qr.x < 0 or state.hex_at(qr.x, qr.y) == null:
+		lines.append("Procedere feriti: esagono non valido.")
+		return
+	var spot := qr
+	if state.soldier_icons_at(spot.x, spot.y) + 4 > 7:
+		var placed := false
+		for nb in HexGrid.neighbors(qr.x, qr.y):
+			if state.hex_at(nb.x, nb.y) != null and state.soldier_icons_at(nb.x, nb.y) + 4 <= 7:
+				spot = nb
+				placed = true
+				break
+		if not placed:
+			lines.append("Procedere feriti: nessun esagono con spazio sufficiente.")
+			return
+	var uid := "WW-%d" % (state.units.size() + 800)
+	var u := Unit.new(uid, faction, Domain.UnitType.SQUAD, Domain.UnitClass.RIFLE, "Walking Wounded")
+	u.fp = 4
+	u.range = 4
+	u.move = 4
+	u.morale = 6
+	u.q = spot.x
+	u.r = spot.y
+	u.break_unit()
+	state.units[uid] = u
+	state.casualties[faction] = int(state.casualties.get(faction, 0)) - 1
+	lines.append("Procedere feriti: una squadra torna in gioco ROTTA in %s." %
+		Domain.qr_to_label(spot.x, spot.y))

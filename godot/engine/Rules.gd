@@ -113,6 +113,11 @@ static func cover_at(state: GameState, q: int, r: int, vs_ordnance: bool) -> int
 	var fc := int(Domain.FORT_COVER.get(hd.fortification, 0))
 	if fc > 0:
 		cov = maxi(cov, fc + (1 if vs_ordnance else 0))
+	# T93 Strada: la copertura di QUALSIASI terreno o fortificazione in un esagono
+	# con strada è ridotta di 1 (una casa attraversata da una strada copre 2, non 3;
+	# in aperta campagna su strada si sta a −1).
+	if hd.has_road:
+		cov -= 1
 	return cov
 
 
@@ -126,7 +131,10 @@ static func range_with_command(state: GameState, u: Unit) -> int:
 ## Movimento effettivo includendo il Comando del leader co-locato (3.3.1.2).
 static func move_with_command(state: GameState, u: Unit) -> int:
 	# 13.2: la soppressione toglie 1 a FP, Gittata, Movimento e Morale.
-	return u.move + unit_command_bonus(state, u) - (1 if u.suppressed else 0)
+	# T93: +1 Movimento se durante QUESTO ordine di Mossa l'unità è entrata in un
+	# esagono con strada (il bonus decade a fine ordine).
+	var road := 1 if state.road_bonus_ids.has(u.id) else 0
+	return u.move + unit_command_bonus(state, u) - (1 if u.suppressed else 0) + road
 
 
 ## PM effettivi disponibili per la Mossa: base + Comando, meno il malus
