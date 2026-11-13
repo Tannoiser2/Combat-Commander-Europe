@@ -36,12 +36,18 @@ jobs:
           pip install --quiet fonttools
           python3 tools/controlla_glifi.py
 
+      - name: Controlli mirati sulle regole (colline, strada, Tabelle di Supporto)
+        run: |
+          set -euxo pipefail
+          "$GODOT" --headless --path godot res://tests/RulesCheck.tscn 2>&1 | tee rules_output.txt
+          grep -q "RULES_RESULT: PASS" rules_output.txt
+
       - name: Partite automatiche IA contro IA (motore a decisioni)
         run: |
           set -euxo pipefail
           # Sei scenari con orientamenti e nazioni diverse: ogni partita deve
           # arrivare in fondo senza errori di script né blocchi.
-          "$GODOT" --headless --path godot res://tests/SelfPlay.tscn -- 1,2,7,12,15,23 1 2>&1 | tee selfplay_output.txt
+          "$GODOT" --headless --path godot res://tests/SelfPlay.tscn -- 1,2,7,9,12,15,21,23 1 2>&1 | tee selfplay_output.txt
           if grep -q "SCRIPT ERROR" selfplay_output.txt; then
             echo "::error::Errori di script durante le partite automatiche"
             exit 1

@@ -40,6 +40,10 @@ var cal_oy: float = 69.0
 ## Asse in basso; 2 = Asse in alto / Alleati in basso.
 var edge_mode: int = 0
 
+## Pedine eliminate (uomini non Eroi e armi): il «Casualty Track», da cui certi
+## eventi (Procedere Feriti, Saccheggio) possono ripescare.
+var graves: Array = []
+
 ## Lati di esagono: ogni voce { "a": Vector2i, "b": Vector2i, "feature": int }
 var side_features: Array[Dictionary] = []
 
@@ -419,7 +423,13 @@ func eliminate_unit(uid: String) -> void:
 		if u.is_man():
 			var w := weapon_carried_by(uid)
 			if w != null:
+				if not w.unit_name.contains("Radio"):
+					graves.append(w)
 				units.erase(w.id)
+			if not u.hero:
+				graves.append(u)
+		elif not u.unit_name.contains("Radio"):
+			graves.append(u)
 	units.erase(uid)
 
 

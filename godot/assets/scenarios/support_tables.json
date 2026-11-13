@@ -1,0 +1,3674 @@
+{
+"DE": [
+{
+"nome": "Capitano Wehling",
+"tipo": "leader",
+"unita": "Cpt. Wehling",
+"arma": "",
+"col": {
+"11": [
+[
+1939,
+1942
+]
+],
+"12": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Tenente Borbe",
+"tipo": "leader",
+"unita": "Lt. Borbe",
+"arma": "",
+"col": {
+"10": [
+[
+1939,
+1942
+]
+],
+"11": [
+[
+1943,
+1944
+]
+],
+"12": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Tenente Huntziger",
+"tipo": "leader",
+"unita": "Lt. Huntziger",
+"arma": "",
+"col": {
+"9": [
+[
+1939,
+1942
+]
+],
+"10": [
+[
+1943,
+1944
+]
+],
+"11": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Sergente Benzing",
+"tipo": "leader",
+"unita": "Sgt. Benzing",
+"arma": "",
+"col": {
+"7": [
+[
+1939,
+1942
+]
+],
+"8": [
+[
+1939,
+1944
+]
+],
+"9": [
+[
+1943,
+1945
+]
+],
+"10": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Sergente Pfeiffer",
+"tipo": "leader",
+"unita": "Sgt. Pfeiffer",
+"arma": "",
+"col": {
+"5": [
+[
+1939,
+1942
+]
+],
+"6": [
+[
+1939,
+1944
+]
+],
+"7": [
+[
+1943,
+1945
+]
+],
+"8": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Caporale Schmidt",
+"tipo": "leader",
+"unita": "Cpl. Schmidt",
+"arma": "",
+"col": {
+"4": [
+[
+1939,
+1942
+]
+],
+"5": [
+[
+1943,
+1944
+]
+],
+"6": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Caporale Guttman",
+"tipo": "leader",
+"unita": "Cpl. Guttman",
+"arma": "",
+"col": {
+"2": [
+[
+1939,
+1944
+]
+],
+"3": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con MG leggera",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light MG",
+"col": {
+"4": [
+[
+1939,
+1943
+]
+],
+"5": [
+[
+1944,
+1945
+]
+],
+"7": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con MG pesante",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Heavy MG",
+"col": {
+"3": [
+[
+1944,
+1945
+]
+],
+"6": [
+[
+1939,
+1945
+]
+],
+"8": [
+[
+1944,
+1945
+]
+],
+"9": [
+[
+1942,
+1943
+]
+],
+"10": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio leggero",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light Mortar",
+"col": {
+"4": [
+[
+1944,
+1945
+]
+],
+"5": [
+[
+1943,
+1943
+]
+],
+"7": [
+[
+1939,
+1942
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio medio",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium Mortar",
+"col": {
+"5": [
+[
+1939,
+1942
+]
+],
+"7": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con cannone IG 18",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "IG 18 Gun",
+"col": {
+"8": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con cannone IG 33",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "IG 33 Gun",
+"col": {
+"11": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Pionieri con lanciafiamme",
+"tipo": "squad",
+"unita": "Pionier",
+"arma": "Flamethrower",
+"col": {
+"12": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Pionieri con carica esplosiva",
+"tipo": "squad",
+"unita": "Pionier",
+"arma": "Satchel Charge",
+"col": {
+"11": [
+[
+1940,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra SS",
+"tipo": "squad",
+"unita": "SS",
+"arma": "",
+"col": {
+"9": [
+[
+1942,
+1942
+]
+],
+"10": [
+[
+1943,
+1944
+]
+],
+"11": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Fucilieri scelti",
+"tipo": "squad",
+"unita": "Elite Rifle",
+"arma": "",
+"col": {
+"10": [
+[
+1939,
+1942
+]
+],
+"11": [
+[
+1939,
+1944
+]
+],
+"12": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Paracadutisti",
+"tipo": "squad",
+"unita": "Parachute",
+"arma": "",
+"col": {
+"8": [
+[
+1939,
+1942
+]
+],
+"9": [
+[
+1943,
+1944
+]
+],
+"10": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Fucilieri",
+"tipo": "squad",
+"unita": "Rifle",
+"arma": "",
+"col": {
+"5": [
+[
+1939,
+1942
+]
+],
+"6": [
+[
+1939,
+1944
+]
+],
+"7": [
+[
+1939,
+1945
+]
+],
+"8": [
+[
+1943,
+1945
+]
+],
+"9": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Volksgrenadier",
+"tipo": "squad",
+"unita": "Volksgrenadier",
+"arma": "",
+"col": {
+"3": [
+[
+1939,
+1942
+]
+],
+"4": [
+[
+1939,
+1944
+]
+],
+"5": [
+[
+1943,
+1945
+]
+],
+"6": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Coscritti",
+"tipo": "squad",
+"unita": "Conscript",
+"arma": "",
+"col": {
+"2": [
+[
+1939,
+1945
+]
+],
+"3": [
+[
+1943,
+1945
+]
+],
+"4": [
+[
+1945,
+1945
+]
+],
+"10": [
+[
+1945,
+1945
+]
+],
+"11": [
+[
+1944,
+1945
+]
+],
+"12": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 150mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 150mm",
+"col": {
+"5": [
+[
+1939,
+1941
+]
+],
+"6": [
+[
+1942,
+1943
+]
+],
+"7": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 120mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 120mm",
+"col": {
+"2": [
+[
+1942,
+1943
+]
+],
+"3": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 105mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 105mm",
+"col": {
+"4": [
+[
+1944,
+1945
+]
+],
+"5": [
+[
+1942,
+1943
+]
+],
+"6": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Radio 81mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 81mm",
+"col": {
+"7": [
+[
+1939,
+1942
+]
+],
+"8": [
+[
+1943,
+1945
+]
+],
+"12": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Radio 75mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 75mm",
+"col": {
+"10": [
+[
+1939,
+1941
+]
+],
+"11": [
+[
+1942,
+1945
+]
+]
+}
+}
+],
+"RU": [
+{
+"nome": "Capitano Egorov",
+"tipo": "leader",
+"unita": "Cpt. Egorov",
+"arma": "",
+"col": {
+"11": [
+[
+1944,
+1945
+]
+],
+"12": [
+[
+1942,
+1945
+]
+]
+}
+},
+{
+"nome": "Tenente Ostroumov",
+"tipo": "leader",
+"unita": "Lt. Ostroumov",
+"arma": "",
+"col": {
+"10": [
+[
+1944,
+1945
+]
+],
+"11": [
+[
+1942,
+1943
+]
+],
+"12": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Tenente Bijak",
+"tipo": "leader",
+"unita": "Lt. Bijak",
+"arma": "",
+"col": {
+"9": [
+[
+1944,
+1945
+]
+],
+"10": [
+[
+1942,
+1943
+]
+],
+"11": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Sergente Pyotor",
+"tipo": "leader",
+"unita": "Sgt. Pyotor",
+"arma": "",
+"col": {
+"8": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Sergente Rodimtsev",
+"tipo": "leader",
+"unita": "Sgt. Rodimtsev",
+"arma": "",
+"col": {
+"9": [
+[
+1942,
+1943
+]
+],
+"10": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Sergente Kaminsky",
+"tipo": "leader",
+"unita": "Sgt. Kaminsky",
+"arma": "",
+"col": {
+"6": [
+[
+1944,
+1945
+]
+],
+"7": [
+[
+1942,
+1945
+]
+],
+"8": [
+[
+1939,
+1943
+]
+],
+"9": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Caporale Anishchik",
+"tipo": "leader",
+"unita": "Cpl. Anishchik",
+"arma": "",
+"col": {
+"5": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Caporale Kutikov",
+"tipo": "leader",
+"unita": "Cpl. Kutikov",
+"arma": "",
+"col": {
+"6": [
+[
+1942,
+1943
+]
+],
+"7": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Caporale Denikin",
+"tipo": "leader",
+"unita": "Cpl. Denikin",
+"arma": "",
+"col": {
+"2": [
+[
+1939,
+1945
+]
+],
+"3": [
+[
+1939,
+1943
+]
+],
+"4": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Team armi con MG leggera",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light MG",
+"col": {
+"2": [
+[
+1944,
+1945
+]
+],
+"4": [
+[
+1945,
+1945
+]
+],
+"6": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con MG media",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium MG",
+"col": {
+"9": [
+[
+1945,
+1945
+]
+],
+"10": [
+[
+1939,
+1942
+]
+],
+"11": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Team armi con MG pesante",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Heavy MG",
+"col": {
+"8": [
+[
+1945,
+1945
+]
+],
+"9": [
+[
+1944,
+1944
+]
+],
+"10": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Team armi con MG .50",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": ".50cal MG",
+"col": {
+"11": [
+[
+1945,
+1945
+]
+],
+"12": [
+[
+1939,
+1944
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio leggero",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light Mortar",
+"col": {
+"2": [
+[
+1943,
+1943
+]
+],
+"3": [
+[
+1939,
+1941
+]
+],
+"5": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio medio",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium Mortar",
+"col": {
+"7": [
+[
+1943,
+1945
+]
+],
+"9": [
+[
+1939,
+1941
+]
+],
+"11": [
+[
+1942,
+1942
+]
+]
+}
+},
+{
+"nome": "Team armi con cannone di fanteria",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Infantry Gun",
+"col": {
+"8": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Assaltatori con lanciafiamme",
+"tipo": "squad",
+"unita": "Assault",
+"arma": "Flamethrower",
+"col": {
+"12": [
+[
+1942,
+1945
+]
+]
+}
+},
+{
+"nome": "Assaltatori con carica esplosiva",
+"tipo": "squad",
+"unita": "Assault",
+"arma": "Satchel Charge",
+"col": {
+"11": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Fucilieri della Guardia",
+"tipo": "squad",
+"unita": "Guards Rifle",
+"arma": "",
+"col": {
+"9": [
+[
+1945,
+1945
+]
+],
+"10": [
+[
+1943,
+1945
+]
+],
+"11": [
+[
+1942,
+1945
+]
+],
+"12": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Mitra della Guardia",
+"tipo": "squad",
+"unita": "Guards SMG",
+"arma": "",
+"col": {
+"8": [
+[
+1945,
+1945
+]
+],
+"9": [
+[
+1943,
+1944
+]
+],
+"10": [
+[
+1942,
+1942
+]
+],
+"11": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Squadra Fucilieri",
+"tipo": "squad",
+"unita": "Rifle",
+"arma": "",
+"col": {
+"5": [
+[
+1945,
+1945
+]
+],
+"6": [
+[
+1943,
+1945
+]
+],
+"7": [
+[
+1942,
+1945
+]
+],
+"8": [
+[
+1939,
+1944
+]
+],
+"9": [
+[
+1939,
+1942
+]
+],
+"10": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Squadra Mitra",
+"tipo": "squad",
+"unita": "SMG",
+"arma": "",
+"col": {
+"3": [
+[
+1945,
+1945
+]
+],
+"4": [
+[
+1943,
+1945
+]
+],
+"5": [
+[
+1942,
+1944
+]
+],
+"6": [
+[
+1939,
+1942
+]
+],
+"7": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Squadra Milizia",
+"tipo": "squad",
+"unita": "Militia",
+"arma": "",
+"col": {
+"2": [
+[
+1939,
+1945
+]
+],
+"3": [
+[
+1939,
+1944
+]
+],
+"4": [
+[
+1939,
+1942
+]
+],
+"5": [
+[
+1939,
+1941
+]
+],
+"6": [
+[
+1939,
+1945
+]
+],
+"7": [
+[
+1939,
+1945
+]
+],
+"8": [
+[
+1945,
+1945
+]
+],
+"9": [
+[
+1943,
+1945
+]
+],
+"10": [
+[
+1942,
+1945
+]
+],
+"11": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 152mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 152mm",
+"col": {
+"2": [
+[
+1939,
+1940
+]
+],
+"3": [
+[
+1941,
+1942
+]
+],
+"4": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 122mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 122mm",
+"col": {
+"5": [
+[
+1939,
+1941
+]
+],
+"6": [
+[
+1942,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 82mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 82mm",
+"col": {
+"7": [
+[
+1939,
+1945
+]
+],
+"11": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 76mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 76mm",
+"col": {
+"8": [
+[
+1939,
+1940
+]
+],
+"9": [
+[
+1941,
+1942
+]
+],
+"10": [
+[
+1943,
+1945
+]
+]
+}
+}
+],
+"US": [
+{
+"nome": "Capitano Sitner",
+"tipo": "leader",
+"unita": "Cpt. Sitner",
+"arma": "",
+"col": {
+"11": [
+[
+1945,
+1945
+]
+],
+"12": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Tenente Esparza",
+"tipo": "leader",
+"unita": "Lt. Esparza",
+"arma": "",
+"col": {
+"10": [
+[
+1945,
+1945
+]
+],
+"11": [
+[
+1944,
+1944
+]
+],
+"12": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Tenente Thomas",
+"tipo": "leader",
+"unita": "Lt. Thomas",
+"arma": "",
+"col": {
+"9": [
+[
+1945,
+1945
+]
+],
+"10": [
+[
+1944,
+1944
+]
+],
+"11": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Sergente Bergstrom",
+"tipo": "leader",
+"unita": "Sgt. Bergstrom",
+"arma": "",
+"col": {
+"8": [
+[
+1944,
+1945
+]
+],
+"10": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Sergente Fuller",
+"tipo": "leader",
+"unita": "Sgt. Fuller",
+"arma": "",
+"col": {
+"7": [
+[
+1945,
+1945
+]
+],
+"9": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Sergente Elkheart",
+"tipo": "leader",
+"unita": "Sgt. Elkheart",
+"arma": "",
+"col": {
+"6": [
+[
+1944,
+1945
+]
+],
+"8": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Sergente Goziak",
+"tipo": "leader",
+"unita": "Sgt. Goziak",
+"arma": "",
+"col": {
+"5": [
+[
+1945,
+1945
+]
+],
+"7": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Caporale Jensen",
+"tipo": "leader",
+"unita": "Cpl. Jensen",
+"arma": "",
+"col": {
+"4": [
+[
+1945,
+1945
+]
+],
+"5": [
+[
+1944,
+1944
+]
+],
+"6": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Caporale Twells",
+"tipo": "leader",
+"unita": "Cpl. Twells",
+"arma": "",
+"col": {
+"2": [
+[
+1943,
+1945
+]
+],
+"3": [
+[
+1943,
+1944
+]
+],
+"4": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Team armi con MG media",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium MG",
+"col": {
+"4": [
+[
+1943,
+1945
+]
+],
+"7": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con MG pesante",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Heavy MG",
+"col": {
+"9": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con MG .50",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": ".50cal MG",
+"col": {
+"5": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio leggero",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light Mortar",
+"col": {
+"2": [
+[
+1943,
+1945
+]
+],
+"3": [
+[
+1943,
+1945
+]
+],
+"6": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio medio",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium Mortar",
+"col": {
+"8": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con obice someggiato",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Pack Howitzer",
+"col": {
+"10": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Genieri con lanciafiamme",
+"tipo": "squad",
+"unita": "Engineer",
+"arma": "Flamethrower",
+"col": {
+"12": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Genieri con carica esplosiva",
+"tipo": "squad",
+"unita": "Engineer",
+"arma": "Satchel Charge",
+"col": {
+"11": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Paracadutisti",
+"tipo": "squad",
+"unita": "Paratroop",
+"arma": "",
+"col": {
+"11": [
+[
+1945,
+1945
+]
+],
+"12": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra scelta",
+"tipo": "squad",
+"unita": "Elite",
+"arma": "",
+"col": {
+"9": [
+[
+1945,
+1945
+]
+],
+"10": [
+[
+1944,
+1945
+]
+],
+"11": [
+[
+1943,
+1944
+]
+],
+"12": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Squadra di linea",
+"tipo": "squad",
+"unita": "Line",
+"arma": "",
+"col": {
+"5": [
+[
+1945,
+1945
+]
+],
+"6": [
+[
+1944,
+1945
+]
+],
+"7": [
+[
+1943,
+1945
+]
+],
+"8": [
+[
+1943,
+1945
+]
+],
+"9": [
+[
+1943,
+1944
+]
+],
+"10": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Squadra reclute",
+"tipo": "squad",
+"unita": "Green",
+"arma": "",
+"col": {
+"2": [
+[
+1943,
+1945
+]
+],
+"3": [
+[
+1943,
+1945
+]
+],
+"4": [
+[
+1943,
+1945
+]
+],
+"5": [
+[
+1943,
+1944
+]
+],
+"6": [
+[
+1943,
+1943
+]
+]
+}
+},
+{
+"nome": "Radio 203mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 203mm",
+"col": {
+"2": [
+[
+1944,
+1944
+]
+],
+"3": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 155mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 155mm",
+"col": {
+"4": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 105mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 105mm",
+"col": {
+"7": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 81mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 81mm",
+"col": {
+"8": [
+[
+1943,
+1945
+]
+],
+"12": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 75mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 75mm",
+"col": {
+"11": [
+[
+1943,
+1945
+]
+]
+}
+}
+],
+"GB": [
+{
+"nome": "Capitano Iggleby",
+"tipo": "leader",
+"unita": "Cpt. Iggleby",
+"arma": "",
+"col": {
+"11": [
+[
+1945,
+1945
+]
+],
+"12": [
+[
+1942,
+1945
+]
+]
+}
+},
+{
+"nome": "Tenente Dan",
+"tipo": "leader",
+"unita": "Lt. Dan",
+"arma": "",
+"col": {
+"10": [
+[
+1945,
+1945
+]
+],
+"11": [
+[
+1942,
+1944
+]
+],
+"12": [
+[
+1940,
+1941
+]
+]
+}
+},
+{
+"nome": "Tenente Wallace",
+"tipo": "leader",
+"unita": "Lt. Wallace",
+"arma": "",
+"col": {
+"10": [
+[
+1940,
+1941
+]
+],
+"11": [
+[
+1940,
+1941
+]
+]
+}
+},
+{
+"nome": "Tenente O'Malley",
+"tipo": "leader",
+"unita": "Lt. O'Malley",
+"arma": "",
+"col": {
+"9": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Sergente Kwan",
+"tipo": "leader",
+"unita": "Sgt. Kwan",
+"arma": "",
+"col": {
+"7": [
+[
+1945,
+1945
+]
+],
+"8": [
+[
+1942,
+1945
+]
+],
+"9": [
+[
+1945,
+1945
+]
+],
+"10": [
+[
+1942,
+1944
+]
+]
+}
+},
+{
+"nome": "Sergente Foyle",
+"tipo": "leader",
+"unita": "Sgt. Foyle",
+"arma": "",
+"col": {
+"7": [
+[
+1940,
+1944
+]
+],
+"8": [
+[
+1940,
+1941
+]
+]
+}
+},
+{
+"nome": "Sergente Crowe",
+"tipo": "leader",
+"unita": "Sgt. Crowe",
+"arma": "",
+"col": {
+"5": [
+[
+1945,
+1945
+]
+],
+"6": [
+[
+1942,
+1945
+]
+]
+}
+},
+{
+"nome": "Caporale Isway",
+"tipo": "leader",
+"unita": "Cpl. Isway",
+"arma": "",
+"col": {
+"4": [
+[
+1945,
+1945
+]
+],
+"5": [
+[
+1942,
+1944
+]
+],
+"6": [
+[
+1940,
+1941
+]
+]
+}
+},
+{
+"nome": "Caporale Cork",
+"tipo": "leader",
+"unita": "Cpl. Cork",
+"arma": "",
+"col": {
+"2": [
+[
+1940,
+1944
+]
+],
+"3": [
+[
+1940,
+1941
+]
+]
+}
+},
+{
+"nome": "Team armi con MG leggera",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light MG",
+"col": {
+"7": [
+[
+1940,
+1945
+]
+],
+"8": [
+[
+1940,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con MG pesante",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Heavy MG",
+"col": {
+"4": [
+[
+1940,
+1945
+]
+],
+"6": [
+[
+1940,
+1945
+]
+],
+"10": [
+[
+1940,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio leggero",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light Mortar",
+"col": {
+"2": [
+[
+1943,
+1945
+]
+],
+"3": [
+[
+1944,
+1945
+]
+],
+"5": [
+[
+1940,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio medio",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium Mortar",
+"col": {
+"9": [
+[
+1942,
+1945
+]
+],
+"10": [
+[
+1941,
+1941
+]
+],
+"11": [
+[
+1940,
+1940
+]
+]
+}
+},
+{
+"nome": "Team armi con cannone da 25 libbre",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "25-Pounder Gun",
+"col": {
+"10": [
+[
+1942,
+1942
+]
+],
+"11": [
+[
+1941,
+1941
+],
+[
+1943,
+1945
+]
+],
+"12": [
+[
+1940,
+1940
+]
+]
+}
+},
+{
+"nome": "Genieri con lanciafiamme",
+"tipo": "squad",
+"unita": "Engineer",
+"arma": "Flamethrower",
+"col": {
+"12": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Genieri con carica esplosiva",
+"tipo": "squad",
+"unita": "Engineer",
+"arma": "Satchel Charge",
+"col": {
+"11": [
+[
+1941,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra aviotrasportata",
+"tipo": "squad",
+"unita": "Airborne",
+"arma": "",
+"col": {
+"11": [
+[
+1941,
+1945
+]
+],
+"12": [
+[
+1941,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra Guardie",
+"tipo": "squad",
+"unita": "Guards",
+"arma": "",
+"col": {
+"8": [
+[
+1940,
+1945
+]
+],
+"9": [
+[
+1940,
+1945
+]
+],
+"10": [
+[
+1940,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra di linea",
+"tipo": "squad",
+"unita": "Line",
+"arma": "",
+"col": {
+"4": [
+[
+1940,
+1941
+]
+],
+"5": [
+[
+1940,
+1942
+]
+],
+"6": [
+[
+1940,
+1943
+]
+],
+"7": [
+[
+1940,
+1944
+]
+],
+"8": [
+[
+1940,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra territoriale",
+"tipo": "squad",
+"unita": "Territorial",
+"arma": "",
+"col": {
+"2": [
+[
+1940,
+1945
+]
+],
+"3": [
+[
+1941,
+1945
+]
+],
+"4": [
+[
+1942,
+1945
+]
+],
+"5": [
+[
+1943,
+1945
+]
+],
+"6": [
+[
+1944,
+1945
+]
+],
+"7": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 183mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 183mm",
+"col": {
+"2": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 152mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 152mm",
+"col": {
+"3": [
+[
+1942,
+1945
+]
+],
+"4": [
+[
+1940,
+1941
+]
+]
+}
+},
+{
+"nome": "Radio 140mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 140mm",
+"col": {
+"4": [
+[
+1942,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 114mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 114mm",
+"col": {
+"7": [
+[
+1940,
+1940
+]
+],
+"9": [
+[
+1941,
+1941
+]
+],
+"10": [
+[
+1942,
+1944
+]
+],
+"11": [
+[
+1945,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 88mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 88mm",
+"col": {
+"5": [
+[
+1940,
+1945
+]
+],
+"6": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 76mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 76mm",
+"col": {
+"9": [
+[
+1942,
+1945
+]
+],
+"12": [
+[
+1941,
+1941
+]
+]
+}
+}
+],
+"FR": [
+{
+"nome": "Capitano Gough",
+"tipo": "leader",
+"unita": "Cpt. Gough",
+"arma": "",
+"col": {
+"11": [
+[
+1943,
+1945
+]
+],
+"12": [
+[
+1939,
+1940
+]
+]
+}
+},
+{
+"nome": "Tenente Allier",
+"tipo": "leader",
+"unita": "Lt. Allier",
+"arma": "",
+"col": {
+"10": [
+[
+1943,
+1945
+]
+],
+"11": [
+[
+1939,
+1940
+]
+],
+"12": [
+[
+1941,
+1941
+]
+]
+}
+},
+{
+"nome": "Tenente Levasseur",
+"tipo": "leader",
+"unita": "Lt. Levasseur",
+"arma": "",
+"col": {
+"9": [
+[
+1943,
+1945
+]
+],
+"10": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Sergente Fache",
+"tipo": "leader",
+"unita": "Sgt. Fache",
+"arma": "",
+"col": {
+"8": [
+[
+1943,
+1945
+]
+],
+"9": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Sergente Delvoie",
+"tipo": "leader",
+"unita": "Sgt. Delvoie",
+"arma": "",
+"col": {
+"7": [
+[
+1943,
+1945
+]
+],
+"8": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Sergente Picard",
+"tipo": "leader",
+"unita": "Sgt. Picard",
+"arma": "",
+"col": {
+"7": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Sergente Vernejoul",
+"tipo": "leader",
+"unita": "Sgt. Vernejoul",
+"arma": "",
+"col": {
+"6": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Caporale Besson",
+"tipo": "leader",
+"unita": "Cpl. Besson",
+"arma": "",
+"col": {
+"5": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Caporale Benoit",
+"tipo": "leader",
+"unita": "Cpl. Benoit",
+"arma": "",
+"col": {
+"2": [
+[
+1939,
+1941
+]
+],
+"3": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con MG leggera",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light MG",
+"col": {
+"5": [
+[
+1940,
+1940
+]
+],
+"6": [
+[
+1940,
+1941
+]
+],
+"7": [
+[
+1940,
+1943
+]
+]
+}
+},
+{
+"nome": "Team armi con MG pesante",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Heavy MG",
+"col": {
+"2": [
+[
+1939,
+1940
+]
+],
+"3": [
+[
+1939,
+1941
+]
+],
+"5": [
+[
+1939,
+1939
+]
+],
+"7": [
+[
+1943,
+1945
+]
+],
+"8": [
+[
+1940,
+1940
+]
+],
+"9": [
+[
+1943,
+1945
+]
+],
+"10": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Team armi con MG .50",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": ".50cal MG",
+"col": {
+"11": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio da 50mm",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "50mm Mortar",
+"col": {
+"9": [
+[
+1940,
+1940
+]
+],
+"11": [
+[
+1939,
+1939
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio da 60mm",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "60mm Mortar",
+"col": {
+"8": [
+[
+1943,
+1945
+]
+],
+"11": [
+[
+1940,
+1940
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio medio",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium Mortar",
+"col": {
+"10": [
+[
+1940,
+1945
+]
+],
+"11": [
+[
+1939,
+1939
+]
+]
+}
+},
+{
+"nome": "Team armi con cannone da 75",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "French '75",
+"col": {
+"9": [
+[
+1939,
+1939
+]
+],
+"10": [
+[
+1940,
+1940
+]
+],
+"11": [
+[
+1941,
+1941
+]
+],
+"12": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Team scelto con carica esplosiva",
+"tipo": "team",
+"unita": "Elite Team",
+"arma": "Satchel Charge",
+"col": {
+"11": [
+[
+1939,
+1945
+]
+]
+}
+},
+{
+"nome": "Squadra BAR",
+"tipo": "squad",
+"unita": "BAR",
+"arma": "",
+"col": {
+"8": [
+[
+1944,
+1945
+]
+],
+"9": [
+[
+1944,
+1945
+]
+],
+"10": [
+[
+1944,
+1945
+]
+],
+"11": [
+[
+1939,
+1940
+]
+],
+"12": [
+[
+1939,
+1940
+]
+]
+}
+},
+{
+"nome": "Squadra Legionari",
+"tipo": "squad",
+"unita": "Legionnaire",
+"arma": "",
+"col": {
+"6": [
+[
+1943,
+1945
+]
+],
+"7": [
+[
+1943,
+1945
+]
+],
+"8": [
+[
+1943,
+1943
+]
+],
+"9": [
+[
+1940,
+1943
+]
+],
+"10": [
+[
+1940,
+1943
+]
+],
+"11": [
+[
+1941,
+1941
+]
+],
+"12": [
+[
+1941,
+1941
+]
+]
+}
+},
+{
+"nome": "Squadra Chasseur",
+"tipo": "squad",
+"unita": "Chasseur",
+"arma": "",
+"col": {
+"2": [
+[
+1943,
+1945
+]
+],
+"3": [
+[
+1943,
+1945
+]
+],
+"4": [
+[
+1943,
+1945
+]
+],
+"5": [
+[
+1939,
+1945
+]
+],
+"6": [
+[
+1939,
+1941
+]
+],
+"7": [
+[
+1939,
+1941
+]
+],
+"8": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Squadra Riservisti",
+"tipo": "squad",
+"unita": "Reservist",
+"arma": "",
+"col": {
+"2": [
+[
+1939,
+1941
+]
+],
+"3": [
+[
+1939,
+1941
+]
+],
+"4": [
+[
+1939,
+1941
+]
+]
+}
+},
+{
+"nome": "Radio 155mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 155mm",
+"col": {
+"2": [
+[
+1941,
+1945
+]
+],
+"4": [
+[
+1944,
+1945
+]
+],
+"5": [
+[
+1939,
+1940
+]
+]
+}
+},
+{
+"nome": "Radio 105mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 105mm",
+"col": {
+"4": [
+[
+1939,
+1943
+]
+],
+"7": [
+[
+1944,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 81mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 81mm",
+"col": {
+"3": [
+[
+1939,
+1945
+]
+],
+"7": [
+[
+1943,
+1943
+]
+],
+"10": [
+[
+1943,
+1945
+]
+]
+}
+},
+{
+"nome": "Radio 75mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 75mm",
+"col": {
+"7": [
+[
+1939,
+1941
+]
+],
+"8": [
+[
+1941,
+1943
+]
+],
+"10": [
+[
+1939,
+1940
+]
+],
+"11": [
+[
+1944,
+1945
+]
+]
+}
+}
+],
+"IT": [
+{
+"nome": "Capitano Antonile",
+"tipo": "leader",
+"unita": "Cpt. Antonile",
+"arma": "",
+"col": {
+"11": [
+[
+1939,
+1939
+]
+],
+"12": [
+[
+1940,
+1942
+]
+]
+}
+},
+{
+"nome": "Tenente Romero",
+"tipo": "leader",
+"unita": "Lt. Romero",
+"arma": "",
+"col": {
+"10": [
+[
+1939,
+1939
+]
+],
+"11": [
+[
+1940,
+1942
+]
+],
+"12": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Tenente Zanella",
+"tipo": "leader",
+"unita": "Lt. Zanella",
+"arma": "",
+"col": {
+"9": [
+[
+1939,
+1939
+]
+],
+"10": [
+[
+1940,
+1942
+]
+],
+"11": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Sergente Minutello",
+"tipo": "leader",
+"unita": "Sgt. Minutello",
+"arma": "",
+"col": {
+"8": [
+[
+1939,
+1939
+]
+],
+"9": [
+[
+1940,
+1942
+]
+],
+"10": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Sergente Ruggiero",
+"tipo": "leader",
+"unita": "Sgt. Ruggiero",
+"arma": "",
+"col": {
+"7": [
+[
+1939,
+1939
+]
+],
+"8": [
+[
+1940,
+1942
+]
+]
+}
+},
+{
+"nome": "Sergente Carboni",
+"tipo": "leader",
+"unita": "Sgt. Carboni",
+"arma": "",
+"col": {
+"8": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Caporale Pagliari",
+"tipo": "leader",
+"unita": "Cpl. Pagliari",
+"arma": "",
+"col": {
+"7": [
+[
+1939,
+1944
+]
+]
+}
+},
+{
+"nome": "Caporale Farinato",
+"tipo": "leader",
+"unita": "Cpl. Farinato",
+"arma": "",
+"col": {
+"6": [
+[
+1939,
+1942
+]
+],
+"8": [
+[
+1943,
+1944
+]
+]
+}
+},
+{
+"nome": "Caporale Castania",
+"tipo": "leader",
+"unita": "Cpl. Castania",
+"arma": "",
+"col": {
+"2": [
+[
+1943,
+1944
+]
+],
+"3": [
+[
+1940,
+1944
+]
+],
+"4": [
+[
+1940,
+1944
+]
+],
+"5": [
+[
+1939,
+1939
+]
+]
+}
+},
+{
+"nome": "Team armi con MG leggera",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Light MG",
+"col": {
+"5": [
+[
+1941,
+1944
+]
+],
+"6": [
+[
+1939,
+1939
+]
+],
+"7": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Team armi con MG media",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium MG",
+"col": {
+"3": [
+[
+1941,
+1944
+]
+],
+"4": [
+[
+1941,
+1944
+]
+]
+}
+},
+{
+"nome": "Team armi con MG pesante",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Heavy MG",
+"col": {
+"2": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio Brixia",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Brixia Mortar",
+"col": {
+"6": [
+[
+1939,
+1944
+]
+]
+}
+},
+{
+"nome": "Team armi con mortaio medio",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Medium Mortar",
+"col": {
+"8": [
+[
+1943,
+1944
+]
+],
+"9": [
+[
+1942,
+1942
+]
+],
+"10": [
+[
+1940,
+1941
+]
+],
+"12": [
+[
+1939,
+1939
+]
+]
+}
+},
+{
+"nome": "Team armi con cannone da montagna",
+"tipo": "team",
+"unita": "Weapon Team",
+"arma": "Mountain Gun",
+"col": {
+"9": [
+[
+1939,
+1941
+]
+],
+"10": [
+[
+1942,
+1943
+]
+],
+"11": [
+[
+1944,
+1944
+]
+]
+}
+},
+{
+"nome": "Guastatori con lanciafiamme",
+"tipo": "squad",
+"unita": "Guastatori",
+"arma": "Flamethrower",
+"col": {
+"12": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Guastatori con carica esplosiva",
+"tipo": "squad",
+"unita": "Guastatori",
+"arma": "Satchel Charge",
+"col": {
+"11": [
+[
+1940,
+1943
+]
+]
+}
+},
+{
+"nome": "Squadra Bersaglieri",
+"tipo": "squad",
+"unita": "Bersaglieri",
+"arma": "",
+"col": {
+"10": [
+[
+1940,
+1944
+]
+],
+"11": [
+[
+1940,
+1944
+]
+],
+"12": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Squadra Fucilieri",
+"tipo": "squad",
+"unita": "Fucilieri",
+"arma": "",
+"col": {
+"6": [
+[
+1940,
+1944
+]
+],
+"7": [
+[
+1940,
+1944
+]
+],
+"8": [
+[
+1940,
+1944
+]
+],
+"9": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Squadra Camicie Nere",
+"tipo": "squad",
+"unita": "Blackshirt",
+"arma": "",
+"col": {
+"2": [
+[
+1940,
+1944
+]
+],
+"3": [
+[
+1940,
+1944
+]
+],
+"4": [
+[
+1940,
+1944
+]
+],
+"5": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Radio 150mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 150mm",
+"col": {
+"12": [
+[
+1940,
+1944
+]
+]
+}
+},
+{
+"nome": "Radio 105mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 105mm",
+"col": {
+"9": [
+[
+1940,
+1944
+]
+],
+"12": [
+[
+1939,
+1939
+]
+]
+}
+},
+{
+"nome": "Radio 81mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 81mm",
+"col": {
+"6": [
+[
+1939,
+1939
+]
+],
+"8": [
+[
+1939,
+1944
+]
+]
+}
+},
+{
+"nome": "Radio 75mm",
+"tipo": "radio",
+"unita": "",
+"arma": "Radio 75mm",
+"col": {
+"7": [
+[
+1939,
+1944
+]
+],
+"11": [
+[
+1940,
+1944
+]
+]
+}
+}
+]
+}

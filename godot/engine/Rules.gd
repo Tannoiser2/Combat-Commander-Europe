@@ -113,6 +113,10 @@ static func cover_at(state: GameState, q: int, r: int, vs_ordnance: bool) -> int
 	var fc := int(Domain.FORT_COVER.get(hd.fortification, 0))
 	if fc > 0:
 		cov = maxi(cov, fc + (1 if vs_ordnance else 0))
+	# T93: in un esagono con Strada la copertura di terreno e fortificazioni
+	# cala di 1.
+	if hd.has_road:
+		cov -= 1
 	return cov
 
 

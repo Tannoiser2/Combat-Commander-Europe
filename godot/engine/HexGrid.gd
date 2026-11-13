@@ -113,9 +113,26 @@ static func los_kind(q1: int, r1: int, q2: int, r2: int, state: GameState) -> in
 	return LOS_CLEAR
 
 
-## Linea di vista da (q1,r1) a (q2,r2). Bloccata da terreno opaco o elevazione
-## più alta degli estremi negli esagoni intermedi, e da lati BOCAGE (sempre) o
-## MURO/SIEPE su un lato NON di estremità. Un lato LOS_CLEAR è un varco libero.
+## Quota effettiva di un esagono: il campo `elevation` o, se manca, quella
+## implicita del terreno collina.
+static func elev_of(state: GameState, q: int, r: int) -> int:
+	var hd: GameState.HexData = state.hex_at(q, r)
+	if hd == null:
+		return 0
+	return maxi(hd.elevation, _terrain_elevation(hd.terrain))
+
+
+## Linea di vista da (q1,r1) a (q2,r2) (10 e T88.3–T88.4), a livello di esagono:
+##  · stessa quota: bloccano gli Ostacoli (bosco, edificio…) alla stessa quota o
+##    più in alto e le colline più alte; un ostacolo più in basso (in una valle
+##    fra due alture) non blocca;
+##  · quote diverse: blocca qualunque esagono intermedio alto quanto o più
+##    dell'estremo più alto (cresta militare: dall'altopiano si vede giù solo dal
+##    suo bordo, e dal basso si vede solo il primo esagono di ogni quota);
+##    un Ostacolo più basso non blocca, ma crea un ESAGONO CIECO subito dietro
+##    di sé (T88.4.1) se quell'esagono non è più alto dell'ostacolo;
+##  · lati di esagono: BOCAGE sempre, MURO/SIEPE se non toccano tiratore o
+##    bersaglio — purché non stiano più in basso dell'estremo più alto.
 static func has_los(
 	q1: int, r1: int, q2: int, r2: int,
 	state: GameState
@@ -124,23 +141,42 @@ static func has_los(
 	if dist == 0:
 		return true
 	var path := line(q1, r1, q2, r2)
-	var max_end_elev := maxi(_elev(state, q1, r1), _elev(state, q2, r2))
+	var e1 := elev_of(state, q1, r1)
+	var e2 := elev_of(state, q2, r2)
+	var hi := maxi(e1, e2)
+	var lo := mini(e1, e2)
+	# Indice dell'esagono intermedio adiacente all'estremo PIÙ BASSO.
+	var near_low := (dist - 1) if e2 < e1 else 1
 
-	# Esagoni intermedi: terreno opaco o collina più alta degli estremi.
 	for i in range(1, dist):
 		var hd: GameState.HexData = state.hex_at(path[i].x, path[i].y)
 		if hd == null:
 			continue
-		if Domain.TERRAIN_BLOCKS_LOS.get(hd.terrain, false):
+		var ei := maxi(hd.elevation, _terrain_elevation(hd.terrain))
+		if hd.has_blaze:
+			return false  # T79: l'Incendio è un Ostacolo a ogni quota
+		if hi > lo:
+			if ei >= hi:
+				return false
+		elif ei > hi:
 			return false
-		if hd.elevation > max_end_elev:
-			return false
+		# Le colline contano per la quota, non come «terreno che blocca».
+		var is_hill := hd.terrain == Domain.TerrainType.HILL1 or hd.terrain == Domain.TerrainType.HILL2
+		if not is_hill and Domain.TERRAIN_BLOCKS_LOS.get(hd.terrain, false):
+			if ei >= hi:
+				return false
+			# Ostacolo più in basso dell'osservatore: esagono cieco dietro di lui.
+			if hi > lo and i == near_low and lo <= ei:
+				return false
 
 	# Lati di esagono attraversati.
 	for i in range(0, dist):
 		var feat := state.side_feature_between(path[i], path[i + 1])
 		if feat == Domain.HexsideFeature.LOS_CLEAR:
 			continue
+		var side_elev := maxi(elev_of(state, path[i].x, path[i].y), elev_of(state, path[i + 1].x, path[i + 1].y))
+		if side_elev < hi:
+			continue  # sta più in basso della linea di vista
 		if feat == Domain.HexsideFeature.BOCAGE:
 			return false
 		var is_endpoint := i == 0 or i == dist - 1
@@ -150,14 +186,13 @@ static func has_los(
 
 
 ## Hindrance lungo la LOS (10.3.3): NON cumulativo — si usa il modificatore
-## SINGOLO più grande, non la somma (due Brush = −3, non −6). Considera il
-## terreno degli esagoni intermedi e il fumo, che ostacola anche entrando/
-## uscendo (10.3.4): quindi conta anche sull'esagono del tiratore e del bersaglio.
+## SINGOLO più grande. Il terreno che ostacola conta solo se non sta più in basso
+## dell'estremo più alto (T88.5); il fumo ostacola sempre, anche nell'esagono del
+## tiratore o del bersaglio (10.3.4).
 const SMOKE_HINDRANCE := 3   ## modello a fumo booleano: valore rappresentativo
 
 static func los_hindrance(q1: int, r1: int, q2: int, r2: int, state: GameState) -> int:
 	var best := 0
-	# Fumo sull'esagono del tiratore o del bersaglio (10.3.4).
 	for p in [Vector2i(q1, r1), Vector2i(q2, r2)]:
 		var ehd: GameState.HexData = state.hex_at(p.x, p.y)
 		if ehd != null and ehd.has_smoke:
@@ -165,22 +200,24 @@ static func los_hindrance(q1: int, r1: int, q2: int, r2: int, state: GameState) 
 	var dist := distance(q1, r1, q2, r2)
 	if dist <= 1:
 		return best
+	var hi := maxi(elev_of(state, q1, r1), elev_of(state, q2, r2))
 	var path := line(q1, r1, q2, r2)
 	for i in range(1, dist):
 		var hd: GameState.HexData = state.hex_at(path[i].x, path[i].y)
 		if hd != null:
-			best = maxi(best, int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0)))
+			if maxi(hd.elevation, _terrain_elevation(hd.terrain)) >= hi:
+				best = maxi(best, int(Domain.TERRAIN_HINDRANCE.get(hd.terrain, 0)))
 			if hd.has_smoke:
 				best = maxi(best, SMOKE_HINDRANCE)
-	# Recinzione (Terrain Chart): ostacolo 1 se la LOS attraversa un lato con
-	# recinzione, MA la LOS è libera se quel lato appartiene all'esagono del
-	# tiratore o del bersaglio (nota ** della tabella).
+	# Recinzione: ostacolo 1 se la LOS la attraversa, ma libera se è un lato
+	# dell'esagono del tiratore o del bersaglio.
 	for i in range(1, dist):
 		var a: Vector2i = path[i - 1]
 		var b: Vector2i = path[i]
 		if a == Vector2i(q1, r1) or b == Vector2i(q2, r2):
 			continue
-		if state.side_feature_between(a, b) == Domain.HexsideFeature.FENCE:
+		if state.side_feature_between(a, b) == Domain.HexsideFeature.FENCE \
+				and maxi(elev_of(state, a.x, a.y), elev_of(state, b.x, b.y)) >= hi:
 			best = maxi(best, 1)
 	return best
 
