@@ -1303,7 +1303,10 @@ func _apply_badge(sp: Sprite3D, tex: Texture2D) -> void:
 	if not is_instance_valid(sp) or tex == null:
 		return
 	sp.texture = tex
-	sp.pixel_size = 0.30 / float(maxi(1, tex.get_height()))
+	# Densità fissa (il testo resta della stessa misura qualunque sia l'altezza
+	# della targhetta) e targhetta ancorata in basso, così cresce verso l'alto.
+	sp.pixel_size = 0.0125
+	sp.offset = Vector2(0.0, tex.get_height() * 0.5)
 
 
 ## Renderizza il badge in un SubViewport 2D, lo mette in cache e lo applica a tutti
@@ -1342,40 +1345,94 @@ func _render_badge(sp: Sprite3D, u: Unit, tokens: Array, key: String, sel: bool)
 	_badge_pending.erase(key)
 
 
-## Costruisce la UI del badge: pannello con angoli stondati e una riga di valori;
-## i token "in box" hanno un riquadro stondato del loro colore. Il fondo indica lo
-## stato: azzurro acceso se SELEZIONATA, rosso se rotta, altrimenti scuro neutro;
-## il bordo è azzurro se selezionata, sennò tinto per fazione.
-func _build_badge_control(u: Unit, tokens: Array, sel: bool) -> Control:
-	var border := Color(0.40, 0.85, 1.0) if sel \
-		else (Color(0.66, 0.70, 0.58) if u.faction == Domain.Faction.GERMAN \
-		else Color(0.78, 0.60, 0.42))
-	var bg := Color(0.42, 0.10, 0.10, 0.92) if not u.efficient \
-		else (Color(0.10, 0.34, 0.52, 0.94) if sel else Color(0.10, 0.11, 0.13, 0.90))
+## Stato della pedina rispetto alla decisione in corso (come gli anelli della
+## mappa 2D): "pick" = si può toccare, "on"/"off" = inclusa/esclusa in una
+## scelta multipla, "focus" = è l'unità di cui si sta decidendo. `extra` è una
+## scritta in più (es. «COMANDA 2»).
+func _badge_mark(u: Unit) -> Dictionary:
+	var p := Game.pending()
+	if p.is_empty():
+		return { "mark": "", "extra": "" }
+	var s := Game.state
+	var w := s.weapon_carried_by(u.id) if u.is_man() else null
+	var sel: Array = p.get("selected", [])
+	var opt := {}
+	for o: Dictionary in p["options"]:
+		if o.has("unit") and (String(o["unit"]) == u.id or (w != null and String(o["unit"]) == w.id)):
+			opt = o
+			break
+	if not opt.is_empty():
+		if opt.has("on"):
+			var is_on := sel.has(u.id) or (w != null and sel.has(w.id))
+			return { "mark": "on" if is_on else "off", "extra": "DENTRO" if is_on else "FUORI" }
+		var extra := ""
+		if String(p.get("kind", "")) == "activate" and u.is_leader() and u.command > 0:
+			extra = "COMANDA %d" % u.command
+		return { "mark": "pick", "extra": extra }
+	if u.id == String(p.get("unit", p.get("leader", ""))):
+		return { "mark": "focus", "extra": "" }
+	return { "mark": "", "extra": "" }
+
+
+## Costruisce la targhetta della pedina, nello stile della nuova interfaccia:
+## nome, valori (FP, gittata, movimento, morale o comando) e sotto le fasce di
+## stato (ROTTA, SOPPRESSA, VETERANA). Il bordo dice se la pedina si può toccare
+## (oro), se è inclusa (verde) o esclusa (grigio) da una scelta, o se è quella
+## di cui si sta decidendo (azzurro); altrimenti ha il colore del suo lato.
+func _build_badge_control(u: Unit, tokens: Array, _sel: bool) -> Control:
+	var m := _badge_mark(u)
+	var side_col := Tema.side_color(u.faction)
+	var border := side_col
+	var bw := 2
+	match String(m["mark"]):
+		"pick":
+			border = Tema.BRASS.lightened(0.15)
+			bw = 5
+		"on":
+			border = Color(0.35, 0.95, 0.45)
+			bw = 5
+		"off":
+			border = Color(0.72, 0.72, 0.72)
+			bw = 3
+		"focus":
+			border = Color(0.30, 0.80, 1.0)
+			bw = 5
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.set_corner_radius_all(10)
-	sb.set_border_width_all(3 if sel else 2)
+	sb.bg_color = Color(Tema.PANEL.r, Tema.PANEL.g, Tema.PANEL.b, 0.94)
+	if u.activated:
+		sb.bg_color = Color(0.05, 0.05, 0.04, 0.94)
+	sb.set_corner_radius_all(6)
+	sb.set_border_width_all(bw)
 	sb.border_color = border
 	sb.content_margin_left = 8; sb.content_margin_right = 8
-	sb.content_margin_top = 3; sb.content_margin_bottom = 3
+	sb.content_margin_top = 3; sb.content_margin_bottom = 4
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", sb)
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 1)
+	panel.add_child(vb)
+	var name_lbl := Label.new()
+	name_lbl.text = u.unit_name
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_override("font", Tema.bold_font())
+	name_lbl.add_theme_font_size_override("font_size", 22)
+	name_lbl.add_theme_color_override("font_color", side_col.lightened(0.25) if not u.activated else Tema.DIM)
+	vb.add_child(name_lbl)
 	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	hb.add_theme_constant_override("separation", 6)
-	panel.add_child(hb)
+	vb.add_child(hb)
 	for tok in tokens:
 		var lbl := Label.new()
 		lbl.text = tok["text"]
+		lbl.add_theme_font_override("font", Tema.bold_font())
 		lbl.add_theme_font_size_override("font_size", 30)
 		lbl.add_theme_color_override("font_color", tok["color"])
-		lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-		lbl.add_theme_constant_override("outline_size", 5)
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		if tok["box"]:
 			var bsb := StyleBoxFlat.new()
-			bsb.bg_color = Color(0, 0, 0, 0)
-			bsb.set_corner_radius_all(6)
+			bsb.bg_color = Color(0, 0, 0, 0.35)
+			bsb.set_corner_radius_all(4)
 			bsb.set_border_width_all(2)
 			bsb.border_color = tok["color"]
 			bsb.content_margin_left = 5; bsb.content_margin_right = 5
@@ -1385,15 +1442,39 @@ func _build_badge_control(u: Unit, tokens: Array, sel: bool) -> Control:
 			hb.add_child(bp)
 		else:
 			hb.add_child(lbl)
+	var bands: Array = []
+	if String(m["extra"]) != "":
+		bands.append([String(m["extra"]), border, Color(0.06, 0.06, 0.05)])
+	if not u.efficient:
+		bands.append(["GUASTA" if u.is_weapon() else "ROTTA", Color(0.85, 0.12, 0.10), Color(1, 1, 1)])
+	if u.suppressed:
+		bands.append(["SOPPRESSA", Color(0.90, 0.65, 0.10), Color(0.08, 0.08, 0.06)])
+	if u.veteran:
+		bands.append(["VETERANA", Color(0.20, 0.55, 0.90), Color(1, 1, 1)])
+	for bnd in bands:
+		var bs := StyleBoxFlat.new()
+		bs.bg_color = bnd[1]
+		bs.set_corner_radius_all(3)
+		bs.content_margin_left = 6; bs.content_margin_right = 6
+		var bpn := PanelContainer.new()
+		bpn.add_theme_stylebox_override("panel", bs)
+		var bl := Label.new()
+		bl.text = String(bnd[0])
+		bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		bl.add_theme_font_override("font", Tema.bold_font())
+		bl.add_theme_font_size_override("font_size", 20)
+		bl.add_theme_color_override("font_color", bnd[2])
+		bpn.add_child(bl)
+		vb.add_child(bpn)
 	return panel
 
 
 ## Token (testo/colore/box) del badge, in ordine di lettura, secondo il tipo.
 func _badge_tokens(u: Unit) -> Array:
-	const WHITE := Color(0.97, 0.97, 0.93)
-	const GOLD := Color(1.0, 0.84, 0.32)
-	const BLUE := Color(0.58, 0.82, 1.0)
-	const YELL := Color(0.98, 0.88, 0.45)
+	const WHITE := Color(0.93, 0.91, 0.82)
+	const GOLD := Color(0.95, 0.80, 0.40)
+	const BLUE := Color(0.62, 0.80, 0.95)
+	const YELL := Color(0.80, 0.78, 0.62)
 	var out := []
 	if u.is_leader():
 		out.append({ "text": "%+d" % u.command, "color": GOLD, "box": true })   # Comando
@@ -1412,11 +1493,14 @@ func _badge_tokens(u: Unit) -> Array:
 	return out
 
 
-func _badge_key(u: Unit, tokens: Array, sel: bool) -> String:
+func _badge_key(u: Unit, tokens: Array, _sel: bool) -> String:
 	var parts := PackedStringArray()
 	for t in tokens:
 		parts.append("%s/%s/%d" % [t["text"], t["color"].to_html(), 1 if t["box"] else 0])
-	return "%d|%d|%d|%s" % [u.faction, 1 if u.efficient else 0, 1 if sel else 0, "|".join(parts)]
+	var m := _badge_mark(u)
+	return "%d|%s|%d%d%d%d|%s|%s|%s" % [u.faction, u.unit_name, 1 if u.efficient else 0,
+		1 if u.suppressed else 0, 1 if u.activated else 0, 1 if u.veteran else 0,
+		String(m["mark"]), String(m["extra"]), "|".join(parts)]
 
 
 func _counter_tex(u: Unit) -> Texture2D:

@@ -12,15 +12,23 @@
 - Vittoria: obiettivi con chit aperti e segreti, PV da eliminazione e da uscita, resa, annientamento, Morte Subitanea.
 - Bordi amici per scenario (alto/basso o sinistra/destra).
 
+## Aggiunto nella v0.51
+
+- Tabelle di Supporto delle sei nazioni; azione Unità Nascosta; evento Rinforzi a norma.
+- Eventi Saccheggio, Procedere Feriti, Fosforo Bianco (col registro delle pedine eliminate).
+- Colline: vantaggio d'altura, creste, esagoni ciechi, ostacoli e hindrance per quota.
+- Strada: copertura −1 e +1 al Movimento.
+- Muovere insieme (O21.2).
+- Targhette 3D nuove.
+
 ## Semplificazioni e cose ancora da fare
 
-1. **Schieramento**: il giocatore può spostare le sue unità nella zona o farle ridisporre in automatico; le regole di schieramento particolari di alcune schede (ancore, ordine di piazzamento) non sono ancora imposte.
+1. **Schieramento**: il giocatore può spostare le sue unità nella zona o farle ridisporre in automatico; le regole di schieramento particolari di alcune schede non sono ancora imposte.
 2. **Salvataggio** della partita: non ancora collegato al nuovo motore.
-3. **Unità Nascosta (A35.4)** ed evento **Rinforzi**: la Tabella di Supporto della nazione non è modellata (Rinforzi dà una Squadra base; Unità Nascosta non è giocabile).
-4. **Eventi** Saccheggio, Procedere Feriti e Fosforo Bianco: senza effetto.
-5. **Armi guaste**: non si riparano/eliminano con l'Esagono Casuale (11.4); trasferimento arma (O21.1.1) e muovere in gruppo (O21.2) non ci sono: ogni unità muove da sola.
-6. **Terreno**: copertura −1 lungo strada, vantaggio d'altura, esagoni ciechi e creste, obiettivi su edifici di più esagoni, fumo a valore variabile (ora vale sempre 3).
-7. **Regole speciali di scenario**: valgono quelle già presenti nei dati (carte iniziali, rinforzi, chit esclusi, modifiche al terreno, ostacolo globale); le altre sono solo descritte in «Come si gioca».
-8. **Carte illustrate** per Britannici, Italiani e Francesi: per ora disegnate dal gioco con lo stesso impianto.
-9. **Vista 3D**: funziona col nuovo motore (evidenziazioni, tocco), ma le targhette delle pedine sono ancora quelle vecchie.
-10. **Online su Firebase**: da fare; il motore a decisioni è già adatto (basta trasmettere l'indice dell'opzione scelta).
+3. **Tabelle di Supporto**: i comandanti arrivano con i valori del loro grado (non quelli stampati sul singolo counter); le voci «solo OB finlandese» e i mortai «solo belgi/polacchi» sono escluse; Lanciafiamme e Carica esplosiva sono armi semplici (FP 11 e 12, gittata 1) senza le loro regole particolari.
+4. **Colline**: le quote sono per esagono intero (le mappe non registrano la linea di cresta dentro l'esagono), quindi la cresta coincide col bordo dell'esagono.
+5. **Armi guaste**: non si riparano/eliminano con l'Esagono Casuale (11.4); manca il trasferimento arma (O21.1.1).
+6. **Terreno**: obiettivi su edifici di più esagoni, fumo a valore variabile (ora vale sempre 3).
+7. **Regole speciali di scenario**: valgono quelle già presenti nei dati; le altre sono solo descritte in «Come si gioca».
+8. **Carte illustrate** per Britannici, Italiani e Francesi: per ora disegnate dal gioco.
+9. **Online su Firebase**: da fare.

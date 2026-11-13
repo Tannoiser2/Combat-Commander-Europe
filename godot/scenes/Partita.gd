@@ -116,7 +116,13 @@ func _build() -> void:
 	btn_3d.pressed.connect(_toggle_3d)
 	bar.add_child(btn_3d)
 	var recenter := _btn("Centra", "Reinquadra la mappa", 74)
-	recenter.pressed.connect(func() -> void: board.reset_view())
+	recenter.pressed.connect(func() -> void:
+		board.reset_view()
+		if view3d != null and view3d.visible:
+			var m3 := view3d.get_child(0).get_child(0)
+			if m3 != null and m3.has_method("_reset_camera"):
+				m3._reset_camera()
+				m3._update_camera())
 	bar.add_child(recenter)
 	btn_speed = _btn("", "Velocità con cui scorrono le azioni", 118)
 	btn_speed.pressed.connect(_cycle_speed)

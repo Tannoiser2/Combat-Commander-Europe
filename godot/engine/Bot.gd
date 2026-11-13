@@ -242,8 +242,22 @@ func pick() -> int:
 				if String(opts[i].get("label", "")).contains("Fuoco"):
 					return i
 			return 0
-		"setup":
+		"setup", "move_together":
 			return _idx(opts, "confirm")
+		"hidden_unit":
+			return _idx(opts, "play")
+		"support":
+			return _pick_support(opts)
+		"place_unit":
+			return _pick_safe_hex(f, opts)
+		"scrounge":
+			return 0
+		"scrounge_to":
+			return _pick_unit(opts, true)
+		"walking_wounded":
+			return _pick_grave(f, opts)
+		"phosphorus":
+			return _pick_phosphorus(f, opts)
 		"deploy", "demolitions", "setup_place":
 			return opts.size() - 1
 	return 0
@@ -263,6 +277,50 @@ func _pick_unit(opts: Array, want_best: bool) -> int:
 			best_v = v
 			best = i
 	return best
+
+
+## Fra le voci di supporto: prima comandanti e armi di squadra, poi le squadre.
+func _pick_support(opts: Array) -> int:
+	var best := 0
+	var best_v := -1.0
+	for i in opts.size():
+		var it: Dictionary = opts[i].get("item", {})
+		var v := 1.0
+		match String(it.get("tipo", "")):
+			"squad": v = 3.0 + (1.5 if String(it.get("arma", "")) != "" else 0.0)
+			"team": v = 3.5
+			"leader": v = 3.2
+			"radio": v = 2.5
+		v += rng.randf() * 0.5
+		if v > best_v:
+			best_v = v
+			best = i
+	return best
+
+
+## Procedere Feriti: riporta in gioco la propria unità migliore.
+func _pick_grave(f: int, opts: Array) -> int:
+	var best := 0
+	var best_v := -1e9
+	for i in opts.size():
+		var u: Unit = opts[i].get("grave")
+		if u == null:
+			continue
+		var v := unit_value(u) * (1.0 if u.faction == f else -0.2)
+		if v > best_v:
+			best_v = v
+			best = i
+	return best
+
+
+## Fosforo Bianco: solo dove ci sono nemici e nessun amico.
+func _pick_phosphorus(f: int, opts: Array) -> int:
+	for i in opts.size():
+		if opts[i].has("hex"):
+			var h: Vector2i = opts[i]["hex"]
+			if flow.enemy_in(h, f) and flow._side_at(f, h).is_empty():
+				return i
+	return _idx(opts, "no")
 
 
 func _pick_safe_hex(f: int, opts: Array) -> int:

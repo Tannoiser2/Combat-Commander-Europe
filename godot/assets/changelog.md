@@ -1,3 +1,13 @@
+[b]v0.51.0 — Supporto, colline e movimento in gruppo[/b]
+- [b]Tabelle di Supporto[/b] delle sei nazioni (dalle schede ufficiali, per anno dello scenario).
+- [b]Unità Nascosta[/b]: il Difensore, quando l'avversario scarta, tira sulla Tabella di Supporto e fa comparire un'unità nella sua zona di schieramento.
+- Evento [b]Rinforzi[/b] a norma: tiro sulla Tabella di Supporto, unità sul bordo amico o Radio.
+- Eventi [b]Saccheggio[/b] (recuperi un'arma eliminata), [b]Procedere Feriti[/b] (un'unità eliminata rientra rotta) e [b]Fosforo Bianco[/b].
+- [b]Colline[/b]: vantaggio d'altura (+1 o -1 FP), creste (dall'altopiano si vede in basso solo dal bordo), esagoni ciechi dietro boschi ed edifici, ostacoli e macchie più in basso che non contano.
+- [b]Strada[/b]: copertura -1 negli esagoni con strada e +1 al Movimento dopo esserci entrati.
+- [b]Muovere insieme[/b]: le unità attivate nello stesso esagono possono muovere unite, al passo della più lenta.
+- [b]Vista 3D[/b]: targhette nuove con nome, valori, stato (rotta, soppressa) e bordo che indica chi si può toccare, come nella mappa 2D.
+
 [b]v0.50.0 — Rifondazione[/b]
 
 [b]Motore nuovo «a decisioni»[/b]
