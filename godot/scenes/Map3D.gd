@@ -52,8 +52,8 @@ var _ox := 129.0
 var _oy := 69.0
 var _hx := 59.2
 
-var _cam_yaw := 0.6
-var _cam_pitch := 0.85
+var _cam_yaw := 0.0
+var _cam_pitch := 0.95
 var _cam_dist := 30.0
 var _center := Vector3.ZERO
 var _home_center := Vector3.ZERO  ## inquadratura iniziale (reset col tasto «0»)
@@ -74,6 +74,7 @@ var _press_pos := Vector2.ZERO
 var _dragged := false
 var _touches := {}        ## indice dito → posizione (per il pinch a due dita)
 var _pinch_dist := 0.0
+var _twist_ang := 0.0
 var active := true   ## Main lo mette a false quando la 3D è nascosta (no refresh)
 
 const ORBIT_SPEED := 0.004   ## sensibilità rotazione (più basso = più lento)
@@ -489,7 +490,7 @@ func _add_lighting() -> void:
 	add_child(sun)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.55, 0.66, 0.82)
+	env.background_color = Color(0.086, 0.098, 0.078)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.92, 0.92, 0.95)
 	env.ambient_light_energy = 0.85
@@ -602,6 +603,7 @@ func _build_static(s: GameState) -> void:
 	_center = Vector3(ww * 0.5, 0.0, hh * 0.5)
 	_cam_dist = maxf(ww, hh) * 0.75 + 6.0
 	# "Casa" della camera (per il reinquadramento col tasto «0»).
+	_cam_dist *= 0.62  # inquadratura iniziale più ravvicinata
 	_home_center = _center
 	_home_dist = _cam_dist
 
@@ -1334,8 +1336,9 @@ func _render_badge(sp: Sprite3D, u: Unit, tokens: Array, key: String, sel: bool)
 		_badge_cache[key] = tex
 	vp.queue_free()
 
-	for s in _badge_pending[key]:
-		_apply_badge(s, tex)
+	for s in _badge_pending.get(key, []):
+		if is_instance_valid(s):
+			_apply_badge(s, tex)
 	_badge_pending.erase(key)
 
 
@@ -2060,8 +2063,8 @@ func _pan(rel: Vector2) -> void:
 func _reset_camera() -> void:
 	_center = _home_center
 	_cam_dist = _home_dist
-	_cam_yaw = 0.6
-	_cam_pitch = 0.85
+	_cam_yaw = 0.0
+	_cam_pitch = 0.95
 	_update_camera()
 
 
@@ -2076,15 +2079,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventPanGesture:
 		_zoom(1.0 + (event as InputEventPanGesture).delta.y * 0.04)
 		return
-	# Touch screen: 1 dito = ruota, 2 dita = pinch-zoom.
+	# Schermo a tocco (iPad): un dito trascina la mappa; due dita pizzicano per
+	# lo zoom, ruotano per girare la vista e, trascinate insieme in verticale,
+	# la inclinano.
 	if event is InputEventScreenTouch:
 		var st := event as InputEventScreenTouch
 		if st.pressed:
 			_touches[st.index] = st.position
 		else:
 			_touches.erase(st.index)
-		if _touches.size() < 2:
-			_pinch_dist = 0.0
+		_pinch_dist = 0.0
+		_twist_ang = 0.0
+		if _touches.size() >= 2:
+			_dragged = true
+			var p0: Array = _touches.values()
+			_pinch_dist = (p0[0] as Vector2).distance_to(p0[1])
+			_twist_ang = ((p0[1] as Vector2) - (p0[0] as Vector2)).angle()
 		return
 	if event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
@@ -2092,11 +2102,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _touches.size() >= 2:
 			var pts: Array = _touches.values()
 			var d: float = (pts[0] as Vector2).distance_to(pts[1])
+			var ang: float = ((pts[1] as Vector2) - (pts[0] as Vector2)).angle()
 			if _pinch_dist > 0.0 and d > 1.0:
 				_zoom(_pinch_dist / d)
+				_cam_yaw += wrapf(ang - _twist_ang, -PI, PI)
+				_cam_pitch = clampf(_cam_pitch + sd.relative.y * 0.5 * ORBIT_SPEED, 0.2, 1.45)
+				_update_camera()
 			_pinch_dist = d
-		else:
-			_orbit(sd.relative)
+			_twist_ang = ang
+			_dragged = true
+		elif sd.relative.length() > 0.0:
+			if sd.position.distance_to(_press_pos) > 8.0:
+				_dragged = true
+			_pan(sd.relative)
 		return
 	# Mouse (desktop).
 	if event is InputEventMouseButton:
@@ -2143,7 +2161,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if mm.position.distance_to(_press_pos) > 5.0:
 				_dragged = true
 			_hide_tooltip()
-			_orbit(mm.relative)
+			if _touches.is_empty():
+				_orbit(mm.relative)  # mouse: sinistro = ruota; col dito ci pensa il tocco (sposta)
 		else:
 			# Senza pulsanti premuti: aggiorna il pannello informativo (hover).
 			_update_tooltip(mm.position)

@@ -364,3 +364,62 @@ static func _weapon_fallback(label: String) -> Dictionary:
 		return { "fp": 7, "range": 14, "move_penalty": -2 }
 	# cannoni/obici
 	return { "fp": 10, "range": 16, "move_penalty": -3 }
+
+
+# ─── Lato rotto (retro della pedina) ─────────────────────────────────────────
+
+const BROKEN_PATH := "res://assets/scenarios/broken_chart.json"
+static var _broken: Dictionary = {}
+
+
+static func _broken_data() -> Dictionary:
+	if _broken.is_empty():
+		var f := FileAccess.open(BROKEN_PATH, FileAccess.READ)
+		if f != null:
+			var d: Variant = JSON.parse_string(f.get_as_text())
+			if d is Dictionary:
+				_broken = d
+	return _broken
+
+
+## Assegna a un'unità (uomini, non armi) le statistiche del lato rotto prese dal
+## Manifesto ufficiale. `nat` = codice nazione (DE/RU/US/GB/FR/IT).
+static func apply_broken_side(u: Unit, nat: String) -> void:
+	if u == null or u.is_weapon() or u.has_sides or not u.efficient:
+		return
+	var d := _broken_data()
+	var b: Dictionary = {}
+	if u.is_leader():
+		var key := "Corporal Y"
+		if u.hero or u.unit_name.contains("Hero") or u.unit_name == "Eroe":
+			key = "Hero"
+		elif u.unit_name == "Soldato":
+			key = "Private"
+		elif u.unit_name.begins_with("Cpt."):
+			key = "Captain"
+		elif u.unit_name.begins_with("Lt."):
+			key = "Lieutenant Y" if u.command >= 2 else "Lieutenant X"
+		elif u.unit_name.begins_with("Sgt."):
+			key = "Sergeant Y" if u.command >= 2 else "Sergeant X"
+		elif u.morale <= 6:
+			key = "Corporal X"
+		b = d.get("leaders", {}).get(key, {})
+	else:
+		var name := u.unit_name
+		# «Rifle 3» → «Rifle»; «Weapon Team» → «Team Weapon»; «Elite Team» → «Team Elite»
+		while name.length() > 0 and (name[name.length() - 1].is_valid_int() or name.ends_with(" ")):
+			name = name.substr(0, name.length() - 1)
+		if name.ends_with(" Team"):
+			name = "Team " + name.trim_suffix(" Team")
+		var tbl: Dictionary = d.get("units", {}).get(nat, {})
+		if tbl.has(name):
+			b = tbl[name]
+		else:
+			for n in d.get("units", {}):
+				if (d["units"][n] as Dictionary).has(name):
+					b = d["units"][n][name]
+					break
+	if b.is_empty():
+		u.set_broken_side(maxi(1, u.fp / 2), 1, 1, u.morale)
+	else:
+		u.set_broken_side(int(b.get("fp", 1)), int(b.get("range", 1)), int(b.get("move", 1)), int(b.get("morale", u.morale)))

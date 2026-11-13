@@ -30,63 +30,20 @@ jobs:
           # codice non-zero anche dopo un import riuscito.
           "$GODOT" --headless --path godot --import || true
 
-      - name: Esegui i test
+      - name: Controllo dei glifi (niente quadratini)
         run: |
-          set -euxo pipefail
-          "$GODOT" --headless --path godot res://tests/TestRunner.tscn 2>&1 | tee test_output.txt
-          # Il codice di uscita di Godot va perso nella pipe: si valida l'output.
-          # 1) Nessun errore di script (compilazione/parse/runtime).
-          if grep -q "SCRIPT ERROR" test_output.txt; then
-            echo "::error::Errori di script rilevati nell'output di Godot"
-            exit 1
-          fi
-          # 2) Esito positivo esplicito dei test.
-          grep -q "TEST_RESULT: PASS" test_output.txt
+          set -eux
+          pip install --quiet fonttools
+          python3 tools/controlla_glifi.py
 
-      - name: Smoke test della scena di gioco (HUD)
+      - name: Partite automatiche IA contro IA (motore a decisioni)
         run: |
           set -euxo pipefail
-          # Istanzia Main.tscn con gli autoload attivi: cattura percorsi @onready
-          # rotti o errori di struttura della HUD che i test del motore non vedono.
-          "$GODOT" --headless --path godot --script res://tests/SceneCheck.gd 2>&1 | tee scene_output.txt
-          if grep -q "SCRIPT ERROR" scene_output.txt; then
-            echo "::error::Errori di script durante l'istanziazione di Main.tscn"
+          # Sei scenari con orientamenti e nazioni diverse: ogni partita deve
+          # arrivare in fondo senza errori di script né blocchi.
+          "$GODOT" --headless --path godot res://tests/SelfPlay.tscn -- 1,2,7,12,15,23 1 2>&1 | tee selfplay_output.txt
+          if grep -q "SCRIPT ERROR" selfplay_output.txt; then
+            echo "::error::Errori di script durante le partite automatiche"
             exit 1
           fi
-          grep -q "SCENE_RESULT: PASS" scene_output.txt
-
-      - name: Smoke test delle pedine 3D (figure + badge)
-        run: |
-          set -euxo pipefail
-          # Costruisce la mappa 3D e verifica numero di figure per pedina
-          # (squadra 4, team 2, leader 1, arma 1), badge numerici e yaw di marcia.
-          "$GODOT" --headless --path godot res://tests/Pieces3DCheck.tscn 2>&1 | tee pieces_output.txt
-          if grep -q "SCRIPT ERROR" pieces_output.txt; then
-            echo "::error::Errori di script nella costruzione delle pedine 3D"
-            exit 1
-          fi
-          grep -q "PIECES_RESULT: PASS" pieces_output.txt
-
-      - name: Smoke test della selezione (anteprima gruppo di comando)
-        run: |
-          set -euxo pipefail
-          # Selezionando un leader si popola l'anteprima del gruppo di comando;
-          # giocando un ordine l'anteprima si azzera.
-          "$GODOT" --headless --path godot res://tests/SelectionCheck.tscn 2>&1 | tee selection_output.txt
-          if grep -q "SCRIPT ERROR" selection_output.txt; then
-            echo "::error::Errori di script nel test di selezione"
-            exit 1
-          fi
-          grep -q "SELECTION_RESULT: PASS" selection_output.txt
-
-      - name: Smoke test delle Azioni (whitelist + instradamento)
-        run: |
-          set -euxo pipefail
-          # Le azioni accendibili hanno un handler reale; le no-op sono escluse;
-          # la Sventagliata è instradata allo spray.
-          "$GODOT" --headless --path godot res://tests/ActionsCheck.tscn 2>&1 | tee actions_output.txt
-          if grep -q "SCRIPT ERROR" actions_output.txt; then
-            echo "::error::Errori di script nel test delle Azioni"
-            exit 1
-          fi
-          grep -q "ACTIONS_RESULT: PASS" actions_output.txt
+          grep -q "SELFPLAY_RESULT: PASS" selfplay_output.txt

@@ -33,9 +33,8 @@ func _ready() -> void:
 		add_child(p)
 		_players.append(p)
 	# Eventi di gioco → suoni.
-	Game.fire_resolved.connect(_on_fire)
+	Game.chronicle.connect(_on_event)
 	Game.game_over.connect(_on_game_over)
-	Game.log_added.connect(_on_log)
 
 
 ## Riproduce il suono `key` su un player libero del pool (round-robin).
@@ -55,22 +54,27 @@ func toggle_mute() -> bool:
 
 # ─── Handler ──────────────────────────────────────────────────────────────────
 
-func _on_fire(result: Object) -> void:
-	# Ordnance → boato d'artiglieria; mitragliatrice se potente; fucile altrimenti.
-	var u: Unit = Game.state.unit_by_id(result.attacker_id) if Game.state else null
-	if u != null and u.ordnance:
-		play("artillery")
-	else:
-		play("mg" if int(result.fp_total) >= 6 else "rifle")
+func _on_event(ev: Dictionary) -> void:
+	match String(ev.get("kind", "")):
+		"fire":
+			if String(ev.get("fx", "")) == "arty":
+				play("artillery")
+			elif String(ev.get("fx", "")) == "fire":
+				var mg := false
+				for id in ev.get("pieces", []):
+					var u: Unit = Game.state.unit_by_id(String(id)) if Game.state != null else null
+					if u != null and u.is_weapon():
+						mg = true
+						if u.ordnance:
+							play("artillery")
+							return
+				play("mg" if mg else "rifle")
+		"time":
+			play("time")
+		"fate":
+			if String(ev.get("text", "")).contains("Cecchino"):
+				play("rifle")
 
 
 func _on_game_over(_winner: int) -> void:
 	play("deck")
-
-
-func _on_log(line: String, _detail: String = "", _kind: String = "") -> void:
-	var l := line.to_lower()
-	if l.contains("tempo!") or l.contains("morte subitanea"):
-		play("time")
-	elif l.contains("cecchino"):
-		play("rifle")

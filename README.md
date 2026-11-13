@@ -1,40 +1,40 @@
-# Combat Commander: Europe — Edizione Digitale
+# Combat Commander: Europe — Edizione digitale
 
-Reimplementazione digitale del gioco da tavolo tattico **Combat Commander: Europe**
-(GMT Games), realizzata in **Godot 4.3**. Progetto a uso personale, non distribuito
-a fini commerciali.
+Versione digitale del gioco da tavolo tattico **Combat Commander: Europe** (GMT Games),
+in **Godot 4.6**, con esportazione web. Progetto amatoriale a uso personale.
 
-## ▶ Gioca online
+Gioca online: https://tannoiser2.github.io/Combat-Commander-Europe/
 
-Una volta attivato GitHub Pages, il gioco è eseguibile direttamente nel browser:
-**https://tannoiser2.github.io/Combat-Commander-Europe/**
+## Com'è fatto (dalla v0.50 «Rifondazione»)
 
-## 🎮 Stato attuale
+| Parte | File | Che cosa fa |
+|---|---|---|
+| Motore a decisioni | `godot/engine/Flow.gd` | Tutta la partita come sequenza di decisioni: a ogni passo elenca **solo le mosse legali** e aspetta una scelta. |
+| IA | `godot/engine/Bot.gd` | Sceglie fra le stesse opzioni del giocatore, dando un punteggio a ciascuna. |
+| Regista | `godot/engine/Game.gd` | Fa girare il motore, dà il ritmo alla cronaca, traduce i tocchi in scelte. |
+| Regole pure | `Rules.gd`, `HexGrid.gd`, `Combat.gd`, `Events.gd`, `ObjectiveChits.gd` | Calcoli riusati dal motore (linea di vista, costi, copertura, eventi, chit). |
+| Dati | `godot/assets/` | 24 mappe, 6 mazzi da 72 carte, tabella unità (fronte e retro), scenari. |
+| Interfaccia | `godot/scenes/Partita.gd`, `Board2D.gd`, `CardView.gd`, `Map3D.gd`, `Menu.gd` | Guida passo passo, mappa 2D e 3D, mano di carte, cronaca. |
+| Tema | `godot/engine/Tema.gd`, `godot/assets/fonts/` | Colori e font (Black Ops One, Barlow Condensed — licenza OFL). |
 
-- **Scenario 1 — Fat Lipki**: mappa 15×10, 7 unità tedesche e 13 sovietiche.
-- Griglia esagonale *flat-top* sovrapposta alla mappa fotografica.
-- Pedine fedeli al gioco fisico: potenza di fuoco / gittata / movimento, morale,
-  comando dei leader, valori in riquadro per regole speciali.
-- Impilamento (max 8 uomini + armi illimitate per esagono) con resa a «mazzo di carte».
-- Motore di movimento passo-passo, risoluzione del fuoco (2d6 + FP vs Morale + copertura),
-  linea di vista, obiettivi e punti vittoria.
+## Verifiche
 
-## 📁 Struttura
+```
+godot --headless --path godot --import
+godot --headless --path godot res://tests/SelfPlay.tscn -- all 1     # partite IA contro IA su tutti gli scenari
+godot --path godot --resolution 1024x768 res://tests/UiTour.tscn -- /tmp/giro 2 160   # schermate di ogni tipo di decisione
+python3 tools/controlla_glifi.py                                    # nessun carattere senza glifo
+```
 
-| Cartella | Contenuto |
-|----------|-----------|
-| `godot/` | Il progetto Godot eseguibile (motore di gioco + scene). |
-| `godot/engine/` | Logica pura: stato, regole, combattimento, mazzi, scenari. |
-| `godot/scenes/` | Interfaccia e disegno della mappa. |
-| `MAPPE/`, `SCENARI/`, `COUNTER/`, `BADGE/` | Materiali di riferimento per la conversione. |
-| `Regolamento - Tabelle - Mappe/` | Regolamenti e tabelle (riferimento personale). |
+## Pubblicazione
 
-## 🛠 Sviluppo
+Solo su richiesta: pulsante «Run workflow» di `deploy.yml`, oppure un commit su `main`
+con `[pubblica]` nel messaggio.
 
-Aprire la cartella `godot/` in Godot 4.3 e premere F5.
+## Stato e cose da fare
 
-## ⚖ Note legali
+Vedi `docs/STATO.md`. I vecchi audit e il codice della v0.48 sono in `docs/archivio/`.
 
-*Combat Commander: Europe* è © GMT Games. Questo è un progetto amatoriale a scopo
-di studio e uso personale; tutti i materiali originali restano proprietà dei
-rispettivi titolari.
+## Note legali
+
+*Combat Commander: Europe* è © GMT Games. Tutti i materiali originali restano dei rispettivi titolari.

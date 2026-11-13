@@ -92,7 +92,7 @@ static func _names(state: GameState, ids: Array) -> String:
 	return ", ".join(out)
 
 
-## Colpisce un'unità: efficiente → rotta; già rotta → eliminata.
+## Colpisce un'unità: efficiente > rotta; già rotta > eliminata.
 static func _apply_hit(t: Unit, res: FireResult) -> void:
 	if t.efficient:
 		t.break_unit()
@@ -104,8 +104,8 @@ static func _apply_hit(t: Unit, res: FireResult) -> void:
 ## Effettua un attacco di fuoco (O20). `atk_dice` = dadi del Fato dell'attaccante,
 ## `def_dice` = dadi del Fire Defense Roll del difensore (entrambi pescati dal
 ## chiamante). Attacco = (FP gruppo − hindrance) + dadi att.; Difesa = Morale +
-## copertura + dadi dif. Difesa < Attacco → colpita; pari → colpita se in
-## movimento, altrimenti soppressa; Difesa > Attacco → nessun effetto.
+## copertura + dadi dif. Difesa < Attacco > colpita; pari > colpita se in
+## movimento, altrimenti soppressa; Difesa > Attacco > nessun effetto.
 static func resolve_fire(
 	attacker: Unit, tq: int, tr: int,
 	state: GameState,
@@ -143,7 +143,7 @@ static func resolve_fire(
 
 	# ─── Ordnance: Targeting Roll (O20.2.3) ──────────────────────────────────
 	# I due dadi si MOLTIPLICANO (non si sommano): per colpire il prodotto deve
-	# superare la gittata + hindrance. Mancato → attacco annullato senza effetto.
+	# superare la gittata + hindrance. Mancato > attacco annullato senza effetto.
 	if attacker.ordnance:
 		var product := atk_dice.x * atk_dice.y
 		if product <= dist + hind:
@@ -224,7 +224,7 @@ static func resolve_fire(
 			fp, hind, atk_dice.x, atk_dice.y, attack_total] \
 		+ "[b]Difesa[/b] (per unità) = Morale + copertura %d + dadi(%d+%d) [+ comando − filo]\n" % [
 			cover, def_dice.x, def_dice.y] \
-		+ "Colpita se Attacco %d ≥ Difesa; pari → soppressa (rotta se in movimento)" % attack_total
+		+ "Colpita se Attacco %d ≥ Difesa; pari > soppressa (rotta se in movimento)" % attack_total
 	if spray_cover >= 0:
 		res.log_line += " | [b]sventagliata[/b] su (%d,%d)" % [spray_q, spray_r]
 		res.detail += "\nSventagliata: stesso Attacco %d sull'esagono (%d,%d), copertura %d" % [
@@ -273,11 +273,11 @@ static func _resolve_hex_defenders(
 			_apply_hit(t, res)
 		elif attack_total == defense:
 			if moving or t.suppressed:
-				_apply_hit(t, res)   # in movimento (o già soppressa) → si rompe
+				_apply_hit(t, res)   # in movimento (o già soppressa) > si rompe
 			else:
 				t.suppress()
 				res.suppressed.append(t.id)
-		# attack_total < defense → nessun effetto
+		# attack_total < defense > nessun effetto
 	return cover
 
 
