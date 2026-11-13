@@ -242,7 +242,9 @@ func pick() -> int:
 				if String(opts[i].get("label", "")).contains("Fuoco"):
 					return i
 			return 0
-		"deploy", "demolitions":
+		"setup":
+			return _idx(opts, "confirm")
+		"deploy", "demolitions", "setup_place":
 			return opts.size() - 1
 	return 0
 

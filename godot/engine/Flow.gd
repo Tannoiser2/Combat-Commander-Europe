@@ -43,6 +43,8 @@ var _rng := RandomNumberGenerator.new()
 var _moving_ids: Array = []         ## unità attualmente «attivate a Muovere»
 var _opfire_ids: Array = []         ## unità attivate per il Fuoco di Opportunità in questa Mossa
 var _team_seq: int = 0
+var setup_zone: Array = []          ## zona di schieramento del giocatore umano (se prevista)
+var manual_setup: bool = false
 
 ## Limite di scarto per nazione (scheda riassuntiva del giocatore).
 const DISCARD_LIMIT := {
@@ -82,6 +84,7 @@ static func new_game(scenario_num: int, human: int = AX, seed_value: int = 0) ->
 		var e := ScenarioLoader.entry(scenario_num)
 		f.orders_max[AX] = int(e.get("ordini_axis", 2))
 		f.orders_max[AL] = int(e.get("ordini_allies", 2))
+	f.setup_zone = st.setup_zone.duplicate()
 	st.setup_zone = []
 	f.s = st
 	f._assign_carriers()
@@ -106,6 +109,8 @@ func start() -> void:
 
 
 func _run() -> void:
+	if manual_setup and not setup_zone.is_empty():
+		await _setup(s.human_faction)
 	while not over:
 		await _turn(s.active_faction)
 		if over:
@@ -113,6 +118,52 @@ func _run() -> void:
 		s.active_faction = opp(s.active_faction)
 		turn_count += 1
 		s.turn_number = turn_count
+
+
+## Schieramento iniziale del giocatore: può spostare le sue unità dentro la
+## zona prevista dalla scheda, farle ridisporre in automatico, o confermare.
+func _setup(f: int) -> void:
+	say("Schieramento dei %s: disponi le tue unità nella zona evidenziata." % side_name(f), "turn", { "who": f })
+	while not over:
+		var opts: Array = []
+		for u in men(f):
+			opts.append({ "id": "unit", "unit": u.id, "label": "Sposta %s" % uname(u) })
+		opts.append({ "id": "auto", "label": "Ridisponi tutto in automatico" })
+		opts.append({ "id": "confirm", "label": "Pronto: inizia la partita" })
+		var a := await ask(f, "setup", "SCHIERAMENTO · tocca una tua unità per spostarla dentro la zona, oppure conferma lo schieramento proposto.", opts, {})
+		match String(a.get("id", "confirm")):
+			"auto":
+				s.setup_zone = setup_zone.duplicate()
+				ScenarioLoader.auto_deploy_human(s)
+				s.setup_zone = []
+				_refit_weapons(f)
+			"unit":
+				var u: Unit = s.unit_by_id(String(a["unit"]))
+				var o2: Array = []
+				for h: Vector2i in setup_zone:
+					var hd: GameState.HexData = s.hex_at(h.x, h.y)
+					if hd == null or int(Domain.TERRAIN_MOVE_COST.get(hd.terrain, 1)) >= 99 or h == u.pos():
+						continue
+					if s.soldier_icons_at(h.x, h.y) + u.soldier_icons() <= 7 and not enemy_in(h, f):
+						o2.append({ "id": "hex", "hex": h, "label": lbl(h) })
+				o2.append({ "id": "no", "label": "Lascia %s dov'è" % u.unit_name })
+				var b := await ask(f, "setup_place", "SCHIERAMENTO · tocca l'esagono della zona in cui mettere %s." % u.unit_name, o2, { "unit": u.id })
+				if b.get("id") == "hex":
+					s.set_unit_pos(u, b["hex"].x, b["hex"].y)
+			_:
+				break
+	update_objectives()
+	events.clear()
+	say("[b]Scenario %d — %s[/b]: schieramento completato." % [s.scenario_number, s.scenario_name], "turn")
+
+
+func _refit_weapons(f: int) -> void:
+	for w in s.units.values():
+		if w.is_weapon() and w.faction == f and w.carrier_id != "":
+			var c: Unit = s.unit_by_id(w.carrier_id)
+			if c != null:
+				w.q = c.q
+				w.r = c.r
 
 
 ## Risponde alla decisione in sospeso scegliendo l'opzione `index`.

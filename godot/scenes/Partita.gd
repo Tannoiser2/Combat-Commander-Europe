@@ -434,7 +434,7 @@ func _refresh() -> void:
 	else:
 		var who2 := int(p["who"])
 		who_lbl.text = "TOCCA A TE — %s" % fl.side_name(who2).to_upper()
-		if fl.s.active_faction != who2:
+		if fl.s.active_faction != who2 and not String(p["kind"]).begins_with("setup"):
 			who_lbl.text = "REAGISCI — %s" % fl.side_name(who2).to_upper()
 		who_lbl.add_theme_color_override("font_color", Tema.side_color(who2))
 		guide.text = String(p["title"])
@@ -456,7 +456,7 @@ func _build_options(p: Dictionary) -> void:
 			unit_n += 1
 	if hex_n > 0:
 		opts_box.add_child(_hint("Tocca sulla mappa uno degli esagoni evidenziati (%d)." % hex_n))
-	if unit_n > 0 and kind in ["activate", "pick_mover", "sniper", "ambush_victim", "spotter", "deploy"]:
+	if unit_n > 0 and kind in ["activate", "pick_mover", "sniper", "ambush_victim", "spotter", "deploy", "setup"]:
 		opts_box.add_child(_hint("Tocca sulla mappa una delle pedine col bordo dorato, oppure scegli dall'elenco."))
 	for i in opts.size():
 		var o: Dictionary = opts[i]
@@ -465,6 +465,8 @@ func _build_options(p: Dictionary) -> void:
 		if o.has("hex") and not o.has("card"):
 			continue
 		if o.has("card") and kind in ["turn", "discard"]:
+			continue
+		if kind == "setup" and o.has("unit"):
 			continue
 		var b := _btn(String(o.get("label", o.get("id", "?"))))
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT

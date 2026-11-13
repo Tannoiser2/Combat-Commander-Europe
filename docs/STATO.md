@@ -14,7 +14,7 @@
 
 ## Semplificazioni e cose ancora da fare
 
-1. **Schieramento**: per ora automatico per entrambi i lati (manca la fase in cui il giocatore dispone le sue unità).
+1. **Schieramento**: il giocatore può spostare le sue unità nella zona o farle ridisporre in automatico; le regole di schieramento particolari di alcune schede (ancore, ordine di piazzamento) non sono ancora imposte.
 2. **Salvataggio** della partita: non ancora collegato al nuovo motore.
 3. **Unità Nascosta (A35.4)** ed evento **Rinforzi**: la Tabella di Supporto della nazione non è modellata (Rinforzi dà una Squadra base; Unità Nascosta non è giocabile).
 4. **Eventi** Saccheggio, Procedere Feriti e Fosforo Bianco: senza effetto.

@@ -83,6 +83,7 @@ func start_new_game(human_faction: int = Flow.AX, scenario_num: int = 1,
 			bots[Flow.AL] = Bot.new(flow, difficulty)
 	_queue.clear()
 	paused = false
+	flow.manual_setup = mode == Mode.VS_AI
 	flow.start()
 	_after_engine()
 
