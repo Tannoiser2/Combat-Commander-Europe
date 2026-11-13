@@ -20,6 +20,7 @@ var _changelog: Panel
 var _rules_panel: Panel
 var _rules_label: RichTextLabel
 var _difficulty: int = Domain.BotDifficulty.GREEN
+var _mode: int = 0
 
 ## Nazione (stringa catalogo) → nome mostrato.
 const NATION_LABEL := {
@@ -57,8 +58,9 @@ func _catalog_entry(num: int) -> Dictionary:
 
 func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	theme = Tema.get_theme()
 	var bg := ColorRect.new()
-	bg.color = Color(0.09, 0.11, 0.13)
+	bg.color = Tema.BG
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -69,9 +71,9 @@ func _build_ui() -> void:
 	scroll.anchor_top = 0.0
 	scroll.anchor_bottom = 1.0
 	scroll.offset_left = 12
-	scroll.offset_right = 214
-	scroll.offset_top = 16
-	scroll.offset_bottom = -44  # spazio per versione + Changelog in basso
+	scroll.offset_right = 262
+	scroll.offset_top = 12
+	scroll.offset_bottom = -58  # spazio per versione + Changelog in basso
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 	_list = VBoxContainer.new()
@@ -88,10 +90,10 @@ func _build_ui() -> void:
 	_art_tex.anchor_right = 1.0
 	_art_tex.anchor_top = 0.0
 	_art_tex.anchor_bottom = 1.0
-	_art_tex.offset_left = 224
+	_art_tex.offset_left = 272
 	_art_tex.offset_right = -492
-	_art_tex.offset_top = 16
-	_art_tex.offset_bottom = -16
+	_art_tex.offset_top = 12
+	_art_tex.offset_bottom = -58
 	add_child(_art_tex)
 
 	# Colonna destra: MAPPA in alto (affiancata all'artwork) e, SOTTO, l'ORDINE DI
@@ -130,84 +132,58 @@ func _build_ui() -> void:
 	ob.add_child(_ob_column(true))
 	ob.add_child(_ob_column(false))
 
-	# Versione + Changelog (sempre presenti, in basso a sinistra).
+	# Barra in basso (sotto elenco e illustrazione): versione, novità, regole
+	# dello scenario, livello dell'IA e modalità di gioco. Tutto in un contenitore
+	# orizzontale, così nulla si sovrappone a nessuna risoluzione.
+	var bar := HBoxContainer.new()
+	bar.anchor_left = 0.0
+	bar.anchor_right = 1.0
+	bar.anchor_top = 1.0
+	bar.anchor_bottom = 1.0
+	bar.offset_left = 12
+	bar.offset_right = -492
+	bar.offset_top = -50
+	bar.offset_bottom = -10
+	bar.add_theme_constant_override("separation", 8)
+	add_child(bar)
 	var ver := Label.new()
 	ver.text = "v%s" % Domain.VERSION
-	ver.add_theme_font_size_override("font_size", 13)
-	ver.modulate = Color(0.72, 0.74, 0.78)
-	ver.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	ver.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	ver.offset_left = 18
-	ver.offset_top = -40
-	ver.offset_right = 78
-	ver.offset_bottom = -12
-	add_child(ver)
+	ver.custom_minimum_size.x = 54
+	ver.add_theme_color_override("font_color", Tema.DIM)
+	bar.add_child(ver)
 	var clog_btn := Button.new()
-	clog_btn.text = "Changelog"
-	clog_btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	clog_btn.offset_left = 84
-	clog_btn.offset_top = -42
-	clog_btn.offset_right = 204
-	clog_btn.offset_bottom = -12
+	clog_btn.text = "Novità"
+	clog_btn.custom_minimum_size.x = 80
 	clog_btn.pressed.connect(func() -> void:
 		if _changelog != null:
 			_changelog.visible = not _changelog.visible)
-	add_child(clog_btn)
+	bar.add_child(clog_btn)
 	_build_changelog_panel()
-
-	# Pulsante «Regole scenario»: mostra setup e regole speciali del selezionato.
 	var rules_btn := Button.new()
-	rules_btn.text = "Regole scenario"
-	rules_btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	rules_btn.offset_left = 210
-	rules_btn.offset_top = -42
-	rules_btn.offset_right = 360
-	rules_btn.offset_bottom = -12
+	rules_btn.text = "Regole dello scenario"
+	rules_btn.custom_minimum_size.x = 170
 	rules_btn.pressed.connect(func() -> void:
 		if _rules_panel != null:
 			_rules_panel.visible = not _rules_panel.visible)
-	add_child(rules_btn)
+	bar.add_child(rules_btn)
 	_build_rules_panel()
-
-	# Difficoltà del bot (FlipBot): Recluta / Di linea / Veterano.
-	var diff_lbl := Label.new()
-	diff_lbl.text = "Difficoltà IA:"
-	diff_lbl.add_theme_font_size_override("font_size", 13)
-	diff_lbl.modulate = Color(0.72, 0.74, 0.78)
-	diff_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	diff_lbl.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	diff_lbl.offset_left = 372
-	diff_lbl.offset_top = -42
-	diff_lbl.offset_right = 470
-	diff_lbl.offset_bottom = -12
-	add_child(diff_lbl)
 	var diff_opt := OptionButton.new()
-	for lvl in [Domain.BotDifficulty.GREEN, Domain.BotDifficulty.LINE, Domain.BotDifficulty.VETERAN]:
-		diff_opt.add_item(String(Domain.BOT_DIFFICULTY_LABELS.get(lvl, "?")), lvl)
-	diff_opt.selected = 0
-	diff_opt.tooltip_text = "Più alto = l'IA ha più carte, più ordini e si arrende più tardi (FlipBot)"
-	diff_opt.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	diff_opt.offset_left = 474
-	diff_opt.offset_top = -44
-	diff_opt.offset_right = 604
-	diff_opt.offset_bottom = -10
-	diff_opt.item_selected.connect(func(idx: int) -> void:
-		_difficulty = diff_opt.get_item_id(idx))
-	add_child(diff_opt)
-
-	# Modalità tutorial: aiuto guidato a ogni ordine/azione (persistente).
-	var tut := CheckButton.new()
-	tut.text = "Modalità tutorial (aiuto guidato)"
-	tut.button_pressed = Game.tutorial_enabled
-	tut.tooltip_text = "Se attiva, a ogni ordine o azione compare una finestra con la regola e cosa fare nel programma"
-	tut.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	tut.offset_left = 620
-	tut.offset_top = -46
-	tut.offset_right = 1000
-	tut.offset_bottom = -8
-	tut.toggled.connect(func(on: bool) -> void: Game.set_tutorial(on))
-	add_child(tut)
-	# Nota: l'«Editor mappe» è stato spostato nella colonna laterale in partita.
+	diff_opt.custom_minimum_size.x = 150
+	for i in 3:
+		diff_opt.add_item("IA: %s" % ["Recluta", "Di linea", "Veterano"][i], i)
+	diff_opt.selected = 1
+	_difficulty = 1
+	diff_opt.tooltip_text = "Quanto gioca bene l'avversario artificiale"
+	diff_opt.item_selected.connect(func(idx: int) -> void: _difficulty = idx)
+	bar.add_child(diff_opt)
+	var mode_opt := OptionButton.new()
+	mode_opt.custom_minimum_size.x = 190
+	mode_opt.add_item("Contro l'IA", 0)
+	mode_opt.add_item("Due giocatori, un tavolo", 1)
+	mode_opt.add_item("Dimostrazione: IA contro IA", 2)
+	mode_opt.tooltip_text = "Chi comanda i due lati"
+	mode_opt.item_selected.connect(func(idx: int) -> void: _mode = idx)
+	bar.add_child(mode_opt)
 
 
 ## Una colonna dell'Ordine di Battaglia: pulsante-fazione in cima + elenco forze.
@@ -226,7 +202,7 @@ func _ob_column(axis: bool) -> Control:
 	btn.custom_minimum_size = Vector2(0, 48)
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.add_theme_font_size_override("font_size", 16)
-	btn.tooltip_text = "Clicca per giocare con questa fazione"
+	btn.tooltip_text = "Gioca con questo lato"
 	btn.pressed.connect(_start.bind(Domain.Faction.GERMAN if axis else Domain.Faction.RUSSIAN))
 	col.add_child(btn)
 	var forces := VBoxContainer.new()
@@ -249,8 +225,8 @@ func _build_list() -> void:
 		var titolo: String = sc.get("titolo", "—")
 		var btn := Button.new()
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.custom_minimum_size = Vector2(0, 28)
-		btn.add_theme_font_size_override("font_size", 12)
+		btn.custom_minimum_size = Vector2(0, 34)
+		btn.add_theme_font_size_override("font_size", 16)
 		btn.clip_text = true
 		btn.text = "%2d.  %s" % [num, titolo]
 		btn.tooltip_text = "%s — %s" % [sc.get("luogo", ""), sc.get("data", "")]
@@ -276,7 +252,7 @@ func _select(num: int) -> void:
 func _fill_ob(btn: Button, forces: VBoxContainer, nation: String, forze: Array, faction: int) -> void:
 	if btn == null:
 		return
-	btn.text = String(NATION_LABEL.get(nation, nation.capitalize()))
+	btn.text = "GIOCA CON: %s" % String(NATION_LABEL.get(nation, nation.capitalize())).to_upper()
 	for child in forces.get_children():
 		child.queue_free()
 	var nat := UnitChart.nation_code(nation)
@@ -417,5 +393,5 @@ func _load_tex(path: String) -> Texture2D:
 func _start(faction: int) -> void:
 	if _selected_num <= 0:
 		return
-	Game.start_new_game(faction, _selected_num, _difficulty)
-	get_tree().change_scene_to_file("res://scenes/Main.tscn")
+	Game.start_new_game(faction, _selected_num, _difficulty, _mode)
+	get_tree().change_scene_to_file("res://scenes/Partita.tscn")

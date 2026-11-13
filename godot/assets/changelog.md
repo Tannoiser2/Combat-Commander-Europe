@@ -1,3 +1,28 @@
+[b]v0.50.0 — Rifondazione[/b]
+
+[b]Motore nuovo «a decisioni»[/b]
+- La partita è ora una sequenza di decisioni: a ogni passo il gioco elenca [b]solo le mosse legali[/b] e aspetta la scelta. Giocatore e IA usano le stesse identiche opzioni.
+- Sequenza a norma di regolamento: Ordini uno alla volta fino al limite dello scenario, oppure scarto (col limite di scarto della nazione); pesca a fine turno.
+- [b]Attivazione[/b]: un'unità singola oppure un comandante con gli uomini nel suo raggio di Comando, scelti uno per uno.
+- [b]Unità rotte coi valori veri del retro della pedina[/b] (dal Manifesto ufficiale): possono ancora essere attivate, come da regolamento.
+- [b]Gruppi di fuoco[/b] per catena di esagoni adiacenti; armi a tiro curvo che devono prima colpire; Azioni giocabili durante il fuoco (Fuoco Sostenuto, Fuoco Mirato, Bombe a Mano, Fuoco Incrociato, Buona Mira, Sventagliata) e in difesa (Mimetizzazione, Trinceramenti e Casamatta Nascosti).
+- [b]Fuoco di Opportunità[/b] a ogni esagono, Mine e Filo Spinato Nascosti, Granate Fumogene, Fuoco d'Assalto.
+- [b]Corpo a corpo[/b] con Imboscata (anche per il giocatore) e Lotta senza Quartiere; Ferite Leggere; Trincerarsi a ogni avanzamento del Tempo; Demolizioni.
+- [b]Carta Iniziativa[/b]: chi la possiede può far ripetere un tiro sfavorevole cedendola.
+- [b]Cecchino[/b] con scelta del bersaglio; nuovi eventi: Crateri, Trappola esplosiva, Nebbia di guerra, Spionaggio, Dividersi, Rinforzi.
+- [b]Bordi amici corretti per ogni scenario[/b] (alto/basso oppure sinistra/destra, dalla scheda): uscite dalla mappa, ritirate e rinforzi vanno ora dal lato giusto. Nello scenario 1 prima erano sbagliati.
+
+[b]IA nuova[/b]
+- Sceglie fra le mosse legali valutando probabilità di rompere il bersaglio, copertura, esposizione al fuoco, obiettivi e limite di impilamento. Tre livelli: Recluta, Di linea, Veterano.
+
+[b]Interfaccia rifatta[/b]
+- Riquadro [b]Guida[/b] che dice sempre chi deve fare cosa, passo per passo; sulla mappa si illumina solo ciò che si può toccare.
+- [b]Carte in italiano[/b] con le nuove illustrazioni (Tedeschi, Sovietici, Americani); anteprima grande e motivo per cui una carta non è giocabile.
+- [b]Cronaca[/b] di ogni azione, dadi mostrati a ogni tiro, carta giocata dall'avversario in evidenza, ritmo regolabile e pausa.
+- Plancia con Tempo, Morte Subitanea, Punti Vittoria, Iniziativa e perdite.
+- Mappa 2D con trascinamento e zoom anche a tocco (pizzico con due dita); vista 3D con sposta, pizzica e ruota a due dita.
+- Modalità: contro l'IA, due giocatori allo stesso tavolo, dimostrazione IA contro IA.
+
 [b]v0.48.0[/b]
 
 [b]Regole di contorno: terreno, fortificazioni e tiri di difesa (Fase 4 dell'audit)[/b]
@@ -55,7 +80,7 @@
 [b]v0.44.2[/b]
 
 [b]Fuoco più leggibile sulla mappa[/b]
-- [b]«Chi spara a chi»[/b]: dopo ogni fuoco (soprattutto quello dell'IA) una [b]linea rossa[/b] collega il tiratore al bersaglio, con l'etichetta «Tiratore → Bersaglio», e resta finché non giochi l'ordine successivo. In 2D e in 3D.
+- [b]«Chi spara a chi»[/b]: dopo ogni fuoco (soprattutto quello dell'IA) una [b]linea rossa[/b] collega il tiratore al bersaglio, con l'etichetta «Tiratore > Bersaglio», e resta finché non giochi l'ordine successivo. In 2D e in 3D.
 - [b]Granata[/b]: ora si vede [b]dove è caduta[/b] (Bombe a Mano) con un marcatore d'impatto arancio + «granata», finché non parte l'ordine dopo.
 
 [b]v0.44.1[/b]
@@ -89,7 +114,7 @@
 
 [b]Fuoco: ora si vede chi cliccare (vista 3D)[/b]
 - Dopo aver giocato la carta di [b]Fuoco[/b], nella vista 3D non si illuminava nulla: non si capiva cosa selezionare. Ora si accendono subito i [b]tiratori pronti[/b] (anello ciano) e i [b]leader che possono dirigere un gruppo[/b] di fuoco (anello oro), come già accadeva nella mappa 2D.
-- Cliccando un leader-direttore si illuminano i tiratori che comanda; cliccando un tiratore si assembla il gruppo e si mostrano i bersagli. Il flusso «seleziona leader → si accendono le unità che possono sparare → scegli» ora è visibile.
+- Cliccando un leader-direttore si illuminano i tiratori che comanda; cliccando un tiratore si assembla il gruppo e si mostrano i bersagli. Il flusso «seleziona leader > si accendono le unità che possono sparare > scegli» ora è visibile.
 
 [b]v0.43.0[/b]
 
@@ -151,7 +176,7 @@
 [b]v0.36.0[/b]
 
 [b]Modalità tutorial (aiuto guidato)[/b]
-- Nuova opzione nella schermata iniziale: «Modalità tutorial». Quando è attiva, ogni volta che premi un ordine o un'azione compare una finestra fluttuante con due sezioni: [b]Regola[/b] (sunto del regolamento CC:E) e [b]Cosa fare[/b] (come funziona il programma in quel momento). Coperti tutti gli ordini (Mossa, Fuoco, Avanzata, Recupero, Fuga, Artiglieria, Passa) e le azioni principali. La finestra si chiude col tasto «✕» o «Disattiva tutorial», e l'impostazione viene ricordata.
+- Nuova opzione nella schermata iniziale: «Modalità tutorial». Quando è attiva, ogni volta che premi un ordine o un'azione compare una finestra fluttuante con due sezioni: [b]Regola[/b] (sunto del regolamento CC:E) e [b]Cosa fare[/b] (come funziona il programma in quel momento). Coperti tutti gli ordini (Mossa, Fuoco, Avanzata, Recupero, Fuga, Artiglieria, Passa) e le azioni principali. La finestra si chiude col tasto «X» o «Disattiva tutorial», e l'impostazione viene ricordata.
 
 [b]v0.35.2[/b]
 

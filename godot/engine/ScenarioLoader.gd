@@ -73,6 +73,7 @@ static func setup(state: GameState, num: int) -> bool:
 		return false
 
 	# ─── Mappa (con i suoi obiettivi) ───────────────────────────────────────
+	state.edge_mode = edge_mode_for(num)
 	var map_id := String(e.get("mappa", "map1"))
 	if not MapLoader.load_into(state, "res://assets/maps/%s.json" % map_id):
 		return false
@@ -519,6 +520,18 @@ static func _split_reinforcements(state: GameState, e: Dictionary, side: String,
 
 ## Caselle di setup di un lato: ancore (in/adiacenti) o bordo+profondità. Le zone
 ## fedeli alle schede (setup_zones.json) hanno priorità sui campi del catalogo.
+## Scenari con i giocatori sui lati lunghi della mappa (alto/basso).
+const ALLIES_TOP := [1, 4, 6, 9, 13, 14, 20, 24]
+const AXIS_TOP := [12, 15, 16, 21]
+
+static func edge_mode_for(num: int) -> int:
+	if ALLIES_TOP.has(num):
+		return 1
+	if AXIS_TOP.has(num):
+		return 2
+	return 0
+
+
 static func _setup_hexes(state: GameState, e: Dictionary, side: String, depth_override: int = -1) -> Array:
 	var num := int(e.get("numero", 0))
 	var spec := _zone_spec(num, side)
@@ -547,7 +560,13 @@ static func _setup_hexes(state: GameState, e: Dictionary, side: String, depth_ov
 	# Bordo: Axis a Est (colonne destre), Allied a Ovest (colonne sinistre).
 	# Profondità della zona di schieramento per lato (dalle schede scenario).
 	var depth := depth_override if depth_override > 0 else maxi(1, int(spec.get("depth", e.get("setup_%s_depth" % side, 3))))
-	if side == "axis":
+	if state.edge_mode != 0:
+		var top := (side == "allies") == (state.edge_mode == 1)
+		var d2 := mini(depth, state.map_rows)
+		for r in (range(0, d2) if top else range(state.map_rows - d2, state.map_rows)):
+			for q in state.map_cols:
+				_add_hex(state, out, seen, q, r)
+	elif side == "axis":
 		for q in range(maxi(0, state.map_cols - depth), state.map_cols):
 			for r in state.map_rows:
 				_add_hex(state, out, seen, q, r)

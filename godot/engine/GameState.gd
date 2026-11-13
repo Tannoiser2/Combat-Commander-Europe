@@ -35,6 +35,11 @@ var cal_hex: float = 59.2
 var cal_ox: float = 129.0
 var cal_oy: float = 69.0
 
+## Orientamento dei bordi amici (dal riquadro «Mapboard Configuration» della
+## scheda scenario): 0 = Alleati a sinistra / Asse a destra; 1 = Alleati in alto /
+## Asse in basso; 2 = Asse in alto / Alleati in basso.
+var edge_mode: int = 0
+
 ## Lati di esagono: ogni voce { "a": Vector2i, "b": Vector2i, "feature": int }
 var side_features: Array[Dictionary] = []
 

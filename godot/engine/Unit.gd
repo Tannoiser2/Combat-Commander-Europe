@@ -33,7 +33,27 @@ var q: int = 0
 var r: int = 0
 
 # ─── Stato ───────────────────────────────────────────────────────────────────
-var efficient: bool = true    ## true = efficiente, false = inefficiente (rovesciata)
+## true = efficiente, false = rotta (pedina rovesciata). Al cambio di lato le
+## statistiche stampate passano da quelle del fronte a quelle del retro (3.2):
+## il resto del codice legge sempre fp/range/move/morale/command «correnti».
+var efficient: bool = true:
+	set(v):
+		if v == efficient:
+			return
+		efficient = v
+		_apply_side()
+
+# Statistiche dei due lati (fronte / rotto). Valide solo se has_sides.
+var has_sides: bool = false
+var f_fp: int = 0
+var f_range: int = 0
+var f_move: int = 0
+var f_morale: int = 0
+var f_command: int = 0
+var b_fp: int = 0
+var b_range: int = 0
+var b_move: int = 0
+var b_morale: int = 0
 var suppressed: bool = false  ## marcatore di soppressione
 var activated: bool = false   ## già attivata in questo turno
 var veteran: bool = false     ## marcatore veterano
@@ -51,6 +71,24 @@ func _init(
 	type = p_type
 	unit_class = p_class
 	unit_name = p_name
+
+
+## Registra le statistiche del lato rotto (dal Manifesto delle unità). Va
+## chiamata con l'unità sul lato efficiente.
+func set_broken_side(bfp: int, brange: int, bmove: int, bmorale: int) -> void:
+	f_fp = fp; f_range = range; f_move = move; f_morale = morale; f_command = command
+	b_fp = bfp; b_range = brange; b_move = bmove; b_morale = bmorale
+	has_sides = true
+	_apply_side()
+
+
+func _apply_side() -> void:
+	if not has_sides or type == Domain.UnitType.WEAPON:
+		return
+	if efficient:
+		fp = f_fp; range = f_range; move = f_move; morale = f_morale; command = f_command
+	else:
+		fp = b_fp; range = b_range; move = b_move; morale = b_morale; command = 0
 
 
 func is_weapon() -> bool:
@@ -90,6 +128,8 @@ func is_broken() -> bool:
 
 ## Potenza di fuoco effettiva: dimezzata (lato rovesciato) se rotta.
 func effective_fp() -> int:
+	if has_sides:
+		return fp  # già quello del lato corrente
 	return fp if efficient else int(fp / 2)
 
 
@@ -132,4 +172,8 @@ func clone() -> Unit:
 	u.efficient = efficient; u.suppressed = suppressed
 	u.activated = activated; u.veteran = veteran
 	u.concealed = concealed; u.hero = hero
+	u.has_sides = has_sides
+	u.f_fp = f_fp; u.f_range = f_range; u.f_move = f_move; u.f_morale = f_morale; u.f_command = f_command
+	u.b_fp = b_fp; u.b_range = b_range; u.b_move = b_move; u.b_morale = b_morale
+	u._apply_side()
 	return u

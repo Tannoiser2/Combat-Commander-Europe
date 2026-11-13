@@ -1,5 +1,7 @@
 name: Esporta Godot e pubblica su GitHub Pages
 
+# Pubblicazione SOLO su richiesta: dal pulsante «Run workflow» oppure con un
+# commit su main il cui messaggio contiene [pubblica].
 on:
   push:
     branches: [main]
@@ -13,6 +15,7 @@ permissions:
 jobs:
   export:
     name: Esporta e pubblica
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[pubblica]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

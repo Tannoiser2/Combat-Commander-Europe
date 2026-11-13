@@ -215,7 +215,9 @@ static func clear_suppression(state: GameState, faction: int) -> int:
 ## -1 a FP/Gittata/Movimento/Morale e vieta di sparare le ARMI trasportate
 ## (vedi can_fire_weapon). Le unità ROTTE non possono ricevere ordini attivi.
 static func can_be_ordered(u: Unit) -> bool:
-	return u != null and u.efficient and not u.activated
+	# O14.1: può essere attivata qualsiasi unità non ancora attivata nel Turno
+	# (anche rotta o soppressa: agirà coi valori del lato corrente).
+	return u != null and not u.activated
 
 
 ## 13.2 / 11.1: un'arma può sparare solo se il suo portatore è efficiente e NON
